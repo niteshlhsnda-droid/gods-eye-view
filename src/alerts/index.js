@@ -32,6 +32,7 @@ export const CYCLONE_POLL_MS = 30 * 60 * 1000;
  * @param {{getItem: Function, setItem: Function}|null} [input.storage]
  * @param {(key: string, vars?: object) => string} [input.t]
  * @param {object} [input.timers] { setInterval, clearInterval } seam.
+ * @param {() => number} [input.now] Clock seam (epoch-ms).
  */
 export function createAlertCenter({
   toastService,
@@ -42,13 +43,14 @@ export function createAlertCenter({
   storage = null,
   t = (key, vars) => key,
   timers = { setInterval, clearInterval },
+  now = () => Date.now(),
 } = {}) {
   const subscriptions = new Map();
   const intervals = new Map();
   let seenQuakeIds = new Set();
   let seenStormIds = new Set();
   const lastFlyoverAlert = new Map();
-  const watcherStartedAt = Date.now();
+  const watcherStartedAt = now();
   const cycloneProvider = createCycloneProvider({ cycloneSource });
 
   const tr = (key, vars, fallback) => {
@@ -128,16 +130,17 @@ export function createAlertCenter({
       subscriptions.get('flyovers');
     const target = getTarget();
     if (!target) return;
-    const now = Date.now();
+    const at = now();
     const hits = findFlyovers({
       satellites: getSatellites(),
       target,
       radiusKm,
+      date: new Date(at),
     });
     for (const hit of hits) {
       const last = lastFlyoverAlert.get(hit.name) || 0;
-      if (now - last < FLYOVER_COOLDOWN_MS) continue;
-      lastFlyoverAlert.set(hit.name, now);
+      if (at - last < FLYOVER_COOLDOWN_MS) continue;
+      lastFlyoverAlert.set(hit.name, at);
       await notify({
         kind: 'info',
         title: tr('alerts.flyover', null, 'Satellite flyover'),
