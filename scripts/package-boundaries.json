@@ -3464,5 +3464,52 @@
       "src/data/layerStateTokenReservations.json"
     ],
     "external": []
+  },
+  "debris-layer": {
+    "exports": ["./layers/debris"],
+    "modules": [
+      "src/layers/debris/index.js",
+      "src/layers/debris/policy.js",
+      "src/layers/debris/source.js",
+      "src/layers/debris/records.js",
+      "src/sources/tle.js"
+    ],
+    "external": ["cesium", "satellite.js"]
+  },
+  "deckgl-layer": {
+    "exports": ["./layers/deckgl"],
+    "modules": [
+      "src/layers/deckgl/index.js",
+      "src/layers/deckgl/overlay.js",
+      "src/layers/deckgl/entities.js",
+      "src/layers/deckgl/h3density.js"
+    ],
+    "external": ["cesium", "deck.gl", "h3-js"]
+  },
+  "wind-maplibre-layer": {
+    "exports": ["./layers/wind-maplibre"],
+    "modules": ["src/layers/windMaplibre/index.js"],
+    "external": []
+  },
+  "sim-yuka-traffic": {
+    "exports": ["./sim/yuka-traffic"],
+    "modules": ["src/sim/yukaTraffic.js"],
+    "external": ["yuka"]
+  },
+  "warroom-client": {
+    "exports": ["./warroom"],
+    "modules": [
+      "src/warroom/index.js",
+      "src/warroom/annotations.js",
+      "src/warroom/protocol.js",
+      "src/warroom/livekit.js"
+    ],
+    "external": ["socket.io-client", "yjs"]
+  },
+  "warroom-server": {
+    "runtime": "node",
+    "exports": ["./server/warroom"],
+    "modules": ["server/warroom.js", "src/warroom/protocol.js"],
+    "external": ["socket.io", "yjs"]
   }
 }
