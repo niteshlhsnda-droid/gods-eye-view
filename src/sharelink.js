@@ -505,15 +505,27 @@ export class ShareLinkManager {
     this._scheduleUpdate();
   }
 
+  /**
+   * Build the current-state share URL without touching the clipboard.
+   * The share sheet (src/share/) uses this for per-channel UTM-tagged links;
+   * copyLink() below is the clipboard path over the same builder.
+   * @returns {string|null} The share URL, or null when no camera fix exists.
+   */
+  buildShareUrl({ nowMs = Date.now() } = {}) {
+    const params = this._buildHashParams();
+    if (!params) return null;
+    params.set(SHARE_CREATED_AT_PARAM, String(Math.floor(nowMs / 1000)));
+    const url = new URL(window.location.href);
+    url.hash = params.toString();
+    return url.href;
+  }
+
   /** Copy a current-state snapshot with a copy-time timestamp. Returns true on success. */
   async copyLink({ nowMs = Date.now() } = {}) {
-    const params = this._buildHashParams();
-    if (!params) return false;
-    params.set(SHARE_CREATED_AT_PARAM, String(Math.floor(nowMs / 1000)));
-    const copiedUrl = new URL(window.location.href);
-    copiedUrl.hash = params.toString();
+    const href = this.buildShareUrl({ nowMs });
+    if (!href) return false;
     try {
-      await navigator.clipboard.writeText(copiedUrl.href);
+      await navigator.clipboard.writeText(href);
       return true;
     } catch {
       return false;
