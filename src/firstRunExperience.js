@@ -1,4 +1,14 @@
 import { createSurfaceKeyboard } from './ui/surfaceKeyboard.js';
+import {
+  maybeStartOnboardingTour as maybeStartTour,
+  startOnboardingTour as startTour,
+} from './onboardingTour.js';
+
+// The guided tour extends the first-run launcher: after the launcher is gone
+// (mission chosen, or skipped for a returning visitor) the tour highlights the
+// chrome once per browser. Re-exported so callers keep one entry point.
+export const maybeStartOnboardingTour = maybeStartTour;
+export const startOnboardingTour = startTour;
 
 // First-run mission launcher.
 //
@@ -351,6 +361,16 @@ export function initFirstRunExperience({
     })
   ) {
     root.remove();
+    // Returning visitor: the launcher is skipped, so the guided tour gets its
+    // one chance to introduce the chrome. Its own guards (once-per-browser,
+    // share/embed sessions, exclusive surfaces) decide.
+    void maybeStartTour({
+      documentRef,
+      storage,
+      sessionStorageRef,
+      location,
+      exclusiveSurfaceActive: () => exclusiveSurfaceActive(documentRef),
+    });
     return null;
   }
 
@@ -484,6 +504,14 @@ export function initFirstRunExperience({
     if (closing) return;
     if (outcome?.ok) {
       dismiss();
+      // Mission chosen: offer the guided tour once the launcher is gone.
+      void maybeStartTour({
+        documentRef,
+        storage,
+        sessionStorageRef,
+        location,
+        exclusiveSurfaceActive: () => exclusiveSurfaceActive(documentRef),
+      });
       return;
     }
     const failed = outcome?.failedLayerIds?.length

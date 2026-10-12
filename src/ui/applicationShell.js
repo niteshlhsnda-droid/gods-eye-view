@@ -575,6 +575,7 @@ export class StyleManager extends ShellFacade {
     this._initGlobalContextPanel();
     this._initLocationBar();
     this._initShareButton();
+    this._initExperienceLane();
     this._initCameraOrientationControls();
     this._initClearSelectedLayersButton();
     this._initHUDToggle();
@@ -1471,15 +1472,208 @@ export class StyleManager extends ShellFacade {
   // ── Share Button ─────────────────────────────
 
   /**
-   * Wires the share button click to copy the current share link to the clipboard.
+   * Wires the share button click to open the WhatsApp-first share sheet.
+   * The sheet's "Copy link" action reuses ShareLinkManager.copyLink(), so the
+   * canonical link format stays in exactly one place (src/sharelink.js).
    * @returns {void}
    */
   _initShareButton() {
     this._lifetime.listen(this._shareBtn, 'click', async () => {
-      const success = await this.shareLinkManager.copyLink();
-      if (!this._disposed)
-        this._showToast(success ? 'Link copied!' : 'Copy failed');
+      if (this._disposed) return;
+      try {
+        const { openShareSheet } = await import('../share/index.js');
+        const { t } = await import('../i18n/index.js');
+        openShareSheet({
+          anchorEl: this._shareBtn,
+          getShareUrl: () => this.shareLinkManager.buildShareUrl(),
+          copyLink: () => this.shareLinkManager.copyLink(),
+          onToast: (message) => this._showToast(message),
+          t,
+        });
+      } catch {
+        // The sheet is progressive enhancement: fall back to the bare copy.
+        const success = await this.shareLinkManager.copyLink();
+        if (!this._disposed)
+          this._showToast(success ? 'Link copied!' : 'Copy failed');
+      }
     });
+  }
+
+  // ── Experience lane (ChatGPT) ──────────────────
+
+  /**
+   * Boot the experience-lane surfaces: i18n + language switcher, Story Mode,
+   * and session-replay restoration. Every piece is lazy and independently
+   * guarded — a failure here never breaks shell init.
+   * @returns {void}
+   */
+  _initExperienceLane() {
+    // i18n first: translations must exist before any lane surface paints.
+    import('../i18n/index.js')
+      .then(async ({ initI18n, applyI18n, createLanguageSwitcher, t }) => {
+        await initI18n();
+        applyI18n(document);
+        createLanguageSwitcher({
+          onToast: (message) => this._showToast(message),
+        });
+        return t;
+      })
+      .catch(() => (key) => key)
+      .then(async (t) => {
+        // Story Mode instance, exposed for voice commands / tools later.
+        try {
+          const { createStoryMode } = await import('../story/index.js');
+          this._storyMode = createStoryMode({
+            viewer: this.viewer,
+            dataManager: this._dataManager,
+            t,
+          });
+        } catch {
+          this._storyMode = null;
+        }
+        // Story Mode entry point: the top-center button opens the built-in
+        // "Anatomy of a Cyclone" story.
+        this._lifetime.listen(
+          document.getElementById('story-mode-btn'),
+          'click',
+          async () => {
+            if (this._disposed) return;
+            if (!this._storyMode) {
+              const unavailable =
+                typeof t === 'function'
+                  ? t('story.unavailable')
+                  : 'story.unavailable';
+              this._showToast(
+                unavailable === 'story.unavailable'
+                  ? 'Story mode is unavailable right now'
+                  : unavailable,
+              );
+              return;
+            }
+            try {
+              await this._storyMode.openStory();
+            } catch {
+              /* openStory reports its own failure. */
+            }
+          },
+        );
+        // Session replay: restore a `?gev-replay=` link when present.
+        try {
+          const { createSessionRecorder } = await import('../replay/index.js');
+          this._sessionRecorder = createSessionRecorder({
+            onToast: (message) => this._showToast(message),
+          });
+          await this._sessionRecorder.maybeRestoreReplay();
+        } catch {
+          this._sessionRecorder = null;
+        }
+      })
+      .catch(() => {
+        /* Experience lane is progressive enhancement. */
+      });
+
+    // Alert Me: toast service + center, wired to the live USGS quake source,
+    // the NHC active-storms cyclone source, and the CelesTrak stations TLE
+    // catalog for the flyover watch.
+    import('../alerts/index.js')
+      .then(async ({ createAlertCenter }) => {
+        const { createToastService } = await import('../alerts/toasts.js');
+        const { createUsgsEarthquakeSource } =
+          await import('../layers/earthquakes/source.js');
+        const { createCycloneSource } =
+          await import('../layers/cyclones/source.js');
+        const { createSatelliteSource } =
+          await import('../layers/satellites/source.js');
+        const { parseTleCatalog } = await import('../alerts/providers.js');
+        const { t } = await import('../i18n/index.js');
+        const Cesium = await import('cesium');
+
+        const quakeSource = createUsgsEarthquakeSource();
+        const cycloneSource = createCycloneSource();
+        const satSource = createSatelliteSource();
+
+        // Cached stations catalog for flyover alerts; refreshed in the
+        // background on a 6-hour TTL. The alert center reads it synchronously.
+        const STATION_TTL_MS = 6 * 60 * 60 * 1000;
+        const stationCache = { at: 0, entries: [] };
+        const refreshStations = async () => {
+          try {
+            const now = Date.now();
+            if (
+              stationCache.entries.length &&
+              now - stationCache.at < STATION_TTL_MS
+            )
+              return;
+            const { ok, text } = await satSource.readGroup('stations');
+            if (ok && text) {
+              const entries = parseTleCatalog(text);
+              if (entries.length) {
+                stationCache.at = now;
+                stationCache.entries = entries;
+              }
+            }
+          } catch {
+            /* Keep the last good catalog. */
+          }
+        };
+        void refreshStations();
+
+        // "Overhead" means the camera's current ground point.
+        const getTarget = () => {
+          try {
+            const camera = this.viewer?.camera;
+            const canvas = this.viewer?.canvas;
+            if (!camera?.pickEllipsoid || !canvas) return null;
+            const center = new Cesium.Cartesian2(
+              canvas.clientWidth / 2,
+              canvas.clientHeight / 2,
+            );
+            const cartesian = camera.pickEllipsoid(center);
+            if (!cartesian) return null;
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            const lat = Cesium.Math.toDegrees(cartographic.latitude);
+            const lon = Cesium.Math.toDegrees(cartographic.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            return { lat, lon };
+          } catch {
+            return null;
+          }
+        };
+
+        this._alertCenter = createAlertCenter({
+          toastService: createToastService(),
+          quakeSource: () => quakeSource.getSnapshot(),
+          cycloneSource: () => cycloneSource.getSnapshot(),
+          getSatellites: () => stationCache.entries,
+          getTarget,
+          t,
+        });
+
+        // Alert Me entry point: the top-center button opens the panel.
+        this._lifetime.listen(
+          document.getElementById('alert-me-btn'),
+          'click',
+          async () => {
+            if (this._disposed) return;
+            try {
+              const { openAlertPanel } =
+                await import('../alerts/alertPanel.js');
+              openAlertPanel({
+                anchorEl: document.getElementById('alert-me-btn'),
+                alertCenter: this._alertCenter,
+                onFlyoverSubscribe: () => void refreshStations(),
+                onToast: (message) => this._showToast(message),
+                t,
+              });
+            } catch {
+              /* The panel is progressive enhancement. */
+            }
+          },
+        );
+      })
+      .catch(() => {
+        this._alertCenter = null;
+      });
   }
 
   // ── HUD Toggle ───────────────────────────────

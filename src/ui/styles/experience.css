@@ -1,0 +1,395 @@
+/* ── Experience lane (ChatGPT): share sheet, story mode, replay, alerts, i18n ── */
+
+/* Share sheet */
+.gev-share-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 18, 0.45);
+  z-index: 640;
+}
+.gev-share-sheet {
+  position: fixed;
+  z-index: 641;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: rgba(8, 14, 34, 0.96);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: #dbe7ff;
+  font-family: inherit;
+}
+.gev-share-heading {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9fb8e8;
+}
+.gev-share-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gev-share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 64px;
+  padding: 10px 8px 8px;
+  background: rgba(30, 48, 92, 0.55);
+  border: 1px solid rgba(120, 180, 255, 0.18);
+  border-radius: 10px;
+  color: #dbe7ff;
+  cursor: pointer;
+  font-size: 11px;
+}
+.gev-share-target:hover {
+  background: rgba(48, 76, 140, 0.65);
+  border-color: rgba(140, 200, 255, 0.45);
+}
+.gev-share-target:focus-visible {
+  outline: 2px solid #7fd0ff;
+  outline-offset: 2px;
+}
+.gev-share-glyph {
+  font-size: 20px;
+  line-height: 1;
+}
+.gev-share-whatsapp .gev-share-glyph {
+  color: #5ee87a;
+}
+.gev-share-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #8ba0c8;
+}
+
+/* Story mode */
+.gev-story-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 620;
+  width: min(860px, calc(100vw - 32px));
+  background: rgba(6, 10, 26, 0.94);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-radius: 14px;
+  padding: 16px 20px 14px;
+  color: #e6efff;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+}
+.gev-story-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: #8fd0ff;
+}
+.gev-story-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+}
+.gev-story-text {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #c4d4f5;
+  min-height: 44px;
+}
+.gev-story-timeline {
+  min-height: 120px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.gev-story-transport {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.gev-story-transport button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 180, 255, 0.3);
+  background: rgba(30, 48, 92, 0.6);
+  color: #e6efff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.gev-story-transport button:hover {
+  background: rgba(48, 76, 140, 0.7);
+}
+.gev-story-transport [data-story-close] {
+  margin-left: auto;
+}
+
+/* Session replay */
+.gev-replay-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  background: rgba(2, 4, 12, 0.92);
+  display: flex;
+  flex-direction: column;
+}
+.gev-replay-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(10, 18, 40, 0.95);
+  border-bottom: 1px solid rgba(120, 180, 255, 0.2);
+  color: #cfe0ff;
+  font-size: 13px;
+}
+.gev-replay-bar button {
+  margin-left: auto;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 180, 255, 0.3);
+  background: rgba(30, 48, 92, 0.6);
+  color: #e6efff;
+  cursor: pointer;
+}
+.gev-replay-stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Alert Me panel */
+.gev-alert-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 18, 0.45);
+  z-index: 640;
+}
+.gev-alert-panel {
+  position: fixed;
+  z-index: 641;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: rgba(8, 14, 34, 0.96);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: #dbe7ff;
+  font-family: inherit;
+}
+.gev-alert-heading {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9fb8e8;
+}
+.gev-alert-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gev-alert-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(30, 48, 92, 0.45);
+  border: 1px solid rgba(120, 180, 255, 0.15);
+  border-radius: 10px;
+}
+.gev-alert-row-label {
+  flex: 1;
+  font-size: 13px;
+}
+.gev-alert-row-note {
+  flex: 1;
+  font-size: 12px;
+  color: #8ba0c8;
+  font-style: italic;
+}
+.gev-alert-toggle {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 180, 255, 0.3);
+  background: rgba(48, 76, 140, 0.6);
+  color: #e6efff;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gev-alert-toggle[aria-pressed='true'] {
+  background: rgba(94, 232, 122, 0.18);
+  border-color: rgba(94, 232, 122, 0.5);
+}
+.gev-alert-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #8ba0c8;
+}
+
+/* Alert Me panel */
+.gev-alert-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 18, 0.45);
+  z-index: 640;
+}
+.gev-alert-panel {
+  position: fixed;
+  z-index: 641;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: rgba(8, 14, 34, 0.96);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-radius: 12px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: #dbe7ff;
+  font-family: inherit;
+}
+.gev-alert-heading {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9fb8e8;
+}
+.gev-alert-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gev-alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: rgba(30, 48, 92, 0.45);
+  border: 1px solid rgba(120, 180, 255, 0.14);
+  border-radius: 8px;
+}
+.gev-alert-row-label {
+  font-size: 13px;
+  color: #dbe7ff;
+}
+.gev-alert-toggle {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 180, 255, 0.3);
+  background: rgba(48, 76, 140, 0.5);
+  color: #e6efff;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gev-alert-toggle[aria-pressed='true'] {
+  background: rgba(46, 125, 80, 0.55);
+  border-color: rgba(120, 230, 160, 0.4);
+}
+.gev-alert-toggle:focus-visible {
+  outline: 2px solid #7fd0ff;
+  outline-offset: 2px;
+}
+.gev-alert-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #8ba0c8;
+}
+
+/* Alert toasts (fallback renderer; toastry injects its own styles) */
+.gev-alert-toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 660;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+}
+.gev-alert-toast {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: rgba(8, 14, 34, 0.96);
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-left: 3px solid #7fd0ff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #dbe7ff;
+  font-size: 13px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.gev-alert-toast strong {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9fb8e8;
+}
+.gev-alert-warning {
+  border-left-color: #ffb347;
+}
+.gev-alert-error {
+  border-left-color: #ff6b6b;
+}
+.gev-alert-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #8ba0c8;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 0 0 8px;
+}
+
+/* Language switcher */
+.gev-lang-switcher {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(8, 14, 34, 0.9);
+  border: 1px solid rgba(120, 180, 255, 0.2);
+  border-radius: 10px;
+  padding: 6px 10px;
+  color: #9fb8e8;
+  font-size: 12px;
+}
+.gev-lang-switcher select {
+  background: rgba(20, 32, 64, 0.9);
+  color: #dbe7ff;
+  border: 1px solid rgba(120, 180, 255, 0.25);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* driver.js tour polish hooks (driver.js injects its own base styles) */
+.driver-popover {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gev-share-sheet,
+  .gev-story-panel,
+  .gev-alert-toast,
+  .gev-alert-panel,
+  .gev-replay-overlay {
+    transition: none !important;
+  }
+}
