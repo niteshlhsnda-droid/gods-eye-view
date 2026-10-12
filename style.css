@@ -1,4 +1,5 @@
 /* Preserve component and responsive rule order in one stylesheet entry. */
+@import '@knight-lab/timelinejs/dist/css/timeline.css'; /* Story Mode (ChatGPT lane) — TimelineJS3 theme */
 @import './src/ui/styles/foundation.css';
 @import './src/ui/styles/controls.css';
 @import './src/ui/styles/location.css';

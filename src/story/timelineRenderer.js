@@ -8,15 +8,15 @@
  * engine, which stays the source of truth for playback state.
  *
  * NOTE ON CSS: TimelineJS3 ships its stylesheet at
- * `@knight-lab/timelinejs/dist/css/timeline.css` (per the package's own build).
- * It is NOT imported here — a static import of an uninstalled package would
- * break `npm test` and the build before the central install lands. After the
- * orchestrator runs the central install, add this line to the root style.css:
+ * `@knight-lab/timelinejs/dist/css/timeline.css`. It is imported from the
+ * root style.css (added by the orchestrator after the central install).
+ * Without it the timeline still mounts and drives the story; it just renders
+ * unstyled.
  *
- *   @import '@knight-lab/timelinejs/dist/css/timeline.css';
- *
- * (DEPS.md carries the same instruction.) Without it the timeline still
- * mounts and drives the story; it just renders unstyled.
+ * NOTE ON JS: the package root entry points at its webpack source tree
+ * (which imports .less), so the adapter loads the prebuilt classic bundle at
+ * `@knight-lab/timelinejs/dist/js/timeline.js` via a ?url asset import +
+ * classic <script> injection, reading the constructor off globalThis.TL.
  */
 
 /** Base date for the synthetic storm timeline (UTC). Arbitrary but stable. */
@@ -121,16 +121,36 @@ export async function mountTimeline({
   };
   if (!container || !story) return noop;
 
-  let module;
+  // The published package's root entry points at its webpack *source* tree
+  // (`src/js/index.js`), whose first line imports a .less file — unbuildable
+  // without the less preprocessor. The prebuilt classic bundle at
+  // dist/js/timeline.js is self-contained but has no ESM exports (it assigns
+  // a module-scoped `var TL`), so a bundled dynamic import cannot see it.
+  // Load it as a classic <script> (global scope) via Vite's ?url asset URL.
+  // In node (unit tests) the ?url specifier fails to resolve -> caught below
+  // -> engine-only mode, same graceful fallback as a missing package.
+  let Timeline = null;
   try {
-    module = await import('@knight-lab/timelinejs');
+    const urlMod =
+      await import('@knight-lab/timelinejs/dist/js/timeline.js?url');
+    const bundleUrl = urlMod?.default;
+    if (typeof bundleUrl === 'string' && bundleUrl) {
+      await new Promise((resolve, reject) => {
+        if (globalThis.TL?.Timeline) return resolve();
+        const script = document.createElement('script');
+        script.src = bundleUrl;
+        script.onload = () => resolve();
+        script.onerror = () =>
+          reject(new Error('timeline bundle failed to load'));
+        document.head.appendChild(script);
+      });
+      const GlobalTimeline = globalThis.TL?.Timeline;
+      if (typeof GlobalTimeline === 'function') Timeline = GlobalTimeline;
+    }
   } catch {
-    // Package not installed or failed to load: engine-only mode.
-    return noop;
+    // Package not installed, asset missing, or script failed: engine-only mode.
   }
-  const Timeline =
-    module?.Timeline ?? module?.default?.Timeline ?? module?.default;
-  if (typeof Timeline !== 'function') return noop;
+  if (!Timeline) return noop;
 
   const config = storyToTimelineConfig(story);
   let timeline = null;
