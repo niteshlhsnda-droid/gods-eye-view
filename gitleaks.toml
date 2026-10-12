@@ -1,0 +1,9 @@
+# Gitleaks configuration: fail on real secrets, never on fixtures.
+title = 'gods-eye-view secret scan'
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = 'QA fixture tokens that never leave the test page (street-level browser gate)'
+regexes = ['''MLY\|0\|qa-fixture''']

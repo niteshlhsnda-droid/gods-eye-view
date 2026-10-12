@@ -968,5 +968,22 @@
   "src/tools/views.test.mjs",
   "src/app/embed.test.mjs",
   "src/tools/globePanel.test.mjs",
-  "src/costEndpointThrottle.test.mjs"
+  "src/costEndpointThrottle.test.mjs",
+  "src/anomaly/index.js",
+  "src/anomaly/squawk.js",
+  "src/anomaly/aisDarkGaps.js",
+  "src/anomaly/quakeSwarm.js",
+  "src/anomaly/squawk.test.mjs",
+  "src/anomaly/aisDarkGaps.test.mjs",
+  "src/anomaly/quakeSwarm.test.mjs",
+  "src/anomaly/index.test.mjs",
+  "src/data/feedState.test.mjs",
+  "src/director/sharing/redaction.js",
+  "src/director/sharing/provenance.js",
+  "src/director/sharing/redaction.test.mjs",
+  "src/director/sharing/provenance.test.mjs",
+  "src/director/sharing/bundleTrust.test.mjs",
+  "tests/smoke.spec.mjs",
+  "tests/axe-audit.spec.mjs",
+  "playwright.config.mjs"
 ]
