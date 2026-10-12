@@ -69,7 +69,13 @@ export async function initPostHog(config = {}) {
   if (config.enabled !== true) return skipped('disabled');
   if (!config.apiKey) return skipped('no-api-key');
   try {
-    const { default: posthog } = await import('posthog-js');
+    const mod = await import('posthog-js');
+    // v1.x exposes the singleton on the named `posthog` export; older
+    // builds put it on the default export. Accept either.
+    const posthog = mod.posthog ?? mod.default;
+    if (typeof posthog?.init !== 'function') {
+      return unavailable('posthog-js: no init export');
+    }
     posthog.init(config.apiKey, {
       api_host: config.apiHost || 'https://us.i.posthog.com',
       capture_pageview: config.capturePageview !== false,
