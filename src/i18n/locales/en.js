@@ -1,0 +1,97 @@
+/** English — the reference locale. Every other locale must carry the same keys. */
+export default {
+  app: {
+    subtitle: 'NO PLACE LEFT BEHIND',
+  },
+  style: {
+    activeStyle: 'ACTIVE STYLE',
+  },
+  actions: {
+    clearLayers: 'Clear selected data layers',
+    share: 'Share this scene',
+    story: 'Story mode',
+    storyTitle: 'Watch “Anatomy of a Cyclone”',
+    alertMe: 'Alert me',
+    alertMeTitle: 'Toast alerts for quakes, flyovers and cyclones',
+    story: 'Story mode',
+    storyTitle: 'Open the Story Mode timeline',
+    alertMe: 'Alert me',
+    alertMeTitle: 'Subscribe to quake, flyover and cyclone alerts',
+    tiltView: 'Tilt map to oblique view',
+    northUpView: 'Reset map to north up',
+    resetGlobeView: 'Reset to full globe view',
+    tilt: 'Toggle straight-down and tilted map views',
+    northUp: 'Reset map bearing to north',
+    resetGlobe: 'Reset camera and return to full globe view',
+  },
+  loading: {
+    liveData: 'LOADING LIVE DATA',
+  },
+  share: {
+    title: 'Share this scene',
+    via: 'Share via',
+    copied: 'Link copied!',
+    copyFailed: 'Copy failed',
+    hint: 'Links carry your exact camera, layers and style.',
+    noUrl: 'Could not build the share link',
+  },
+  story: {
+    unavailable: 'Story mode is unavailable right now',
+    kicker: 'STORY MODE',
+    prev: 'Previous slide',
+    next: 'Next slide',
+    playPause: 'Play or pause',
+    close: 'Close story',
+    unavailable: 'Story mode is unavailable right now',
+  },
+  tour: {
+    search: {
+      title: 'Search anywhere',
+      body: 'Type a city, landmark or coordinates to fly the globe there instantly.',
+    },
+    layers: {
+      title: 'Live data layers',
+      body: 'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer is live data, not decoration.',
+    },
+    share: {
+      title: 'Share a scene',
+      body: 'Share your exact view — camera, layers and style — as a link, or send it straight to WhatsApp.',
+    },
+    style: {
+      title: 'Visual styles',
+      body: 'Switch the render style — normal, night vision, thermal, surveillance — from the display controls.',
+    },
+    voice: {
+      title: 'Talk to the map',
+      body: 'The GEV MIC button lets you command the globe hands-free: “show earthquakes”, “fly to Patna”.',
+    },
+  },
+  alerts: {
+    title: 'Alert me',
+    quakesRow: 'Earthquakes (M5.0+)',
+    flyoversRow: 'Satellite flyovers',
+    cyclonesRow: 'New tropical cyclones',
+    saved: 'Alert preferences saved',
+    unavailable: 'Alerts are unavailable right now',
+    cycloneTitle: 'New tropical cyclone',
+    cyclone: '{{name}} ({{classification}}) — {{windKt}} kt winds',
+    quake: 'M{{mag}} earthquake — {{place}}',
+    flyover: '{{name}} is passing overhead',
+    subscribe: 'Alert me',
+    unsubscribe: 'Stop alerts',
+    pushLater: 'Push notifications are coming later — toasts for now.',
+    title: 'Alert me',
+    quakesRow: 'Earthquakes (M5.0 and up)',
+    flyoversRow: 'Satellite flyovers (stations overhead)',
+    cyclonesRow: 'Cyclone landfalls',
+    cyclonesComing: 'Needs an active-storms feed — coming soon',
+    saved: 'Alert preferences saved',
+    unavailable: 'Alerts are unavailable right now',
+  },
+  lang: {
+    label: 'Language',
+  },
+  common: {
+    close: 'Close',
+  },
+};
