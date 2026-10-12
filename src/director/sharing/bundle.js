@@ -1,5 +1,7 @@
 import { parseSceneDocument, stringifySceneDocument } from '../document.js';
 import { withShareSignal } from './lifetime.js';
+import { describeAssetProvenance } from './provenance.js';
+import { checkRedactionGate, validateRedactionBlock } from './redaction.js';
 import { fields, array, fail } from '../documentFields.js';
 import { PACK_LIMITS, validateAssetPath } from '../packs/manifest.js';
 
@@ -75,7 +77,7 @@ export async function parseSceneShare(text, { signal } = {}) {
   }
   if (input?.format !== 'gev-scene-bundle')
     return { project: parseSceneDocument(text), assets: new Map() };
-  fields(input, '$', ['format', 'version', 'project', 'assets']);
+  fields(input, '$', ['format', 'version', 'project', 'assets', 'redaction']);
   if (input.version !== 1) fail('version', 'unsupported bundle version');
   const project = parseSceneDocument(JSON.stringify(input.project));
   array(input.assets, 'assets', SHARE_LIMITS.assets);
@@ -83,9 +85,20 @@ export async function parseSceneShare(text, { signal } = {}) {
   let total = 0;
   for (const entry of input.assets) {
     checkAbort(signal);
-    fields(entry, 'assets', ['path', 'mimeType', 'base64', 'sha256']);
+    fields(entry, 'assets', [
+      'path',
+      'mimeType',
+      'base64',
+      'sha256',
+      'provenance',
+    ]);
     validateAssetPath(entry.path);
     checkMime(entry.mimeType);
+    if (
+      entry.provenance != null &&
+      (typeof entry.provenance !== 'object' || Array.isArray(entry.provenance))
+    )
+      fail('assets', 'invalid asset provenance');
     if (assets.has(entry.path)) fail('assets', 'duplicate asset path');
     const bytes = decode(entry.base64);
     total += bytes.length;
@@ -109,6 +122,13 @@ export async function parseSceneShare(text, { signal } = {}) {
       fail('project', 'missing or mismatched bundle asset');
   }
   if (used.size !== assets.size) fail('assets', 'unreferenced bundle asset');
+  validateRedactionBlock(
+    input.redaction,
+    [...assets.entries()].map(([path, asset]) => ({
+      path,
+      mimeType: asset.mimeType,
+    })),
+  );
   return { project, assets };
 }
 
@@ -134,7 +154,7 @@ export async function readSceneShare(file, options) {
 export async function createSceneBundle(
   project,
   resolveAsset,
-  { signal } = {},
+  { signal, provenanceFor, redaction } = {},
 ) {
   const copy = parseSceneDocument(stringifySceneDocument(project));
   const assets = [],
@@ -172,6 +192,18 @@ export async function createSceneBundle(
         sha256,
         byteLength: bytes.length,
       };
+      const provenanceInput =
+        typeof provenanceFor === 'function'
+          ? provenanceFor(pack, { path, mimeType: asset.mimeType, sha256 })
+          : null;
+      if (provenanceInput) {
+        entry.provenance = describeAssetProvenance({
+          ...provenanceInput,
+          assetKey: path,
+          mimeType: asset.mimeType,
+          sha256,
+        });
+      }
       known.set(key, entry);
       assets.push(entry);
     } else if (
@@ -183,12 +215,21 @@ export async function createSceneBundle(
     pack.byteLength = entry.byteLength;
     pack.sha256 = entry.sha256;
   }
-  const text = JSON.stringify({
+  // The redaction gate refuses to share a faces-mode bundle whose visual
+  // assets lack deface attestations — a bundle is never labeled "redacted"
+  // unless the pass actually completed.
+  const redactionBlock = checkRedactionGate(
+    assets,
+    redaction == null ? { mode: 'none' } : redaction,
+  );
+  const envelope = {
     format: 'gev-scene-bundle',
     version: 1,
     project: copy,
     assets: assets.map(({ byteLength, ...entry }) => entry),
-  });
+  };
+  if (redactionBlock) envelope.redaction = redactionBlock;
+  const text = JSON.stringify(envelope);
   if (new TextEncoder().encode(text).length > SHARE_LIMITS.bytes)
     fail('$', 'share exceeds 50 MiB');
   return text;

@@ -53,3 +53,77 @@ export function layerFeedState(stats = {}) {
   if (state.partial === true) return 'partial';
   return 'nominal';
 }
+
+/**
+ * How many recent fetch durations we keep per layer. A small fixed window is
+ * enough for an operator to see jitter or a creeping slowdown; the history is
+ * in-memory only (client-side, nothing is persisted or sent anywhere).
+ */
+export const FEED_LATENCY_WINDOW = 16;
+
+const feedLatencySamples = new Map();
+
+/**
+ * Record one successful layer fetch duration. Layers opt in by timing their
+ * own fetch and calling this — e.g. `timedLayerFetch('earthquakes', () =>
+ * source.getSnapshot({ signal }))`. Non-finite durations are dropped silently
+ * so a bad measurement can never poison the history.
+ */
+export function recordFeedLatency(layerId, durationMs) {
+  const id = String(layerId || '').trim();
+  const ms = Number(durationMs);
+  if (!id || !Number.isFinite(ms) || ms < 0) return;
+  let samples = feedLatencySamples.get(id);
+  if (!samples) {
+    samples = [];
+    feedLatencySamples.set(id, samples);
+  }
+  samples.push(ms);
+  if (samples.length > FEED_LATENCY_WINDOW) samples.shift();
+}
+
+/**
+ * Time an async fetch and record its duration on success. Rejects exactly as
+ * the wrapped call would; failed fetches are not recorded (their error state
+ * already surfaces through the feed-state badge).
+ */
+export async function timedLayerFetch(layerId, fetchFn) {
+  const started = Date.now();
+  const result = await fetchFn();
+  recordFeedLatency(layerId, Date.now() - started);
+  return result;
+}
+
+/** Clear a layer's latency history (tests and explicit operator resets). */
+export function clearFeedLatency(layerId) {
+  feedLatencySamples.delete(String(layerId || '').trim());
+}
+
+/**
+ * Summarize one layer's recent fetch latency, or null when nothing has been
+ * recorded yet.
+ */
+export function feedLatencyStats(layerId) {
+  const samples = feedLatencySamples.get(String(layerId || '').trim());
+  if (!samples || !samples.length) return null;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const sum = sorted.reduce((total, ms) => total + ms, 0);
+  return {
+    samples: sorted.length,
+    avgMs: Math.round(sum / sorted.length),
+    p50Ms: sorted[Math.floor(sorted.length / 2)],
+    maxMs: sorted[sorted.length - 1],
+    lastMs: samples[samples.length - 1],
+  };
+}
+
+/**
+ * One-line latency summary for the layer switcher, e.g.
+ * "avg 640ms · p50 590ms · 12 samples". Null when no history exists so the
+ * UI shows nothing rather than inventing a number.
+ */
+export function summarizeFeedLatency(layerId) {
+  const stats = feedLatencyStats(layerId);
+  if (!stats) return null;
+  return `avg ${stats.avgMs}ms · p50 ${stats.p50Ms}ms · ${stats.samples} sample${stats.samples === 1 ? '' : 's'}`;
+}
