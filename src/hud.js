@@ -102,6 +102,9 @@ export class IntelHUD {
       summaryPolicy = {},
       basemapContext = {},
       summaryService = applicationServices.summary,
+      // Lane-copilot: 'auto' honors `window.__GEV_TELEMETRY_STRIP__`, true
+      // forces the ECharts telemetry strip on, false forces it off.
+      telemetryStrip = 'auto',
     } = {},
   ) {
     this.summaryService = summaryService;
@@ -174,6 +177,19 @@ export class IntelHUD {
     this._buildDOM();
     this.viewer.camera.moveEnd.addEventListener(this._onCameraMoveEnd);
     this._startTimers();
+    // Lane-copilot: optional ECharts telemetry strip. Off unless the app opts
+    // in via `new IntelHUD(viewer, { telemetryStrip: true })` or
+    // `window.__GEV_TELEMETRY_STRIP__ = true` before construction. The strip
+    // lazy-loads `echarts` and no-ops when it is unavailable.
+    this._telemetryStripHandle = null;
+    const telemetryStripEnabled =
+      telemetryStrip === true ||
+      (telemetryStrip === 'auto' &&
+        typeof window !== 'undefined' &&
+        window.__GEV_TELEMETRY_STRIP__ === true);
+    if (telemetryStripEnabled) {
+      this._mountTelemetryStrip();
+    }
   }
 
   /**
@@ -936,6 +952,51 @@ export class IntelHUD {
     this._markSummaryDirty();
   }
 
+  /**
+   * Lazily mount the ECharts telemetry strip (lane-copilot). Resolves the
+   * module dynamically so a missing `echarts` dependency never breaks the
+   * HUD — the strip simply stays absent.
+   */
+  _mountTelemetryStrip() {
+    import('./metrics/telemetryStrip.js')
+      .then(({ attachTelemetryStripToHud }) =>
+        attachTelemetryStripToHud(this, {
+          getTargets: () => this._readTrackedTargetsForStrip(),
+        }),
+      )
+      .then((handle) => {
+        this._telemetryStripHandle = handle && handle.ok ? handle : null;
+      })
+      .catch(() => {
+        this._telemetryStripHandle = null;
+      });
+  }
+
+  /**
+   * Read the currently tracked Cesium entity (if any) as telemetry-strip
+   * targets. Returns an empty list when nothing is tracked.
+   * @returns {Array<{id: string, label: string, altitudeM: number|null, speedKts: number|null}>}
+   */
+  _readTrackedTargetsForStrip() {
+    const entity = this.viewer?.trackedEntity;
+    if (!entity) return [];
+    const id =
+      (typeof entity.id === 'string' && entity.id) || entity.name || 'tracked';
+    let altitudeM = null;
+    try {
+      const position = entity.position?.getValue?.(
+        this.viewer.clock.currentTime,
+      );
+      if (position) {
+        const cartographic = Cesium.Cartographic.fromCartesian(position);
+        if (cartographic) altitudeM = cartographic.height;
+      }
+    } catch {
+      altitudeM = null;
+    }
+    return [{ id, label: entity.name || id, altitudeM, speedKts: null }];
+  }
+
   /** Tear down all running intervals. Call when discarding the HUD instance. */
   destroy() {
     clearInterval(this._updateInterval);
@@ -946,5 +1007,11 @@ export class IntelHUD {
     this.viewer.camera.moveEnd.removeEventListener(this._onCameraMoveEnd);
     this._dataManagerUnsubscribe?.();
     this._summaryRequest?.abort();
+    try {
+      this._telemetryStripHandle?.dispose?.();
+    } catch {
+      // ignore
+    }
+    this._telemetryStripHandle = null;
   }
 }

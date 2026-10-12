@@ -1,0 +1,40 @@
+# Upptime configuration for the niteshlhsnda-droid/gods-eye-view fork.
+# Upptime (https://upptime.js.org) runs on GitHub Actions: it pings every
+# site below on a schedule, opens issues on outages, and publishes a status
+# page. No secrets needed for these public endpoints.
+
+owner: niteshlhsnda-droid
+repo: gods-eye-view
+
+sites:
+  - name: "Live site"
+    url: "https://niteshlhsnda-droid.github.io/gods-eye-view/"
+  - name: "World Pulse dashboard"
+    url: "https://niteshlhsnda-droid.github.io/gods-eye-view/pulse.html"
+  - name: "Contributor leaderboard"
+    url: "https://niteshlhsnda-droid.github.io/gods-eye-view/leaderboard.html"
+  # Key data feeds behind the layers (all public, keyless endpoints).
+  - name: "USGS earthquake feed"
+    url: "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson"
+  - name: "CelesTrak TLE (stations)"
+    url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle"
+  - name: "adsb.lol API"
+    url: "https://api.adsb.lol/"
+
+status-website:
+  baseUrl: /
+  logoUrl: "https://raw.githubusercontent.com/niteshlhsnda-droid/gods-eye-view/main/public/logo.svg"
+  name: "God's Eye View — status"
+  introTitle: "Live status"
+  introMessage: "Uptime of the live site and the public data feeds behind it."
+
+# Friendly commit messages so the status repo history stays readable.
+commit-messages:
+  readmeContent: ":pencil: Update status summary [skip ci]"
+  summaryJson: ":barchart: Update status json [skip ci]"
+
+i18n:
+  active: "Up"
+  deprecated: "Up (deprecated endpoint)"
+  down: "Down"
+  degraded: "Degraded"
