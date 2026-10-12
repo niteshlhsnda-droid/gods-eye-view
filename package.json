@@ -67,6 +67,8 @@
     "satellite.js": "^6.0.2"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
+    "playwright": "1.64.0",
     "prettier": "3.9.6",
     "puppeteer": "^25.10.0",
     "sharp": "^0.35.4",
@@ -255,6 +257,7 @@
     },
     "./sources/transit": "./src/data/transitProxy.js",
     "./layers/transit": "./src/layers/transit/index.js",
+    "./anomaly": "./src/anomaly/index.js",
     "./layers/transit/standalone": "./src/data/transit.js",
     "./layers/transit/source": "./src/layers/transit/source.js",
     "./sources/transit-service": "./src/sources/transitService.js",
