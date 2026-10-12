@@ -1,7 +1,9 @@
 import { syncChipGroup } from './chipGroup.js';
 import { syncRowList } from './rowList.js';
 import { layerFeedState } from '../data/feedState.js';
+import { summarizeFeedLatency } from '../data/feedState.js';
 export { layerFeedState } from '../data/feedState.js';
+export { summarizeFeedLatency } from '../data/feedState.js';
 import { GUIDANCE_STATUSES } from '../loadingFeedback.js';
 import { keySetupRequirement } from '../keySetupCore.mjs';
 import { createWeatherPanel } from './weatherPanel.js';
@@ -523,6 +525,8 @@ export class LayerPanel {
     const feedState = layerFeedState(stats);
     const stateLabel = FEED_STATE_LABELS[feedState];
     const source = stats.source || layer.source;
+    const latencySummary = summarizeFeedLatency(layer.id);
+    const latencySuffix = latencySummary ? ` · ${latencySummary}` : '';
     const lifecycleState =
       layer.lifecycleState || (layer.enabled ? 'enabled' : 'disabled');
     if (lifecycleState === 'enabling' || lifecycleState === 'disabling') {
@@ -561,7 +565,7 @@ export class LayerPanel {
         typeof stats.loadingLabel === 'string' && stats.loadingLabel.trim()
           ? stats.loadingLabel.trim()
           : stats.coverage || ago;
-      return `${stateLabel} · ${source} · ${detail}`;
+      return `${stateLabel} · ${source} · ${detail}${latencySuffix}`;
     }
     if (feedState === 'partial') {
       const { acceptedRowCount, rawRowCount } = stats;
@@ -572,19 +576,19 @@ export class LayerPanel {
         rawRowCount > acceptedRowCount
           ? `${acceptedRowCount} of ${rawRowCount} records accepted`
           : 'incomplete snapshot';
-      return `${stateLabel} · ${source} · ${detail} · ${ago}`;
+      return `${stateLabel} · ${source} · ${detail} · ${ago}${latencySuffix}`;
     }
     if (feedState === 'stale') {
       const retry =
         typeof stats.retryInSec === 'number' && stats.retryInSec > 0
           ? ` · retrying in ${stats.retryInSec}s`
           : '';
-      return `${stateLabel} · ${source} · ${ago}${retry}`;
+      return `${stateLabel} · ${source} · ${ago}${retry}${latencySuffix}`;
     }
     if (typeof stats.loadingLabel === 'string' && stats.loadingLabel.trim()) {
-      return `${source} · ${stats.loadingLabel.trim()}`;
+      return `${source} · ${stats.loadingLabel.trim()}${latencySuffix}`;
     }
-    return `${source} · ${ago}`;
+    return `${source} · ${ago}${latencySuffix}`;
   }
 
   _syncToggleButton(button, layer) {
