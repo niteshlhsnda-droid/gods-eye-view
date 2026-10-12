@@ -2,7 +2,7 @@
   "name": "gods-eye-view",
   "private": true,
   "version": "0.2.1",
-  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "description": "A real-time intelligence console for planet Earth \u2014 photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
   "type": "module",
   "license": "MIT",
   "author": "Bilawal Sidhu",
@@ -54,25 +54,42 @@
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
+    "@growthbook/growthbook": "1.8.0",
     "@jtarrio/signals": "^0.10.0",
     "@jtarrio/webrtlsdr": "^3.0.6",
+    "@knight-lab/timelinejs": "3.9.13",
     "@mapbox/vector-tile": "^3.0.0",
     "@meri-imperiumi/eccodes-wasm": "^2.48.2",
+    "@mkkellogg/gaussian-splats-3d": "0.4.7",
+    "@oddsrabbit/toastry": "1.2.0",
+    "@opentelemetry/sdk-trace-web": "2.12.0",
+    "@sentry/browser": "11.7.0",
+    "@turf/turf": "7.1.0",
+    "animejs": "4.5.0",
     "cesium": "^1.124.0",
     "deck.gl": "9.4.0",
+    "driver.js": "1.9.0",
+    "echarts": "6.1.0",
     "egm96-universal": "^1.1.1",
     "h3-js": "4.5.0",
+    "heatmap.js": "2.0.5",
     "hls.js": "^1.7.3",
+    "i18next": "26.4.4",
     "mapillary-js": "^4.1.2",
     "mgrs": "^2.1.0",
     "pbf": "^5.1.2",
+    "posthog-js": "1.438.8",
+    "rrweb": "2.1.7",
     "satellite.js": "^6.0.2",
     "socket.io": "4.8.4",
     "socket.io-client": "4.8.4",
+    "web-vitals": "6.2.3",
     "yjs": "13.6.33",
     "yuka": "0.7.8"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
+    "playwright": "1.64.0",
     "prettier": "3.9.6",
     "puppeteer": "^25.10.0",
     "sharp": "^0.35.4",
@@ -275,14 +292,6 @@
     "./tools/mcp": "./src/tools/mcp/index.js",
     "./tools/panel": "./src/tools/panel.js",
     "./tools/services": "./src/tools/services.js",
-    "./view": "./src/view/index.js",
-    "./layers/debris": "./src/layers/debris/index.js",
-    "./layers/deckgl": "./src/layers/deckgl/index.js",
-    "./layers/wind-maplibre": "./src/layers/windMaplibre/index.js",
-    "./sim/yuka-traffic": "./src/sim/yukaTraffic.js",
-    "./warroom": "./src/warroom/index.js",
-    "./server/warroom": {
-      "node": "./server/warroom.js"
-    }
+    "./view": "./src/view/index.js"
   }
 }
