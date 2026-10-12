@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>World Pulse — God's Eye View feed health</title>
+    <meta
+      name="description"
+      content="Live per-layer data-feed health grades for God's Eye View: the data is real, and here is the proof."
+    />
+    <style>
+      :root {
+        --bg: #05070f;
+        --panel: #0b1020;
+        --line: rgba(0, 255, 255, 0.14);
+        --text: #d7f9ff;
+        --dim: rgba(215, 249, 255, 0.55);
+        --accent: #00e5ff;
+        --a: #33ff66;
+        --b: #9dff57;
+        --c: #ffb347;
+        --d: #ff7a45;
+        --f: #ff4d5e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        min-height: 100vh;
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+        padding: 20px 24px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      h1 { margin: 0; font-size: 20px; letter-spacing: 0.18em; }
+      h1 .pulse { color: var(--accent); }
+      .sub { color: var(--dim); font-size: 12px; margin-top: 4px; }
+      .overall {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 18px;
+      }
+      .grade {
+        width: 54px; height: 54px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        font-size: 26px; font-weight: 700;
+        border: 2px solid currentColor;
+      }
+      .grade.A { color: var(--a); } .grade.B { color: var(--b); }
+      .grade.C { color: var(--c); } .grade.D { color: var(--d); }
+      .grade.F { color: var(--f); }
+      main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+      .banner {
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: var(--dim);
+        font-size: 12px;
+        margin-bottom: 18px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 14px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .card .top { display: flex; justify-content: space-between; align-items: center; }
+      .card h2 { margin: 0; font-size: 14px; }
+      .card .badge {
+        font-size: 18px; font-weight: 700;
+        width: 34px; height: 34px; border-radius: 8px;
+        display: grid; place-items: center;
+        border: 1px solid currentColor;
+      }
+      .badge.A { color: var(--a); } .badge.B { color: var(--b); }
+      .badge.C { color: var(--c); } .badge.D { color: var(--d); }
+      .badge.F { color: var(--f); }
+      .meta { margin-top: 10px; font-size: 11px; color: var(--dim); line-height: 1.7; }
+      .meta b { color: var(--text); font-weight: 400; }
+      .state { text-transform: uppercase; letter-spacing: 0.1em; }
+      footer {
+        padding: 18px 24px;
+        border-top: 1px solid var(--line);
+        color: var(--dim);
+        font-size: 11px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+      }
+      a { color: var(--accent); }
+      .refresh { background: none; border: 1px solid var(--line); color: var(--text);
+        border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>WORLD <span class="pulse">PULSE</span></h1>
+        <div class="sub">God's Eye View — live data-feed health · contract gev/feed-health v1</div>
+      </div>
+      <div class="overall">
+        <div class="grade F" id="overall-grade">–</div>
+        <div>
+          <div id="overall-label">loading…</div>
+          <div class="sub" id="generated-at"></div>
+        </div>
+        <button class="refresh" id="refresh">refresh</button>
+      </div>
+    </header>
+    <main>
+      <div class="banner" id="source-banner">Looking for a live snapshot…</div>
+      <div class="grid" id="cards"></div>
+    </main>
+    <footer>
+      <span>Data sources: <code>window.__feedHealth</code> → <code>localStorage["gev:feed-health:v1"]</code> → <code>feed-health.json</code> → sample</span>
+      <a href="./leaderboard.html">contributor leaderboard</a>
+      <a href="https://github.com/niteshlhsnda-droid/gods-eye-view">fork on GitHub</a>
+    </footer>
+    <script>
+      'use strict';
+      var STORAGE_KEY = 'gev:feed-health:v1';
+
+      // Clearly-labelled sample dataset shown only when no live snapshot exists.
+      var SAMPLE = {
+        contract: 'gev/feed-health',
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        source: 'sample (not live)',
+        overall: { grade: 'B', score: 78 },
+        feeds: [
+          { id: 'flights', label: 'Flights (ADS-B)', state: 'nominal', grade: 'A', score: 100, lastUpdate: null, ageMs: null, messageCount: 1842, latencyMs: 380, note: 'sample data' },
+          { id: 'vessels', label: 'Vessels (AIS)', state: 'nominal', grade: 'A', score: 100, lastUpdate: null, ageMs: null, messageCount: 967, latencyMs: 512, note: 'sample data' },
+          { id: 'satellites', label: 'Satellites (TLE)', state: 'partial', grade: 'B', score: 75, lastUpdate: null, ageMs: null, messageCount: 12004, latencyMs: null, note: 'sample data' },
+          { id: 'earthquakes', label: 'Earthquakes (USGS)', state: 'nominal', grade: 'A', score: 100, lastUpdate: null, ageMs: null, messageCount: 58, latencyMs: 240, note: 'sample data' },
+          { id: 'transit', label: 'Transit (GTFS-RT)', state: 'stale', grade: 'C', score: 50, lastUpdate: null, ageMs: null, messageCount: 0, latencyMs: null, note: 'sample data' },
+          { id: 'weather', label: 'Weather', state: 'fallback', grade: 'C', score: 60, lastUpdate: null, ageMs: null, messageCount: null, latencyMs: null, note: 'sample data' },
+        ],
+      };
+
+      function ageText(ageMs) {
+        if (ageMs == null) return '—';
+        var s = Math.round(ageMs / 1000);
+        if (s < 60) return s + 's ago';
+        var m = Math.round(s / 60);
+        if (m < 60) return m + 'm ago';
+        return Math.round(m / 60) + 'h ago';
+      }
+
+      function loadSnapshot() {
+        try {
+          if (window.__feedHealth && typeof window.__feedHealth === 'object') {
+            return { snapshot: window.__feedHealth, origin: 'live app (window.__feedHealth)' };
+          }
+          var raw = window.localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            return { snapshot: JSON.parse(raw), origin: 'live app (localStorage)' };
+          }
+        } catch (e) { /* fall through */ }
+        return null;
+      }
+
+      function render(snapshot, origin) {
+        var safeOverall = /^[A-F]$/.test(snapshot.overall.grade) ? snapshot.overall.grade : 'F';
+        var grade = document.getElementById('overall-grade');
+        grade.textContent = safeOverall;
+        grade.className = 'grade ' + safeOverall;
+        document.getElementById('overall-label').textContent =
+          snapshot.feeds.length + ' feeds · score ' + snapshot.overall.score;
+        document.getElementById('generated-at').textContent =
+          'generated ' + (snapshot.generatedAt || 'unknown');
+        document.getElementById('source-banner').textContent =
+          'Source: ' + origin + ' · producer: ' + (snapshot.source || 'unknown');
+        var cards = document.getElementById('cards');
+        cards.innerHTML = '';
+        snapshot.feeds.forEach(function (feed) {
+          var card = document.createElement('div');
+          card.className = 'card';
+          var top = document.createElement('div');
+          top.className = 'top';
+          var title = document.createElement('h2');
+          title.textContent = feed.label || feed.id;
+          var badge = document.createElement('div');
+          var safeGrade = /^[A-F]$/.test(feed.grade) ? feed.grade : 'F';
+          badge.className = 'badge ' + safeGrade;
+          badge.textContent = safeGrade;
+          top.appendChild(title);
+          top.appendChild(badge);
+          var meta = document.createElement('div');
+          meta.className = 'meta';
+          var rows = [
+            ['state', feed.state, true],
+            ['last update', ageText(feed.ageMs), false],
+            ['messages', feed.messageCount == null ? '—' : String(feed.messageCount), false],
+            ['latency', feed.latencyMs == null ? '—' : feed.latencyMs + ' ms', false],
+          ];
+          rows.forEach(function (r) {
+            var line = document.createElement('div');
+            line.appendChild(document.createTextNode(r[0] + ': '));
+            var value = document.createElement('b');
+            if (r[2]) {
+              var state = document.createElement('span');
+              state.className = 'state';
+              state.textContent = r[1];
+              value.appendChild(state);
+            } else {
+              value.textContent = r[1];
+            }
+            line.appendChild(value);
+            meta.appendChild(line);
+          });
+          if (feed.note) {
+            var note = document.createElement('div');
+            note.textContent = 'note: ' + feed.note;
+            meta.appendChild(note);
+          }
+          card.appendChild(top);
+          card.appendChild(meta);
+          cards.appendChild(card);
+        });
+      }
+
+      function refresh() {
+        var found = loadSnapshot();
+        if (found) { render(found.snapshot, found.origin); return; }
+        fetch('feed-health.json', { cache: 'no-store' })
+          .then(function (res) {
+            if (!res.ok) throw new Error('no static snapshot');
+            return res.json();
+          })
+          .then(function (json) { render(json, 'static feed-health.json'); })
+          .catch(function () { render(SAMPLE, 'sample data — run the app to publish live grades'); });
+      }
+
+      document.getElementById('refresh').addEventListener('click', refresh);
+      refresh();
+      setInterval(refresh, 30000);
+    </script>
+  </body>
+</html>
