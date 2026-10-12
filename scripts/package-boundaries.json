@@ -2198,7 +2198,8 @@
       "src/tools/functions.js",
       "src/voice/actionSchemas.js",
       "src/view/index.js",
-      "src/app/embed.js"
+      "src/app/embed.js",
+      "src/metrics/telemetryStrip.js"
     ],
     "external": [
       "hls.js",
@@ -2209,7 +2210,8 @@
       "pbf",
       "satellite.js",
       "mapillary-js",
-      "@jtarrio/webrtlsdr"
+      "@jtarrio/webrtlsdr",
+      "echarts"
     ]
   },
   "application-catalog": {
