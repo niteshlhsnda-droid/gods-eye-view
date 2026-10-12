@@ -33,6 +33,16 @@ export const POSITION_UPDATE_MS = 1000;
 export const RING_ROTATION_MS = 1000;
 // re-align baked orbit rings to current GMST every 1s
 
+export const TLE_MAX_AGE_MS = 72 * 3600_000;
+// TLE refresh logic: sets older than this are stale (SGP4 error grows with
+// epoch age). The refresh scheduler shortens its cadence as staleness rises.
+
+export const TLE_REFRESH_MIN_INTERVAL_MS = 15 * 60_000;
+// never re-fetch the full catalog more often than this, even when stale.
+
+export const TLE_REFRESH_STALE_INTERVAL_MS = 2 * 60_000;
+// when sampled TLE epochs are stale, allow a re-fetch after this cooldown.
+
 /**
  * CelesTrak groups loaded as the core catalog, in dedupe-priority order:
  * a satellite that appears in multiple groups keeps the FIRST (most specific)

@@ -104,6 +104,11 @@ export function createIngestion({
         // Deduplicate by NORAD ID — first (most specific) group tag wins
         const seen = new Set();
 
+        // Sample TLE epochs for the refresh scheduler (SGP4 error grows with
+        // epoch age). Runs on the raw entries before dedupe so the staleness
+        // signal reflects everything the proxy actually served.
+        parts.tleRefresh.sampleTleEpochs(allEntries);
+
         for (const entry of allEntries) {
           const satrec = twoline2satrec(entry.line1, entry.line2);
           if (!satrec || satrec.error !== 0) continue;

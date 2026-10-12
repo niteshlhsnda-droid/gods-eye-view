@@ -10,6 +10,7 @@ import { createLifecycle } from './lifecycle.js';
 import { createIngestion } from './ingestion.js';
 import { createRecords } from './records.js';
 import { createState } from './state.js';
+import { createTleRefresh } from './tleRefresh.js';
 
 /** Construct one layer with its own scene state and supplied application services. */
 export function createSatellitesLayer({ services, source }) {
@@ -29,6 +30,7 @@ export function createSatellitesLayer({ services, source }) {
   parts.interaction = createInteraction(context);
   parts.lifecycle = createLifecycle(context);
   parts.ingestion = createIngestion(context);
+  parts.tleRefresh = createTleRefresh(context);
   return Object.assign(
     {},
     parts.controls.methods,
@@ -70,6 +72,9 @@ export function createSatellitesLayer({ services, source }) {
       getAnalystRecords: parts.records.getAnalystRecords,
       scoreSatelliteNameMatch: parts.orbits.scoreSatelliteNameMatch,
       findSatelliteOrbitTrackInTle: parts.orbits.findSatelliteOrbitTrackInTle,
+      getTleFreshness: parts.tleRefresh.freshness,
+      isTleRefreshDue: parts.tleRefresh.refreshDue,
+      getNextTleRefreshAt: parts.tleRefresh.nextRefreshAt,
       getSatelliteOrbitTrack: parts.orbits.getSatelliteOrbitTrack,
     },
   );
