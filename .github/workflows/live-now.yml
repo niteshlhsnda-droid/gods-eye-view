@@ -1,0 +1,75 @@
+name: Live Now
+
+# Scoreboard-lane CI for the God's Eye View "Live Now" feature branch.
+# Runs the new feature suites (server + client), the boundary gates, the
+# bundle budget, and a full-history gitleaks scan. Fails on any secret finding.
+
+on:
+  push:
+    branches: [feat/live-now]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-now-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-now-tests:
+    name: Live Now tests + boundaries + bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: '1'
+      GEV_REQUIRE_ALLOCATION_GATE: '0'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check adopted formatting
+        run: npm run format:check
+
+      - name: Run Live Now feature suites (server + client)
+        run: npm run test:features
+
+      - name: Run Live Now boundary contract tests
+        run: node --test src/tooling/liveNowBoundaries.test.mjs
+
+      - name: Check package boundaries
+        run: npm run check:boundaries
+
+      - name: Check Live Now bundle budget
+        run: node tools/check-live-now-bundle.mjs
+
+  gitleaks:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          # Full history: the scan covers committed secrets, not just the diff.
+          fetch-depth: 0
+
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36d29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: false

@@ -44,6 +44,8 @@
     "build:panel": "node scripts/build-panel.mjs",
     "preview": "vite preview",
     "test": "node scripts/run-unit-tests.mjs",
+    "test:features": "node tools/run-live-now-tests.mjs",
+    "test:livenow": "node tools/run-live-now-tests.mjs",
     "test:track": "node scripts/track-regression.mjs",
     "qa:map-source-tray": "node scripts/qa-map-source-tray.mjs",
     "qa:panel-resize": "node scripts/qa-panel-resize.mjs",
@@ -132,6 +134,7 @@
     "./layers/alpr": "./src/layers/alpr/index.js",
     "./layers/alpr/source": "./src/layers/alpr/source.js",
     "./layers/awareness": "./src/layers/awareness/index.js",
+    "./livenow": "./src/livenow/index.js",
     "./layers/bikeshare": "./src/layers/bikeshare/index.js",
     "./layers/bikeshare/source": "./src/layers/bikeshare/source.js",
     "./layers/cctv": "./src/layers/cctv/index.js",
@@ -196,6 +199,9 @@
     },
     "./server/providers/live": {
       "node": "./server/providers/live.js"
+    },
+    "./server/providers/livenow": {
+      "node": "./server/providers/livenow/ingest.js"
     },
     "./server/providers/mapillary": {
       "node": "./server/providers/mapillary.js"
