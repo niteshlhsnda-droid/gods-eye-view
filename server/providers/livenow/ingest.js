@@ -672,7 +672,9 @@ export async function pullNews({
   if (!articles.length) {
     return {
       events: [],
-      health: healthOf('news', label, 'nominal', {
+      // The fallback path ran but yielded nothing: the badge must not claim
+      // nominal health. (Grok QA: news health mislabel in total-outage case.)
+      health: healthOf('news', label, degraded ? 'degraded' : 'nominal', {
         messageCount: 0,
         note: degraded || 'no headlines right now',
         lastUpdate: new Date(nowMs).toISOString(),

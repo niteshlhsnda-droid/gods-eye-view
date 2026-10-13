@@ -16,6 +16,10 @@
   width: 36px;
   height: 36px;
   padding: 0;
+  /* Clip icon glyphs: if the Material Symbols webfont fails to load, the
+     raw ligature text (e.g. "view_in_ar") would otherwise overflow the
+     36px circle and intercept clicks on neighboring buttons. */
+  overflow: hidden;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 50%;

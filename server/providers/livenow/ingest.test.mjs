@@ -272,6 +272,20 @@ describe('pullNews', () => {
     assert.equal(health.state, 'degraded', 'RSS path failed, fallback used');
     assert.ok(events.length >= 1);
   });
+  it('reports degraded (not nominal) when the fallback yields zero articles', async () => {
+    const { events, health } = await pullNews({
+      fetchImpl: async (url) => {
+        if (String(url).includes('api.gdeltproject.org')) {
+          return jsonResponse({ articles: [] });
+        }
+        throw new Error('rss blocked');
+      },
+      attentionImpl: async () => 0,
+      nowMs: NOW,
+    });
+    assert.deepEqual(events, []);
+    assert.equal(health.state, 'degraded', 'zero-article fallback must not claim nominal');
+  });
 });
 
 describe('pullAviation', () => {
