@@ -109,4 +109,4 @@ async function fetchRegionalNews(place) {
   }
 }
 
-export { fetchRegionalNews };
+export { fetchRegionalNews, normalizeRssArticles };

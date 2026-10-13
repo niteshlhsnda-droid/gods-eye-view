@@ -576,6 +576,7 @@ export class StyleManager extends ShellFacade {
     this._initLocationBar();
     this._initShareButton();
     this._initExperienceLane();
+    this._initLiveNow();
     this._initCameraOrientationControls();
     this._initClearSelectedLayersButton();
     this._initHUDToggle();
@@ -1674,6 +1675,142 @@ export class StyleManager extends ShellFacade {
       .catch(() => {
         this._alertCenter = null;
       });
+  }
+
+  // ── Live Now (Gemini BUILD lane) ──────────────────
+
+  /**
+   * Boot the Live Now surface: the toolbar button, the bottom-sheet event
+   * carousel, the top-5 pulsing globe markers, and the auto-tour handoff to
+   * Director Mode playback. Progressive enhancement — a failure here never
+   * breaks shell init.
+   * @returns {void}
+   */
+  _initLiveNow() {
+    const button = document.getElementById('live-now-btn');
+    if (!button) return;
+    import('../livenow/index.js')
+      .then(async ({ createLiveNowPanel, createLiveNowMarkers }) => {
+        if (this._disposed) return;
+        // Top-5 pulsing globe markers (Cesium entity layer, the same
+        // registration pattern the earthquakes layer uses).
+        try {
+          this._liveNowMarkers = createLiveNowMarkers({
+            viewer: this.viewer,
+            Cesium,
+          });
+        } catch {
+          this._liveNowMarkers = null;
+        }
+        const panel = createLiveNowPanel({
+          documentRef: document,
+          button,
+          flyTo: (event) => this._flyToLiveNowEvent(event),
+          onData: (payload) => {
+            try {
+              this._liveNowMarkers?.update(payload?.events ?? []);
+            } catch {
+              /* Markers degrade silently; the panel still works. */
+            }
+          },
+          onPlayTourProject: (project, fragment) =>
+            void this._playLiveNowTour(project, fragment),
+          onToast: (message) => this._showToast(message),
+        });
+        this._liveNowPanel = panel;
+        panel.start();
+        // Shareable tour links: a `#tour=` hash restores the tour through
+        // the director's own watcher, so shared links replay on any client.
+        try {
+          const { installTourLinkWatcher } =
+            await import('../director/tours/tourLink.js');
+          this._liveNowTourWatcher = installTourLinkWatcher({
+            onRestore: (restored) => void this._playLiveNowTour(restored, ''),
+          });
+        } catch {
+          /* Tour links degrade to in-app playback. */
+        }
+      })
+      .catch(() => {
+        this._liveNowPanel = null;
+      });
+  }
+
+  /**
+   * Fly the camera to a Live Now event (acceptance: card tap flies ≤2s).
+   * @param {Object} event LiveEvent from the frozen contract.
+   * @returns {void}
+   */
+  _flyToLiveNowEvent(event) {
+    try {
+      this.viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(
+          event.lon,
+          event.lat,
+          1_500_000,
+        ),
+        orientation: {
+          heading: 0,
+          pitch: Cesium.Math.toRadians(-55),
+          roll: 0,
+        },
+        duration: 1.8,
+      });
+    } catch {
+      /* A camera failure never breaks the panel. */
+    }
+  }
+
+  /**
+   * Play a Live Now tour project through the director's tour runner
+   * (anime.js cinematic tweens over the authored shots) and make it
+   * shareable by setting the `#tour=` hash.
+   * @param {Object} project Validated tour scene document.
+   * @param {string} fragment `#tour=...` share fragment (may be '').
+   * @returns {Promise<void>}
+   */
+  async _playLiveNowTour(project, fragment) {
+    try {
+      const [{ createTourRunner }, animeModule] = await Promise.all([
+        import('../director/tours/autoTour.js'),
+        import('animejs'),
+      ]);
+      const anime = animeModule?.createTimeline
+        ? animeModule
+        : animeModule?.default;
+      if (!anime || typeof anime.createTimeline !== 'function')
+        throw new Error('tour animation unavailable');
+      this._liveNowTourRunner?.stop();
+      const viewer = this.viewer;
+      const applyCamera = (pose) => {
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(
+            pose.lon,
+            pose.lat,
+            pose.alt,
+          ),
+          orientation: {
+            heading: Cesium.Math.toRadians(pose.heading ?? 0),
+            pitch: Cesium.Math.toRadians(pose.pitch ?? -45),
+            roll: Cesium.Math.toRadians(pose.roll ?? 0),
+          },
+        });
+      };
+      const runner = createTourRunner({ anime, applyCamera });
+      this._liveNowTourRunner = runner;
+      if (fragment) {
+        try {
+          window.history.replaceState(null, '', fragment);
+        } catch {
+          /* Non-fatal: the tour still plays. */
+        }
+      }
+      const scene = project?.scenes?.[0];
+      if (!scene) throw new Error('tour has no scenes');
+      await runner.play(scene, {});
+    } catch {
+      this._showToast('The tour could not start right now');
+    }
   }
 
   // ── HUD Toggle ───────────────────────────────
