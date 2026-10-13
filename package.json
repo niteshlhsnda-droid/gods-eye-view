@@ -134,6 +134,7 @@
     "./layers/alpr": "./src/layers/alpr/index.js",
     "./layers/alpr/source": "./src/layers/alpr/source.js",
     "./layers/awareness": "./src/layers/awareness/index.js",
+    "./livenow": "./src/livenow/index.js",
     "./layers/bikeshare": "./src/layers/bikeshare/index.js",
     "./layers/bikeshare/source": "./src/layers/bikeshare/source.js",
     "./layers/cctv": "./src/layers/cctv/index.js",

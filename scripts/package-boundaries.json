@@ -691,7 +691,22 @@
       "src/ui/visualPresets.js",
       "src/ui/visualSettings.js",
       "src/ui/weatherPanel.js",
-      "src/worldFocus.js"
+      "src/worldFocus.js",
+      "src/livenow/index.js",
+      "src/livenow/strings.js",
+      "src/livenow/service.js",
+      "src/livenow/card.js",
+      "src/livenow/panel.js",
+      "src/livenow/markers.js",
+      "src/livenow/tour.js",
+      "docs/live-now/i18n.json",
+      "src/director/tours/autoTour.js",
+      "src/director/tours/tourLink.js",
+      "src/director/document.js",
+      "src/director/documentFields.js",
+      "src/director/cameraDocument.js",
+      "src/director/packs/manifest.js",
+      "src/director/interactions/document.js"
     ],
     "external": [
       "@knight-lab/timelinejs",
@@ -755,7 +770,9 @@
       "src/director/sharing/preview.js",
       "src/director/sharing/provenance.js",
       "src/director/sharing/redaction.js",
-      "src/director/timeline.js"
+      "src/director/timeline.js",
+      "src/director/tours/autoTour.js",
+      "src/director/tours/tourLink.js"
     ],
     "external": []
   },
@@ -2257,7 +2274,22 @@
       "src/voice/voiceCardPresentation.js",
       "src/voice/voiceCost.js",
       "src/weatherEffectsMath.js",
-      "src/worldFocus.js"
+      "src/worldFocus.js",
+      "src/livenow/index.js",
+      "src/livenow/strings.js",
+      "src/livenow/service.js",
+      "src/livenow/card.js",
+      "src/livenow/panel.js",
+      "src/livenow/markers.js",
+      "src/livenow/tour.js",
+      "docs/live-now/i18n.json",
+      "src/director/tours/autoTour.js",
+      "src/director/tours/tourLink.js",
+      "src/director/document.js",
+      "src/director/documentFields.js",
+      "src/director/cameraDocument.js",
+      "src/director/packs/manifest.js",
+      "src/director/interactions/document.js"
     ],
     "external": [
       "@jtarrio/webrtlsdr",
@@ -3616,6 +3648,20 @@
       "src/anomaly/quakeSwarm.js",
       "src/metrics/feedHealthContract.js",
       "src/data/aisWatchdog.js"
+    ],
+    "external": []
+  },
+  "livenow": {
+    "exports": ["./livenow"],
+    "modules": [
+      "src/livenow/index.js",
+      "src/livenow/strings.js",
+      "src/livenow/service.js",
+      "src/livenow/card.js",
+      "src/livenow/panel.js",
+      "src/livenow/markers.js",
+      "src/livenow/tour.js",
+      "docs/live-now/i18n.json"
     ],
     "external": []
   }

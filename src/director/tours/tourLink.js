@@ -14,12 +14,31 @@ import { parseSceneDocument } from '../document.js';
 const TOUR_HASH_KEY = 'tour';
 const MAX_TOUR_LINK_BYTES = 256 * 1024;
 
-const encode = (text) =>
-  Buffer.from(text, 'utf8')
-    .toString('base64')
+/**
+ * Base64url helpers, implemented on web-platform primitives (TextEncoder /
+ * btoa / atob) rather than Node's Buffer: this module ships in the browser
+ * bundle, which has no Buffer polyfill. The wire format is unchanged
+ * (unpadded base64url), so links stay compatible in both directions.
+ */
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+
+function utf8Length(text) {
+  return textEncoder.encode(text).length;
+}
+
+const encode = (text) => {
+  const bytes = textEncoder.encode(text);
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
+};
 
 const decode = (value) => {
   const padded = value.replace(/-/g, '+').replace(/_/g, '/');
@@ -27,7 +46,10 @@ const decode = (value) => {
   const body = remainder ? padded + '='.repeat(4 - remainder) : padded;
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(body))
     throw new Error('malformed tour payload');
-  return Buffer.from(body, 'base64').toString('utf8');
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return textDecoder.decode(bytes);
 };
 
 /**
@@ -37,7 +59,7 @@ const decode = (value) => {
  */
 export function encodeTourLink(project) {
   const text = JSON.stringify(project);
-  if (Buffer.byteLength(text, 'utf8') > MAX_TOUR_LINK_BYTES)
+  if (utf8Length(text) > MAX_TOUR_LINK_BYTES)
     throw new Error('tour exceeds share size limit');
   return `#${TOUR_HASH_KEY}=${encode(text)}`;
 }
