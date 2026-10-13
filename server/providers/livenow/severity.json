@@ -1,0 +1,117 @@
+{
+  "_comment": "Live Now per-type severity mapping. DATA, not code: tune these numbers without touching rank.js. Each table maps a source signal to severity 1-5.",
+  "aviation": {
+    "_comment": "Emergency squawk codes. Never speculate on casualties in titles.",
+    "bySquawk": {
+      "7500": 5,
+      "7600": 3,
+      "7700": 5
+    },
+    "default": 3
+  },
+  "cyclone": {
+    "_comment": "Saffir-Simpson category from max sustained wind. Cat 3+ -> 5.",
+    "byCategory": {
+      "0": 2,
+      "1": 3,
+      "2": 4,
+      "3": 5,
+      "4": 5,
+      "5": 5
+    },
+    "default": 2,
+    "tropicalStorm": 2
+  },
+  "fire": {
+    "_comment": "FIRMS cluster severity by hotspot count in the trailing 24h.",
+    "byHotspotCount": [
+      [
+        200,
+        5
+      ],
+      [
+        50,
+        4
+      ],
+      [
+        10,
+        3
+      ]
+    ],
+    "default": 2
+  },
+  "maritime": {
+    "_comment": "AIS dark-gap detector output.",
+    "darkGap": 2,
+    "default": 2
+  },
+  "news": {
+    "_comment": "News clusters start low; GDELT mediaAttention lifts them in scoring.",
+    "breaking": 3,
+    "default": 2
+  },
+  "quake": {
+    "_comment": "First matching [minMagnitude, severity] wins (descending).",
+    "byMagnitude": [
+      [
+        7.0,
+        5
+      ],
+      [
+        6.0,
+        5
+      ],
+      [
+        5.5,
+        4
+      ],
+      [
+        5.0,
+        3
+      ],
+      [
+        4.5,
+        2
+      ]
+    ],
+    "default": 1,
+    "swarm": {
+      "_comment": "Quake-swarm detector output: severity by event count.",
+      "byEventCount": [
+        [
+          12,
+          4
+        ],
+        [
+          6,
+          3
+        ]
+      ],
+      "default": 2
+    }
+  },
+  "space": {
+    "default": 2
+  },
+  "version": 1,
+  "weather": {
+    "_comment": "NWS alert event names (US coverage). Unlisted alert types fall to default.",
+    "byEventName": {
+      "Excessive Heat Warning": 3,
+      "Extreme Wind Warning": 5,
+      "Flash Flood Warning": 4,
+      "Flash Flood Watch": 3,
+      "Hurricane Warning": 5,
+      "Red Flag Warning": 3,
+      "Severe Thunderstorm Warning": 3,
+      "Tornado Warning": 5,
+      "Tornado Watch": 4,
+      "Flood Warning": 3,
+      "Winter Storm Warning": 3,
+      "Blizzard Warning": 4,
+      "High Wind Warning": 3,
+      "Ice Storm Warning": 3
+    },
+    "default": 2
+  }
+}

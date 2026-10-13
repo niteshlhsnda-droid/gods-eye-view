@@ -199,6 +199,9 @@
     "./server/providers/live": {
       "node": "./server/providers/live.js"
     },
+    "./server/providers/livenow": {
+      "node": "./server/providers/livenow/ingest.js"
+    },
     "./server/providers/mapillary": {
       "node": "./server/providers/mapillary.js"
     },

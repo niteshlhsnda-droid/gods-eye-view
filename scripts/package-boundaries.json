@@ -3591,5 +3591,32 @@
       "src/anomaly/quakeSwarm.js"
     ],
     "external": []
+  },
+  "livenow-server": {
+    "runtime": "node",
+    "exports": ["./server/providers/livenow"],
+    "modules": [
+      "server/providers/livenow/ingest.js",
+      "server/providers/livenow/gdelt.js",
+      "server/providers/livenow/rank.js",
+      "server/providers/livenow/severity.json",
+      "server/providers/livenow/cache.js",
+      "server/providers/common/http.js",
+      "src/sources/httpBody.js",
+      "server/providers/regional/news.js",
+      "server/providers/regional/http.js",
+      "server/providers/cyclones.js",
+      "server/providers/vessels/ais-store.js",
+      "src/data/aisStreamAdapter.js",
+      "src/data/firmsCsv.js",
+      "src/data/regionalModel.js",
+      "src/anomaly/index.js",
+      "src/anomaly/squawk.js",
+      "src/anomaly/aisDarkGaps.js",
+      "src/anomaly/quakeSwarm.js",
+      "src/metrics/feedHealthContract.js",
+      "src/data/aisWatchdog.js"
+    ],
+    "external": []
   }
 }
