@@ -69,3 +69,43 @@ modules exist they MUST be registered or `npm run check:boundaries` fails:
 5. `npm run test:features` green — runner in place (Copilot); suites pending (DeepSeek/Gemini/Grok)
 6. No secrets in repo (gitleaks CI); GDELT server-side only, no key in client bundle — CI gate + boundary contract in place (Copilot); code pending
 7. i18n EN/HI/ES/PT; a11y keyboard nav, severity not color-only — pending (Gemini/ChatGPT)
+
+## Coordinator close-out (2026-10-13, commit db50325)
+
+Grok QA returned CONDITIONAL GO; coordinator applied the fixes (db50325):
+
+- news health mislabel fixed + regression test (Grok minor finding #1)
+- toolbar icon-overflow fix: `#top-center-actions button { overflow: hidden }`
+  (real clickability bug found via Playwright — unloaded icon font spilled
+  ligature text over the Live Now button)
+- `tests/live-now-carousel.spec.mjs`: real browser test for spec §6.5 —
+  carousel renders 3 mock events, confidence labels, unconfirmed treatment,
+  keyboard Enter; in-page open measured <300ms (spec target met)
+
+Deferred (not blockers, flagged for next pass):
+- Spec §4.4 says deck.gl/H3 markers; implementation uses Cesium pulsing
+  entities (deck.gl layer is not mounted in the app). Visible requirement met;
+  spec amendment vs re-implementation is Jarvis's call.
+- Grok minor: duplicated tour-link constants between tour.js and tourLink.js
+  (drift risk, both 256 KiB / `tour` today).
+- Grok minor: adsb.lol adapter flaked once under parallel load (no retry);
+  recovered next cycle — watch timeout sensitivity.
+
+### Acceptance criteria — FINAL
+
+1. GET /api/live-now ≤12 ranked events, schema-valid, ≤10 min old — **PASS**
+   (Grok: 12 events in 9.3s, all fields validated, generatedAt 3 min old)
+2. Kill 2 sources → working panel + stale badges — **PASS**
+   (Grok: USGS+NWS blocked → 5 events, staleSources correct)
+3. Card tap fly-to ≤2s; tour → shareable Director link — **PASS**
+   (fly-to duration 1.8; tour link round-tripped byte-identical; unconfirmed excluded)
+4. Panel <300ms on cached data; bundle ≤60 KB gz — **PASS**
+   (in-page open <300ms; bundle delta +18,175 gz bytes)
+5. test:features green; browser carousel test — **PASS**
+   (95/95 unit; Playwright carousel test green)
+6. No secrets; GDELT server-side only — **PASS**
+   (gitleaks clean over full history; zero GDELT refs in client)
+7. i18n EN/HI/ES/PT; a11y — **PASS**
+   (69 keys × 4 locales, full parity; keyboard nav; severity text+icon)
+
+Branch `feat/live-now`: 6 commits, not merged, not pushed. Awaiting user's word to merge.
