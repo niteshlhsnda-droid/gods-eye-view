@@ -19,7 +19,7 @@ Spec (source of truth): `~/workspace/gods-eye-view/specs/live-now.md`
 | DeepSeek | ⚠️ `server/providers/livenow/rank.js` and `gdelt.js` fail `npm run format:check` ("Needs formatting") | flagged 2026-10-13 | NOT fixed by Copilot lane — DeepSeek lane must run `npm run format` before committing |
 | Gemini | `src/livenow/` — panel, cards, markers, fly-to, tour wiring into `src/director` | pending | — |
 | Grok | integration tests for the full loop, visual QA, perf (<300ms panel on cached JSON) | pending | — |
-| ChatGPT | copy (card templates, empty states, confidence labels), docs page, demo tour script | pending | — |
+| ChatGPT | copy (card templates, empty states, confidence labels), docs page, demo tour script | landed 2026-10-13 (commit 86c9042): `docs/live-now/copy-pack.md`, `demo-tour-script.md`, `docs-page.md`, `i18n.json` (69 keys × EN/HI/ES/PT) — recorded as landed, not independently verified | commit 86c9042, 4 files, 537 insertions |
 
 ## Copilot lane evidence (2026-10-13, branch `feat/live-now`)
 
