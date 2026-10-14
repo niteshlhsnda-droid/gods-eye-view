@@ -6,6 +6,7 @@ import {
   CITY_RANGE_BASE_KM,
   CAMERA_DEBOUNCE_MS,
 } from './policy.js';
+import { GBFS_NEEDS_DESKTOP_SERVER_CODE } from './directFetch.js';
 
 export function createViewport({ state: layerState, services, parts, source }) {
   const { governorRequestRender } = services.render;
@@ -172,7 +173,12 @@ export function createViewport({ state: layerState, services, parts, source }) {
     } catch (error) {
       if (error?.name === 'AbortError') return;
       console.warn(`[Data:Bikeshare] ${cityId} activate error:`, error);
-      layerState._error = 'GBFS fetch error';
+      // A feed host outside the direct-fetch allowlist is not a generic
+      // failure: say plainly that the city needs the desktop server.
+      layerState._error =
+        error?.code === GBFS_NEEDS_DESKTOP_SERVER_CODE
+          ? error.message
+          : 'GBFS fetch error';
       deactivateCity(cityId);
       layerState._activeCityIds.delete(cityId);
     } finally {
