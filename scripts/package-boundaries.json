@@ -570,6 +570,7 @@
       "src/i18n/locales/hi.js",
       "src/i18n/locales/pt.js",
       "src/keySetupCore.mjs",
+      "src/layers/cyclones/nhcDirect.js",
       "src/layers/cyclones/source.js",
       "src/layers/earthquakes/records.js",
       "src/layers/earthquakes/source.js",
@@ -588,6 +589,7 @@
       "src/share/index.js",
       "src/share/shareTargets.js",
       "src/sources/httpBody.js",
+      "src/sources/staticHosting.js",
       "src/splitFlap.js",
       "src/story/cyclone.js",
       "src/story/index.js",
@@ -715,7 +717,7 @@
       "cesium",
       "i18next",
       "rrweb",
-      "satellite.js"
+      "satellite.js", "fflate"
     ]
   },
   "ui-styles": {
@@ -1183,11 +1185,13 @@
     "exports": ["./layers/bikeshare"],
     "modules": [
       "src/layers/bikeshare/controls.js",
+      "src/layers/bikeshare/directFetch.js",
       "src/layers/bikeshare/index.js",
       "src/layers/bikeshare/ingestion.js",
       "src/layers/bikeshare/lifecycle.js",
       "src/layers/bikeshare/model.js",
       "src/sources/gbfsStations.js",
+      "src/sources/staticHosting.js",
       "src/layers/bikeshare/policy.js",
       "src/layers/bikeshare/queries.js",
       "src/layers/bikeshare/registry.js",
@@ -1299,6 +1303,7 @@
       "src/sources/httpBody.js",
       "src/sources/vectorTiles.js",
       "src/sources/phaseTiming.js",
+      "src/sources/staticHosting.js",
       "src/layers/alpr/floors.js"
     ],
     "external": ["cesium", "@mapbox/vector-tile", "pbf"]
@@ -1333,6 +1338,8 @@
       "src/layers/radio/tuning.js",
       "src/layers/radio/tuningNoise.js",
       "src/layers/radio/volume.js",
+      "src/sources/radioBrowser.js",
+      "src/sources/staticHosting.js",
       "src/ui/radioTunerModel.js",
       "src/data/inputOwnership.js"
     ],
@@ -1634,6 +1641,7 @@
       "src/data/neighborhoodPolygons.js",
       "src/data/pickRegistry.js",
       "src/data/pickedContext.js",
+      "src/data/placeProviderPayloads.js",
       "src/data/radio.js",
       "src/data/radioCountry.js",
       "src/data/regionalBrief.js",
@@ -1731,6 +1739,7 @@
       "src/layers/awareness/subject.js",
       "src/layers/awareness/testing.js",
       "src/layers/bikeshare/controls.js",
+      "src/layers/bikeshare/directFetch.js",
       "src/layers/bikeshare/index.js",
       "src/layers/bikeshare/ingestion.js",
       "src/layers/bikeshare/lifecycle.js",
@@ -1772,6 +1781,7 @@
       "src/layers/cctv/videoPlayback.js",
       "src/layers/cyclones/index.js",
       "src/layers/cyclones/labels.js",
+      "src/layers/cyclones/nhcDirect.js",
       "src/layers/cyclones/rendering.js",
       "src/layers/cyclones/source.js",
       "src/layers/directions/index.js",
@@ -2114,10 +2124,12 @@
       "src/sources/overpassFeaturesRecords.js",
       "src/sources/overpassRoads.js",
       "src/sources/phaseTiming.js",
+      "src/sources/radioBrowser.js",
       "src/sources/reference.js",
       "src/sources/requestDeadline.js",
       "src/sources/requestDeadline.js",
       "src/sources/sourceSlot.js",
+      "src/sources/staticHosting.js",
       "src/sources/tle.js",
       "src/sources/transitHistory.js",
       "src/sources/vectorTiles.js",
@@ -2307,7 +2319,7 @@
       "mgrs",
       "pbf",
       "rrweb",
-      "satellite.js"
+      "satellite.js", "fflate"
     ]
   },
   "application-catalog": {
@@ -2423,6 +2435,7 @@
       "src/data/naturalEarthRegions.js",
       "src/data/neighborhoodPolygons.js",
       "src/data/pickRegistry.js",
+      "src/data/placeProviderPayloads.js",
       "src/data/radioCountry.js",
       "src/data/regionalModel.js",
       "src/data/renderAltitude.js",
@@ -2479,6 +2492,7 @@
       "src/layers/awareness/subject.js",
       "src/layers/awareness/testing.js",
       "src/layers/bikeshare/controls.js",
+      "src/layers/bikeshare/directFetch.js",
       "src/layers/bikeshare/index.js",
       "src/layers/bikeshare/ingestion.js",
       "src/layers/bikeshare/lifecycle.js",
@@ -2520,6 +2534,7 @@
       "src/layers/cctv/videoPlayback.js",
       "src/layers/cyclones/index.js",
       "src/layers/cyclones/labels.js",
+      "src/layers/cyclones/nhcDirect.js",
       "src/layers/cyclones/rendering.js",
       "src/layers/cyclones/source.js",
       "src/layers/directions/index.js",
@@ -2810,9 +2825,11 @@
       "src/sources/overpassFeaturesRecords.js",
       "src/sources/overpassRoads.js",
       "src/sources/phaseTiming.js",
+      "src/sources/radioBrowser.js",
       "src/sources/requestDeadline.js",
       "src/sources/requestDeadline.js",
       "src/sources/sourceSlot.js",
+      "src/sources/staticHosting.js",
       "src/sources/tle.js",
       "src/sources/transitHistory.js",
       "src/sources/vectorTiles.js",
@@ -2830,7 +2847,7 @@
       "pbf",
       "mgrs",
       "mapillary-js",
-      "@jtarrio/webrtlsdr"
+      "@jtarrio/webrtlsdr", "fflate"
     ]
   },
   "application-operations": {
@@ -3030,7 +3047,10 @@
   },
   "directions-source": {
     "exports": ["./layers/directions/source"],
-    "modules": ["src/layers/directions/source.js"],
+    "modules": ["src/data/placeProviderPayloads.js",
+      "src/data/routeSteps.js",
+      "src/layers/directions/source.js",
+      "src/sources/staticHosting.js"],
     "external": []
   },
   "recent-imagery-source": {
@@ -3047,6 +3067,8 @@
     "modules": [
       "src/layers/directions/index.js",
       "src/layers/directions/source.js",
+      "src/sources/staticHosting.js",
+      "src/data/placeProviderPayloads.js",
       "src/data/routeSteps.js"
     ],
     "external": ["cesium"]
@@ -3106,13 +3128,16 @@
       "src/layers/alpr/tileRecords.js",
       "src/sources/httpBody.js",
       "src/sources/vectorTiles.js",
-      "src/sources/phaseTiming.js"
+      "src/sources/phaseTiming.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["@mapbox/vector-tile", "pbf"]
   },
   "bikeshare-source": {
     "exports": ["./layers/bikeshare/source"],
-    "modules": ["src/layers/bikeshare/source.js"],
+    "modules": ["src/layers/bikeshare/directFetch.js",
+      "src/layers/bikeshare/source.js",
+      "src/sources/staticHosting.js"],
     "external": []
   },
   "cctv-source": {
@@ -3160,7 +3185,10 @@
   },
   "radio-source": {
     "exports": ["./layers/radio/source"],
-    "modules": ["src/layers/radio/policy.js", "src/layers/radio/source.js"],
+    "modules": ["src/data/radioCountry.js",
+      "src/layers/radio/policy.js", "src/layers/radio/source.js",
+      "src/sources/radioBrowser.js",
+      "src/sources/staticHosting.js"],
     "external": []
   },
   "satellites-source": {
@@ -3194,6 +3222,7 @@
     "exports": ["./sources/reference", "./layers/submarine-cables/source"],
     "modules": [
       "src/sources/reference.js",
+      "src/sources/staticHosting.js",
       "src/layers/earthquakes/source.js",
       "src/layers/earthquakes/records.js",
       "src/sources/httpBody.js",
@@ -3403,6 +3432,7 @@
     "modules": [
       "src/layers/perimeters/index.js",
       "src/sources/httpBody.js",
+      "src/sources/staticHosting.js",
       "src/layers/perimeters/source.js",
       "src/layers/perimeters/records.js",
       "src/layers/perimeters/cards.js",
@@ -3415,6 +3445,7 @@
     "modules": [
       "src/layers/perimeters/records.js",
       "src/sources/httpBody.js",
+      "src/sources/staticHosting.js",
       "src/layers/perimeters/source.js"
     ],
     "external": []
@@ -3499,6 +3530,7 @@
       "src/layers/bikeshare/source.js",
       "src/layers/cctv/source.js",
       "src/layers/cctv/sourcePolicy.js",
+      "src/layers/cyclones/nhcDirect.js",
       "src/layers/cyclones/source.js",
       "src/sources/httpBody.js",
       "src/layers/earthquakes/source.js",
@@ -3506,7 +3538,9 @@
       "src/layers/firms/source.js",
       "src/layers/installations/source.js",
       "src/sources/requestDeadline.js",
+      "src/sources/staticHosting.js",
       "src/data/militaryNames.js",
+      "src/data/radioCountry.js",
       "src/sources/militaryTileGeometry.js",
       "src/data/bundledJson.js",
       "src/data/retryableLoad.js",
@@ -3514,10 +3548,12 @@
       "src/sources/openFreeMap.js",
       "src/sources/vectorTiles.js",
       "src/sources/phaseTiming.js",
+      "src/sources/radioBrowser.js",
       "src/data/tomtomTiles.js",
       "src/sources/capability.js",
       "src/data/militaryInstallationData.js",
       "src/layers/launches/source.js",
+      "src/layers/perimeters/records.js",
       "src/layers/perimeters/source.js",
       "src/layers/radio/source.js",
       "src/layers/radio/policy.js",
@@ -3552,10 +3588,11 @@
       "src/layers/alpr/policy.js",
       "src/layers/alpr/records.js",
       "src/layers/alpr/tileRecords.js",
+      "src/layers/bikeshare/directFetch.js",
       "src/sources/infrastructureData.js",
       "src/sources/eventPacks.js"
     ],
-    "external": ["@mapbox/vector-tile", "pbf"]
+    "external": ["@mapbox/vector-tile", "pbf", "fflate"]
   },
   "view": {
     "exports": ["./view"],
