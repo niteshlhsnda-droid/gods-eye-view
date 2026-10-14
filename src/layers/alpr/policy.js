@@ -4,9 +4,39 @@
  * mapped locations, not footage, plate records or evidence of current activity.
  */
 
+import { isStaticHosting } from '../../sources/staticHosting.js';
+
 export const LAYER_ID = 'alpr-cameras';
 
 export const OVERPASS_URL = '/api/overpass';
+
+/**
+ * Direct public Overpass API endpoint. Used on static hosting, where the
+ * same-origin /api/overpass proxy does not exist. The POST uses
+ * application/x-www-form-urlencoded (a CORS-safelisted content type), so no
+ * preflight is needed.
+ */
+export const OVERPASS_DIRECT_URL = 'https://overpass-api.de/api/interpreter';
+
+/** Mirror fallback when the main instance sheds load (verified CORS-open). */
+export const OVERPASS_MIRROR_URL =
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
+
+/**
+ * OSM wiki fair-use rule: pause this long before retrying after an
+ * HTTP 429 or 406 from the Overpass API.
+ */
+export const OVERPASS_RETRY_PAUSE_MS = 30_000;
+
+/**
+ * Resolve the Overpass endpoint for this page: the keyless direct endpoint
+ * on static hosting, the same-origin proxy on the desktop server.
+ * Read at request time — the static-hosting probe may resolve after module
+ * load.
+ */
+export function resolveOverpassUrl() {
+  return isStaticHosting() ? OVERPASS_DIRECT_URL : OVERPASS_URL;
+}
 
 export const REQUEST_DEBOUNCE_MS = 300;
 
