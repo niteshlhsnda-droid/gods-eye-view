@@ -187,7 +187,10 @@ test('static WFIGS snapshot is cached for five minutes', async () => {
     const source = createWfigsPerimeterSource({
       fetchImpl: async () => {
         fetches += 1;
-        return Response.json({ type: 'FeatureCollection', features: [feature] });
+        return Response.json({
+          type: 'FeatureCollection',
+          features: [feature],
+        });
       },
     });
     const first = await source.getSnapshot();

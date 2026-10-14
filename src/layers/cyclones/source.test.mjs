@@ -244,10 +244,16 @@ test('static hosting bypasses /api/cyclones for the NHC direct flow', async () =
       fetchImpl: async () => ({ ok: false, status: 404 }),
     });
     const readKml = (name) =>
-      readFileSync(new URL(`../../data/fixtures/${name}`, import.meta.url), 'utf8');
+      readFileSync(
+        new URL(`../../data/fixtures/${name}`, import.meta.url),
+        'utf8',
+      );
     const kmz = (text, name) => {
       const zipped = zipSync({ [name]: strToU8(text) });
-      return zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength);
+      return zipped.buffer.slice(
+        zipped.byteOffset,
+        zipped.byteOffset + zipped.byteLength,
+      );
     };
     const calls = [];
     const source = createCycloneSource({
@@ -258,14 +264,20 @@ test('static hosting bypasses /api/cyclones for the NHC direct flow', async () =
             status: 200,
             ok: true,
             arrayBuffer: async () =>
-              kmz(readKml('nhc-ep212026-003adv-track.kml'), 'ep212026_003adv_TRACK.kml'),
+              kmz(
+                readKml('nhc-ep212026-003adv-track.kml'),
+                'ep212026_003adv_TRACK.kml',
+              ),
           };
         if (url.endsWith('EP212026_CONE_latest.kmz'))
           return {
             status: 200,
             ok: true,
             arrayBuffer: async () =>
-              kmz(readKml('nhc-ep212026-003adv-cone.kml'), 'ep212026_003adv_CONE.kml'),
+              kmz(
+                readKml('nhc-ep212026-003adv-cone.kml'),
+                'ep212026_003adv_CONE.kml',
+              ),
           };
         return { status: 404, ok: false, body: { cancel: async () => {} } };
       },
@@ -275,7 +287,9 @@ test('static hosting bypasses /api/cyclones for the NHC direct flow', async () =
     const snapshot = await source.getSnapshot();
     assert.ok(!calls.includes('/api/cyclones'), 'proxy must not be called');
     assert.ok(
-      calls.some((url) => url.startsWith('https://www.nhc.noaa.gov/storm_graphics/api/')),
+      calls.some((url) =>
+        url.startsWith('https://www.nhc.noaa.gov/storm_graphics/api/'),
+      ),
       'NHC direct products must be probed',
     );
     assert.equal(snapshot.storms.length, 1);

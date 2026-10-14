@@ -717,7 +717,8 @@
       "cesium",
       "i18next",
       "rrweb",
-      "satellite.js", "fflate"
+      "satellite.js",
+      "fflate"
     ]
   },
   "ui-styles": {
@@ -2319,7 +2320,8 @@
       "mgrs",
       "pbf",
       "rrweb",
-      "satellite.js", "fflate"
+      "satellite.js",
+      "fflate"
     ]
   },
   "application-catalog": {
@@ -2847,7 +2849,8 @@
       "pbf",
       "mgrs",
       "mapillary-js",
-      "@jtarrio/webrtlsdr", "fflate"
+      "@jtarrio/webrtlsdr",
+      "fflate"
     ]
   },
   "application-operations": {
@@ -3047,10 +3050,12 @@
   },
   "directions-source": {
     "exports": ["./layers/directions/source"],
-    "modules": ["src/data/placeProviderPayloads.js",
+    "modules": [
+      "src/data/placeProviderPayloads.js",
       "src/data/routeSteps.js",
       "src/layers/directions/source.js",
-      "src/sources/staticHosting.js"],
+      "src/sources/staticHosting.js"
+    ],
     "external": []
   },
   "recent-imagery-source": {
@@ -3135,9 +3140,11 @@
   },
   "bikeshare-source": {
     "exports": ["./layers/bikeshare/source"],
-    "modules": ["src/layers/bikeshare/directFetch.js",
+    "modules": [
+      "src/layers/bikeshare/directFetch.js",
       "src/layers/bikeshare/source.js",
-      "src/sources/staticHosting.js"],
+      "src/sources/staticHosting.js"
+    ],
     "external": []
   },
   "cctv-source": {
@@ -3185,10 +3192,13 @@
   },
   "radio-source": {
     "exports": ["./layers/radio/source"],
-    "modules": ["src/data/radioCountry.js",
-      "src/layers/radio/policy.js", "src/layers/radio/source.js",
+    "modules": [
+      "src/data/radioCountry.js",
+      "src/layers/radio/policy.js",
+      "src/layers/radio/source.js",
       "src/sources/radioBrowser.js",
-      "src/sources/staticHosting.js"],
+      "src/sources/staticHosting.js"
+    ],
     "external": []
   },
   "satellites-source": {

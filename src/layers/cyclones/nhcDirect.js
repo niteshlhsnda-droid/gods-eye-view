@@ -48,19 +48,37 @@ const OUTLOOK_BASIN = Object.freeze({ AL: 'atlc', EP: 'epac', CP: 'cpac' });
 
 /** NHC advisory "Valid at" timezone abbreviations -> minutes east of UTC. */
 const TZ_OFFSET_MINUTES = Object.freeze({
-  AST: -240, ADT: -180,
-  EST: -300, EDT: -240,
-  CST: -360, CDT: -300,
-  MST: -420, MDT: -360,
-  PST: -480, PDT: -420,
-  AKST: -540, AKDT: -480,
-  HST: -600, HDT: -540,
-  UTC: 0, GMT: 0,
+  AST: -240,
+  ADT: -180,
+  EST: -300,
+  EDT: -240,
+  CST: -360,
+  CDT: -300,
+  MST: -420,
+  MDT: -360,
+  PST: -480,
+  PDT: -420,
+  AKST: -540,
+  AKDT: -480,
+  HST: -600,
+  HDT: -540,
+  UTC: 0,
+  GMT: 0,
 });
 
 const MONTHS = Object.freeze({
-  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
-  july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  january: 0,
+  february: 1,
+  march: 2,
+  april: 3,
+  may: 4,
+  june: 5,
+  july: 6,
+  august: 7,
+  september: 8,
+  october: 9,
+  november: 10,
+  december: 11,
 });
 
 /** NHC title-case classification words -> snapshot classification codes. */
@@ -107,9 +125,7 @@ export function parseNhcValidAt(text) {
   if (offsetMinutes === undefined || month === undefined) return null;
   let hours = Number(hour) % 12;
   if (meridiem === 'PM') hours += 12;
-  const ms = Date.UTC(
-    Number(year), month, Number(day), hours, Number(minute),
-  );
+  const ms = Date.UTC(Number(year), month, Number(day), hours, Number(minute));
   if (!Number.isFinite(ms)) return null;
   return ms - offsetMinutes * 60 * 1000;
 }
@@ -157,7 +173,9 @@ function placemarkDescription(block) {
 
 function placemarkCoordinates(block, kind) {
   const section = firstGroup(
-    new RegExp(`<${kind}>\\s*<coordinates>\\s*([\\s\\S]*?)\\s*<\\/coordinates>`),
+    new RegExp(
+      `<${kind}>\\s*<coordinates>\\s*([\\s\\S]*?)\\s*<\\/coordinates>`,
+    ),
     block,
   );
   if (!section) return null;
@@ -187,7 +205,9 @@ function parseForecastPoint(block) {
   if (!idMatch) return null;
   const withoutId = title.trim().slice(0, idMatch.index).trim();
   const nameWord = withoutId.split(/\s+/).pop();
-  const classWords = withoutId.slice(0, withoutId.length - nameWord.length).trim();
+  const classWords = withoutId
+    .slice(0, withoutId.length - nameWord.length)
+    .trim();
   let tauHours = null;
   if (/Advisory Information/.test(description)) tauHours = 0;
   else {
@@ -195,8 +215,11 @@ function parseForecastPoint(block) {
     if (!tau) return null;
     tauHours = Number(tau[1]);
   }
-  const validAt = parseNhcValidAt(firstGroup(/Valid at:\s*([^<]+)</, description));
-  const location = /Location:\s*([\d.]+)\s*([NS])\s*,\s*(-?[\d.]+)\s*([WE])/.exec(description);
+  const validAt = parseNhcValidAt(
+    firstGroup(/Valid at:\s*([^<]+)</, description),
+  );
+  const location =
+    /Location:\s*([\d.]+)\s*([NS])\s*,\s*(-?[\d.]+)\s*([WE])/.exec(description);
   const wind = /Maximum Wind:\s*(\d+)\s*knots/.exec(description);
   const gust = /Wind Gusts:\s*(\d+)\s*knots/.exec(description);
   const coords = placemarkCoordinates(block, 'Point');
@@ -205,10 +228,8 @@ function parseForecastPoint(block) {
   if (location) {
     // The Location row already carries a sign ("-97.0 W"); normalize via the
     // hemisphere letter so a double negation can never flip the position.
-    latitude =
-      Math.abs(Number(location[1])) * (location[2] === 'S' ? -1 : 1);
-    longitude =
-      Math.abs(Number(location[3])) * (location[4] === 'W' ? -1 : 1);
+    latitude = Math.abs(Number(location[1])) * (location[2] === 'S' ? -1 : 1);
+    longitude = Math.abs(Number(location[3])) * (location[4] === 'W' ? -1 : 1);
   }
   if (coords && coords.length) {
     // The Point element is authoritative; the Location row must agree with it.
@@ -221,8 +242,10 @@ function parseForecastPoint(block) {
     [longitude, latitude] = coords[0];
   }
   if (
-    longitude === null || latitude === null ||
-    Math.abs(longitude) > 180 || Math.abs(latitude) > 90
+    longitude === null ||
+    latitude === null ||
+    Math.abs(longitude) > 180 ||
+    Math.abs(latitude) > 90
   )
     return null;
   return {
@@ -244,7 +267,9 @@ function parseTrackLine(blocks) {
   for (const block of blocks) {
     const description = placemarkDescription(block);
     if (!description || !/Hour Forecast Track/.test(description)) continue;
-    const hours = Number(firstGroup(/(\d+)\s*Hour Forecast Track/, description));
+    const hours = Number(
+      firstGroup(/(\d+)\s*Hour Forecast Track/, description),
+    );
     const coordinates = placemarkCoordinates(block, 'LineString');
     if (!coordinates || coordinates.length < 2) continue;
     if (!best || hours > best.hours) best = { hours, coordinates };
@@ -267,8 +292,10 @@ export function parseConeRing(kml) {
       const lon = Number(parts[0]);
       const lat = Number(parts[1]);
       if (
-        !Number.isFinite(lon) || !Number.isFinite(lat) ||
-        Math.abs(lon) > 180 || Math.abs(lat) > 90
+        !Number.isFinite(lon) ||
+        !Number.isFinite(lat) ||
+        Math.abs(lon) > 180 ||
+        Math.abs(lat) > 90
       )
         return null;
       ring.push([lon, lat]);
@@ -357,7 +384,8 @@ export function buildStormFromKml({ trackKml, coneRing, nowMs }) {
       continue;
     }
     seen.add(point.tauHours);
-    if (point.windKt === null || point.gustKt === null) geometryComplete = false;
+    if (point.windKt === null || point.gustKt === null)
+      geometryComplete = false;
     forecastPoints.push({
       position: point.position,
       tauHours: point.tauHours,
@@ -396,9 +424,7 @@ export function buildStormFromKml({ trackKml, coneRing, nowMs }) {
     track: hasGeometry
       ? { type: 'LineString', coordinates: track.coordinates }
       : null,
-    cone: hasGeometry
-      ? { type: 'Polygon', coordinates: [coneRing] }
-      : null,
+    cone: hasGeometry ? { type: 'Polygon', coordinates: [coneRing] } : null,
   };
 }
 
@@ -452,9 +478,8 @@ async function mapLimit(items, limit, worker, signal) {
       }
     }
   }
-  const runners = Array.from(
-    { length: Math.min(limit, items.length) },
-    () => run(),
+  const runners = Array.from({ length: Math.min(limit, items.length) }, () =>
+    run(),
   );
   await Promise.all(runners);
   return results;
