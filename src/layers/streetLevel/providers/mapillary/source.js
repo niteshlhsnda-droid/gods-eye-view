@@ -6,6 +6,7 @@ import {
   SEQUENCE_IMAGE_FIELDS,
   SEQUENCE_IMAGES_LIMIT,
 } from './policy.js';
+import { isStaticHosting } from '../../../../sources/staticHosting.js';
 
 /** HTTP error flagged `keyRequired`, `keyRejected` or `retryAfterSec` (429). */
 export class MapillarySourceError extends Error {
@@ -76,6 +77,10 @@ export function createMapillarySource({
     hasToken: () => Boolean(token),
 
     async getStatus({ signal } = {}) {
+      // Static hosting has no /api/mapillary/status proxy: report the
+      // key-required state directly instead of a doomed request. The token
+      // is a desktop-server secret, so static is always keyless.
+      if (isStaticHosting()) return { configured: false };
       const response = await fetchImpl(urls.status, {
         signal,
         cache: 'no-store',

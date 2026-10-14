@@ -25,6 +25,7 @@ import {
   updatePlayback,
   syncPlayback,
 } from './movement.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 /**
  * How far ahead of the snapshot's own fetch time a vehicle stamp may sit
@@ -427,6 +428,9 @@ export function createIngestion({ state, services, parts, source }) {
    * @returns {Promise<void>}
    */
   function pollFeed(feed, generation) {
+    // Static-hosting honest state is terminal: the first failed poll settled
+    // it, so manager ticks and camera moves must not re-enter the source.
+    if (state._staticTerminal) return Promise.resolve();
     if (!state._enabled || generation !== state._generation)
       return Promise.resolve();
     const existing = state._inFlight.get(feed.id);
@@ -472,10 +476,18 @@ export function createIngestion({ state, services, parts, source }) {
           `[Data:Transit] ${feed.id} poll failed:`,
           error?.message || error,
         );
-        status.error = `${feed.name} feed unavailable`;
-        status.retryInSec = Number.isFinite(error?.retryInSec)
-          ? error.retryInSec
-          : null;
+        if (isNeedsDesktopServerError(error)) {
+          // Terminal: static hosting has no /api backend, so there is nothing
+          // to retry — the honest message renders on the row via feed health.
+          state._staticTerminal = true;
+          status.error = error.message;
+          status.retryInSec = null;
+        } else {
+          status.error = `${feed.name} feed unavailable`;
+          status.retryInSec = Number.isFinite(error?.retryInSec)
+            ? error.retryInSec
+            : null;
+        }
         status.loading = false;
         state._error = status.error;
         // A failed poll is exactly when old vehicles must be re-examined:

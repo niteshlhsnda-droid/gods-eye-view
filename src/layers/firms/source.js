@@ -1,9 +1,14 @@
+import { throwIfStaticHosting } from '../../sources/needsDesktopServer.js';
+
 /** Construct the existing live-fire endpoint without making a request. */
 export function createFirmsSource({
   fetchImpl = (...args) => globalThis.fetch(...args),
 } = {}) {
   return {
     async getSnapshot({ signal } = {}) {
+      // Static hosting has no /api/firms backend: settle into the honest
+      // terminal state instead of a doomed request + retry storm.
+      throwIfStaticHosting('Active fire detections');
       signal?.throwIfAborted();
       const response = await fetchImpl('/api/firms', {
         signal,

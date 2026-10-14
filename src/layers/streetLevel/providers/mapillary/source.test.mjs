@@ -146,3 +146,33 @@ test('a rejected key and a rate limit are told apart from other tile errors', as
     'the Retry-After header wins over the body',
   );
 });
+
+test('static hosting: status reports keyless without the doomed proxy request', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../../../sources/staticHosting.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const { calls, fetchImpl } = fakeFetch(() =>
+      jsonResponse({ configured: true }, 200),
+    );
+    // No token: the honest key-required state the provider already renders.
+    const source = createMapillarySource({ token: '', fetchImpl });
+    assert.deepEqual(await source.getStatus(), { configured: false });
+    assert.equal(calls.length, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('desktop: status still goes through the proxy', async () => {
+  const { calls, fetchImpl } = fakeFetch(() =>
+    jsonResponse({ configured: true }, 200),
+  );
+  const source = createMapillarySource({ token: 'MLY|1|abc', fetchImpl });
+  assert.deepEqual(await source.getStatus(), { configured: true });
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].url, /\/api\/mapillary\/status/);
+});

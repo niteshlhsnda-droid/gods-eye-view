@@ -11,6 +11,7 @@ import {
   createWindInspectionMarker,
   WIND_UNITS,
 } from './inspection.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 /** Format a forecast timestamp explicitly in UTC. */
 export function formatWindValidTime(value) {
@@ -82,6 +83,9 @@ export function createWindLayer({
     ['temperature', 'pressure'].includes(overlay) ? overlay : 'none';
   let generation = 0;
   let rowControlsListener = null;
+  // Static-hosting honest state: once settled, update() returns early instead
+  // of re-entering acquisition.
+  let staticTerminal = false;
   const notify = () => rowControlsListener?.();
   const unsubscribeClock = clock?.subscribe(notify);
   const layer = {
@@ -133,12 +137,14 @@ export function createWindLayer({
       // would falsely satisfy an appearance-only reuse after the next enable.
       manifest = null;
       error = null;
+      // Re-arm the static-hosting honest state so a re-enable re-settles it.
+      staticTerminal = false;
       hideInspection();
       rendering?.stop();
       rendering?.clear();
     },
     async update(nextViewer, { signal } = {}) {
-      if (!enabled) return false;
+      if (!enabled || staticTerminal) return false;
       rendering?.rehome?.();
       request?.abort();
       const controller = new AbortController();
@@ -172,6 +178,9 @@ export function createWindLayer({
         return true;
       } catch (cause) {
         if (controller.signal.aborted || request !== controller) return false;
+        // Terminal: static hosting has no /api backend, so there is nothing
+        // to retry — the honest message renders via stats/row controls.
+        if (isNeedsDesktopServerError(cause)) staticTerminal = true;
         error = cause?.message || 'Wind source unavailable';
         return true;
       } finally {

@@ -147,3 +147,25 @@ test('vessels are asked for by the area in view, and again only when the view mo
   await ingestion.refreshIfMoved();
   assert.deepEqual(asked.at(-1), { maxRows: 500 });
 });
+
+test('static hosting honest state is terminal: one settle, then update() no-ops', async () => {
+  const { needsDesktopServerError } =
+    await import('../../sources/needsDesktopServer.js');
+  let calls = 0;
+  const probe = setup({
+    async getSnapshot() {
+      calls += 1;
+      throw needsDesktopServerError('Live vessels');
+    },
+  });
+  assert.equal(probe.feed.staticTerminal, false);
+  await probe.methods.update();
+  assert.equal(calls, 1);
+  assert.equal(probe.feed.staticTerminal, true);
+  assert.match(probe.feed.error, /Live vessels/);
+  assert.match(probe.feed.error, /needs the desktop server/);
+  // Manager ticks and camera-move refreshes must not re-enter the source.
+  await probe.methods.update();
+  await probe.refreshIfMoved({});
+  assert.equal(calls, 1);
+});

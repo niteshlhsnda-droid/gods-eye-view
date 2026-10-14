@@ -840,7 +840,9 @@
       "src/sources/live/contract.js",
       "src/sources/live/index.js",
       "src/sources/live/standalone.js",
-      "src/sources/live/vessels.js"
+      "src/sources/live/vessels.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": []
   },
@@ -883,7 +885,9 @@
       "src/layers/flights/snapshotRenderer.js",
       "src/layers/flights/modelSpec.js",
       "src/data/inputOwnership.js",
-      "src/data/modelEligibility.js"
+      "src/data/modelEligibility.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium"]
   },
@@ -922,7 +926,9 @@
       "src/layers/military/recordPolicy.js",
       "src/layers/military/snapshotRenderer.js",
       "src/data/inputOwnership.js",
-      "src/data/modelEligibility.js"
+      "src/data/modelEligibility.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium"]
   },
@@ -975,7 +981,9 @@
       "src/layers/vessels/records.js",
       "src/layers/vessels/recordPolicy.js",
       "src/layers/vessels/snapshotRenderer.js",
-      "src/data/inputOwnership.js"
+      "src/data/inputOwnership.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium"]
   },
@@ -1021,7 +1029,9 @@
       "src/layers/firms/source.js",
       "src/layers/firms/state.js",
       "src/layers/firms/viewport.js",
-      "src/data/inputOwnership.js"
+      "src/data/inputOwnership.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium"]
   },
@@ -1075,7 +1085,9 @@
       "src/layers/launches/source.js",
       "src/layers/launches/state.js",
       "src/layers/launches/testing.js",
-      "src/data/inputOwnership.js"
+      "src/data/inputOwnership.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium"]
   },
@@ -1110,7 +1122,10 @@
       "src/data/bundledJson.js",
       "src/data/retryableLoad.js",
       "src/layers/installations/namedMarkers.js",
-      "src/data/infrastructureOverlayEntry.js"
+      "src/data/infrastructureOverlayEntry.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js",
+      "src/layers/alpr/policy.js"
     ],
     "external": ["cesium", "@mapbox/vector-tile", "pbf"]
   },
@@ -1282,7 +1297,9 @@
       "src/layers/streetLevel/selection.js",
       "src/layers/streetLevel/providers/mapillary/viewer.js",
       "src/layers/streetLevel/providers/mapillary/source.js",
-      "scripts/qa-street-level.mjs"
+      "scripts/qa-street-level.mjs",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium", "pbf", "@mapbox/vector-tile", "mapillary-js"]
   },
@@ -2302,7 +2319,8 @@
       "src/director/documentFields.js",
       "src/director/cameraDocument.js",
       "src/director/packs/manifest.js",
-      "src/director/interactions/document.js"
+      "src/director/interactions/document.js",
+      "src/sources/needsDesktopServer.js"
     ],
     "external": [
       "@jtarrio/webrtlsdr",
@@ -2838,7 +2856,8 @@
       "src/ui/imagerySplit.js",
       "src/ui/panelRailGeometry.js",
       "src/ui/radioTunerModel.js",
-      "src/worldFocus.js"
+      "src/worldFocus.js",
+      "src/sources/needsDesktopServer.js"
     ],
     "external": [
       "hls.js",
@@ -3008,7 +3027,9 @@
     "exports": ["./layers/flights/ingestion"],
     "modules": [
       "src/layers/flights/ingestion.js",
-      "src/layers/flights/recordPolicy.js"
+      "src/layers/flights/recordPolicy.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": []
   },
@@ -3027,7 +3048,9 @@
     "exports": ["./layers/military/ingestion"],
     "modules": [
       "src/layers/military/ingestion.js",
-      "src/layers/military/recordPolicy.js"
+      "src/layers/military/recordPolicy.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": []
   },
@@ -3044,7 +3067,9 @@
     "modules": [
       "src/layers/vessels/ingestion.js",
       "src/layers/vessels/viewArea.js",
-      "src/layers/vessels/recordPolicy.js"
+      "src/layers/vessels/recordPolicy.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": []
   },
@@ -3162,7 +3187,7 @@
   },
   "firms-source": {
     "exports": ["./layers/firms/source"],
-    "modules": ["src/layers/firms/source.js"],
+    "modules": ["src/layers/firms/source.js", "src/sources/needsDesktopServer.js", "src/sources/staticHosting.js"],
     "external": []
   },
   "installations-source": {
@@ -3181,13 +3206,16 @@
       "src/sources/requestDeadline.js",
       "src/data/local_data/osm_military_names/names.json",
       "src/data/bundledJson.js",
-      "src/data/retryableLoad.js"
+      "src/data/retryableLoad.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js",
+      "src/layers/alpr/policy.js"
     ],
     "external": ["@mapbox/vector-tile", "pbf"]
   },
   "launches-source": {
     "exports": ["./layers/launches/source"],
-    "modules": ["src/layers/launches/source.js"],
+    "modules": ["src/layers/launches/source.js", "src/sources/needsDesktopServer.js", "src/sources/staticHosting.js"],
     "external": []
   },
   "radio-source": {
@@ -3363,7 +3391,9 @@
       "src/sources/overpassFeaturesRecords.js",
       "src/sources/overpassFeatures.js",
       "src/sources/featureSource.js",
-      "src/sources/capability.js"
+      "src/sources/capability.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium", "egm96-universal", "pbf"]
   },
@@ -3400,7 +3430,9 @@
       "scripts/qa-transit-controls.mjs",
       "scripts/qa-transit-browser.mjs",
       "src/layers/transit/source.js",
-      "src/sources/transitHistory.js"
+      "src/sources/transitHistory.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": ["cesium", "pbf"]
   },
@@ -3408,7 +3440,9 @@
     "exports": ["./layers/transit/source"],
     "modules": [
       "src/layers/transit/source.js",
-      "src/sources/transitHistory.js"
+      "src/sources/transitHistory.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
     ],
     "external": []
   },
@@ -3600,7 +3634,8 @@
       "src/layers/alpr/tileRecords.js",
       "src/layers/bikeshare/directFetch.js",
       "src/sources/infrastructureData.js",
-      "src/sources/eventPacks.js"
+      "src/sources/eventPacks.js",
+      "src/sources/needsDesktopServer.js"
     ],
     "external": ["@mapbox/vector-tile", "pbf", "fflate"]
   },

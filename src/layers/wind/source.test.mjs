@@ -243,3 +243,30 @@ test('wind source retains usable wind when the requested scalar is unavailable',
     assert.deepEqual([...result.v], [3, 4]);
   }
 });
+
+test('static hosting: the honest error throws before any fetch', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { NEEDS_DESKTOP_SERVER_CODE } =
+    await import('../../sources/needsDesktopServer.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    let calls = 0;
+    const source = createWindSource({
+      fetchImpl: async () => {
+        calls += 1;
+        return response(manifest);
+      },
+    });
+    const error = await source.getSnapshot().catch((e) => e);
+    assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
+    assert.match(error.message, /Wind/);
+    assert.match(error.message, /needs the desktop server/);
+    assert.equal(calls, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});

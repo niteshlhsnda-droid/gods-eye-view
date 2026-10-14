@@ -1,4 +1,5 @@
 import { ERROR_BACKOFF_INTERVAL } from './recordPolicy.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 /** Own military source acquisition, cancellation, freshness and error backoff. */
 export function createIngestion({
@@ -9,6 +10,9 @@ export function createIngestion({
 }) {
   const methods = {
     async update(viewer, { signal = null } = {}) {
+      // Static-hosting honest state is terminal: the first update settled it,
+      // so manager ticks must not re-enter acquisition (no retry storm).
+      if (feed._staticTerminal) return;
       const nowMs = Date.now();
       const trackingRefreshEpoch = ++feed._trackingRefreshEpoch;
       feed._lastTrackingRefreshOutcome = {
@@ -59,6 +63,15 @@ export function createIngestion({
         if (updateSignal.aborted || e?.name === 'AbortError') {
           throw new DOMException('Military update aborted', 'AbortError');
         }
+        if (isNeedsDesktopServerError(e)) {
+          // Terminal: static hosting has no /api backend, so there is nothing
+          // to retry — keep the honest message and stop scheduling backoff.
+          feed._staticTerminal = true;
+          feed._backoff = false;
+          feed._retryAt = 0;
+          feed._lastError = e.message;
+          return;
+        }
         console.warn('[Data:Military] Fetch error:', e);
         feed._backoff = true;
         feed._retryAt =
@@ -88,6 +101,8 @@ export function createMilitaryFeed(source) {
   feed._backoff = false;
   feed._retryAt = 0;
   feed._lastError = null;
+  // Static-hosting honest state: once settled, update() returns early.
+  feed._staticTerminal = false;
   feed._activeUpdateControllers = new Set();
   feed._lastStatus = null;
   feed._lastSource = source?.label || 'Aircraft';

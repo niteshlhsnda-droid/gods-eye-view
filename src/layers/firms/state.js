@@ -39,6 +39,9 @@ export function createFirmsState({ services, config }) {
 
   layerState._error = null;
 
+  /** Static-hosting honest state: once settled, loadHeatmap() no-ops. */
+  layerState._staticTerminal = false;
+
   layerState._fires = [];
 
   layerState._firesByFrp = [];

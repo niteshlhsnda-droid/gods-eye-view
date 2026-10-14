@@ -118,6 +118,8 @@ export function createState({ services }) {
   state._lastUpdate = null;
   /** @type {string|null} */
   state._error = null;
+  /** Static-hosting honest state: once settled, pollFeed() no-ops. */
+  state._staticTerminal = false;
   state._limitWarned = false;
 
   state._scratchCartesian = new Cesium.Cartesian3();

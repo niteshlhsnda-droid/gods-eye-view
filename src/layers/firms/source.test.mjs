@@ -43,3 +43,30 @@ test('response-body completion honors cancellation without replacing records', a
     name: 'AbortError',
   });
 });
+
+test('static hosting: the honest error throws before any fetch', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { NEEDS_DESKTOP_SERVER_CODE } =
+    await import('../../sources/needsDesktopServer.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    let calls = 0;
+    const source = createFirmsSource({
+      fetchImpl: async () => {
+        calls += 1;
+        return { ok: true, json: async () => ({ fires: [] }) };
+      },
+    });
+    const error = await source.getSnapshot().catch((e) => e);
+    assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
+    assert.match(error.message, /Active fire detections/);
+    assert.match(error.message, /needs the desktop server/);
+    assert.equal(calls, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});

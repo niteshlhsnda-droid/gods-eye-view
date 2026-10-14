@@ -1,5 +1,6 @@
 import { adaptFirmsRecords } from '../../data/firmsAdapt.js';
 import { fireDetectionKey } from '../../data/firmsLabels.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 export function createIngestion({
   layerState,
@@ -15,6 +16,9 @@ export function createIngestion({
 
   async function loadHeatmap() {
     if (!layerState._dataSource || !layerState._enabled) return;
+    // Static-hosting honest state is terminal: the first load settled it, so
+    // manager ticks must not re-enter acquisition (no retry storm).
+    if (layerState._staticTerminal) return;
     layerState.request?.abort();
     const request = new AbortController();
     layerState.request = request;
@@ -72,7 +76,14 @@ export function createIngestion({
       )
         return;
       console.warn(`[Data:${id}] FIRMS live load failed:`, error);
-      layerState._error = 'live feed unavailable';
+      if (isNeedsDesktopServerError(error)) {
+        // Terminal: static hosting has no /api backend, so there is nothing
+        // to retry — the honest message renders on the row/panel.
+        layerState._staticTerminal = true;
+        layerState._error = error.message;
+      } else {
+        layerState._error = 'live feed unavailable';
+      }
     } finally {
       if (layerState.request === request) {
         layerState.request = null;

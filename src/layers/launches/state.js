@@ -19,6 +19,9 @@ export function createState({ services }) {
 
   state._lastError = null;
 
+  /** Static-hosting honest state: once settled, requestMissionUpdate() no-ops. */
+  state._staticTerminal = false;
+
   state._orbitMatches = 0;
 
   state._clickHandler = null;
