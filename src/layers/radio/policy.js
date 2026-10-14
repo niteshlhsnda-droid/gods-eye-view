@@ -2,6 +2,43 @@ export const RADIO_PREFIX = 'radio:';
 
 export const DIRECTORY_ENDPOINT = '/api/radio/stations';
 
+/** Radio Browser server bootstrap (CORS-open); pick the first server. */
+export const RADIO_BROWSER_SERVERS_URL =
+  'https://all.api.radio-browser.info/json/servers';
+
+/**
+ * Fallback backend when the bootstrap fails. Never de.radio-browser.info
+ * (unreachable from our network; verified 2026-10-14).
+ */
+export const RADIO_BROWSER_FALLBACK_BASE = 'https://de1.api.radio-browser.info';
+
+/** Broad directory query limit (lighter than the server's 1800-row query). */
+export const RADIO_BROWSER_DIRECTORY_LIMIT = 800;
+
+/** Per-category tag query limit. */
+export const RADIO_BROWSER_TAG_LIMIT = 100;
+
+/** Directory queries run at most this many concurrent requests. */
+export const RADIO_BROWSER_QUERY_CONCURRENCY = 3;
+
+/** Category tags queried in addition to the broad directory search. */
+export const RADIO_BROWSER_CATEGORY_TAGS = Object.freeze([
+  'news',
+  'talk',
+  'weather',
+  'emergency',
+  'scanner',
+  'aviation',
+  'marine',
+  'traffic',
+]);
+
+/** Catalog instance token the static direct fetch reports to the ingestion. */
+export const RADIO_BROWSER_CATALOG_INSTANCE = 'radio-browser-direct';
+
+/** Credit line shown in the radio UI (Radio Browser usage policy). */
+export const RADIO_DIRECTORY_ATTRIBUTION = 'Station data by radio-browser.info';
+
 export const HORIZON_TICK_MS = 250;
 
 export const HORIZON_CAMERA_MOVE_EPSILON_M = 1;
