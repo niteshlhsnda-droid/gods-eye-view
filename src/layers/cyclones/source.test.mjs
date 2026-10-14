@@ -1,10 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { zipSync, strToU8 } from 'fflate';
 import {
   createCycloneSource,
   validateCycloneSnapshot,
   CYCLONE_RESPONSE_LIMIT,
 } from './source.js';
+import {
+  probeApiAvailable,
+  resetStaticHostingProbe,
+} from '../../sources/staticHosting.js';
 
 const issuedAt = '2026-09-16T03:00:00.000Z';
 function fixture() {
@@ -229,4 +235,70 @@ test('source deadline cancels request and removes timer on completion', async (t
   t.mock.timers.tick(11);
   await rejected;
   assert.equal(signal.aborted, true);
+});
+
+test('static hosting bypasses /api/cyclones for the NHC direct flow', async () => {
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const readKml = (name) =>
+      readFileSync(new URL(`../../data/fixtures/${name}`, import.meta.url), 'utf8');
+    const kmz = (text, name) => {
+      const zipped = zipSync({ [name]: strToU8(text) });
+      return zipped.buffer.slice(zipped.byteOffset, zipped.byteOffset + zipped.byteLength);
+    };
+    const calls = [];
+    const source = createCycloneSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        if (url.endsWith('EP212026_TRACK_latest.kmz'))
+          return {
+            status: 200,
+            ok: true,
+            arrayBuffer: async () =>
+              kmz(readKml('nhc-ep212026-003adv-track.kml'), 'ep212026_003adv_TRACK.kml'),
+          };
+        if (url.endsWith('EP212026_CONE_latest.kmz'))
+          return {
+            status: 200,
+            ok: true,
+            arrayBuffer: async () =>
+              kmz(readKml('nhc-ep212026-003adv-cone.kml'), 'ep212026_003adv_CONE.kml'),
+          };
+        return { status: 404, ok: false, body: { cancel: async () => {} } };
+      },
+      directYear: 2026,
+      directNowMs: Date.parse('2026-10-14T04:00:00.000Z'),
+    });
+    const snapshot = await source.getSnapshot();
+    assert.ok(!calls.includes('/api/cyclones'), 'proxy must not be called');
+    assert.ok(
+      calls.some((url) => url.startsWith('https://www.nhc.noaa.gov/storm_graphics/api/')),
+      'NHC direct products must be probed',
+    );
+    assert.equal(snapshot.storms.length, 1);
+    assert.equal(snapshot.storms[0].id, 'ep212026');
+    assert.equal(snapshot.attribution, 'National Hurricane Center / NOAA');
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('desktop (unprobed) hosting keeps the /api/cyclones proxy path', async () => {
+  resetStaticHostingProbe();
+  try {
+    const calls = [];
+    const source = createCycloneSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        return Response.json(fixture());
+      },
+    });
+    await source.getSnapshot();
+    assert.equal(calls[0], '/api/cyclones');
+  } finally {
+    resetStaticHostingProbe();
+  }
 });
