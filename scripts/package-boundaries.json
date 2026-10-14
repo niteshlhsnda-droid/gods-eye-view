@@ -3187,7 +3187,11 @@
   },
   "firms-source": {
     "exports": ["./layers/firms/source"],
-    "modules": ["src/layers/firms/source.js", "src/sources/needsDesktopServer.js", "src/sources/staticHosting.js"],
+    "modules": [
+      "src/layers/firms/source.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
+    ],
     "external": []
   },
   "installations-source": {
@@ -3215,7 +3219,11 @@
   },
   "launches-source": {
     "exports": ["./layers/launches/source"],
-    "modules": ["src/layers/launches/source.js", "src/sources/needsDesktopServer.js", "src/sources/staticHosting.js"],
+    "modules": [
+      "src/layers/launches/source.js",
+      "src/sources/needsDesktopServer.js",
+      "src/sources/staticHosting.js"
+    ],
     "external": []
   },
   "radio-source": {
