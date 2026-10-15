@@ -4,8 +4,10 @@
  * Marker registration follows the pattern the wired layers use (the
  * earthquakes layer's Cesium `CustomDataSource`): one data source owned by
  * this module, pulsing ellipse entities whose radius breathes on a
- * `CallbackProperty`, severity shown as color + an `S1..S5` text label (never
- * color alone).
+ * `CallbackProperty`. Severity is shown as color + an `S1..S5` text chip
+ * (never color alone) — the chip is a `label`-variant entry on the shared
+ * world-overlay host, never a Cesium entity label graphic
+ * (see `src/noCesiumLabels.test.mjs`).
  *
  * The sprint's deck.gl/H3 GPU layer (`src/layers/deckgl`) is not wired into
  * the application yet, so there is no live deck.gl host to register with.
@@ -13,10 +15,17 @@
  * sprint's deck.gl entity-bridge shape (`entityToDatum` /
  * `entityScatterProps` convention in `src/layers/deckgl/entities.js`) so the
  * markers drop into that GPU layer unchanged once it is wired; the visible
- * rendering path today is the Cesium entity layer below. Cesium itself is
- * injected (`{ viewer, Cesium }`) — never statically imported — so this
- * module stays unit-testable in Node and free of platform singletons.
+ * rendering path today is the Cesium entity layer below plus the overlay
+ * host. Cesium itself is injected (`{ viewer, Cesium }`) — never statically
+ * imported — so this module stays unit-testable in Node and free of
+ * platform singletons.
  */
+
+import {
+  clearOverlaySource,
+  setOverlayEntries,
+  setOverlaySourceVisible,
+} from '../overlays/worldOverlay.js';
 
 export const LIVENOW_MARKER_SOURCE_ID = 'livenow';
 export const LIVENOW_MARKER_LIMIT = 5;
@@ -34,6 +43,48 @@ export const MARKER_PULSE_PERIOD_SEC = 2.4;
 
 export function severityColor(severity) {
   return SEVERITY_COLORS[severity] ?? SEVERITY_COLORS[1];
+}
+
+/** Overlay source id: the chips share the marker layer's source id. */
+export const LIVENOW_OVERLAY_SOURCE_ID = LIVENOW_MARKER_SOURCE_ID;
+
+const LIVENOW_OVERLAY_HOST = Object.freeze({
+  setEntries: setOverlayEntries,
+  setVisible: setOverlaySourceVisible,
+  clearSource: clearOverlaySource,
+});
+
+/**
+ * One severity chip for the shared world-overlay host: the `S1..S5` text
+ * that used to be a Cesium entity label graphic, drawn by the host above
+ * the pulsing ellipse. `position` is the same Cartesian3 anchor as the
+ * entity, so chip and pulse stay co-located.
+ * @param {object} event LiveEvent with id, lat, lon, severity, title.
+ * @param {{position:object}} options Cartesian3 anchor from the caller.
+ * @returns {?object} Overlay entry, or null for bad coordinates/anchor.
+ */
+export function liveNowOverlayEntry(event, { position } = {}) {
+  if (!validCoords(event) || !position) return null;
+  const severity = Number(event.severity) || 1;
+  return {
+    id: `livenow:${event.id}`,
+    position,
+    variant: 'label',
+    title: `S${severity}`,
+    details: [],
+    accent: severityColor(severity),
+    priority: severity,
+    collisionGroup: 'ambient-label',
+    paintLane: 'ambient-label',
+    interactive: false,
+    edgeFade: 'keyhole',
+    horizonCull: true,
+    terrainOcclusion: false,
+    gapPx: 15,
+    verticalOnly: true,
+    placement: 'above',
+    accessibilityLabel: `Live Now event, severity ${severity}: ${event.title ?? ''}`,
+  };
 }
 
 function validCoords(event) {
@@ -134,17 +185,22 @@ export function pulseRadiusMeters(severity, tSec, phase = 0) {
 }
 
 /**
- * Own the Live Now marker layer on a Cesium viewer.
+ * Own the Live Now marker layer on a Cesium viewer, plus its severity
+ * chips on the shared world-overlay host.
  *
  * @param {Object} options
  * @param {Object} options.viewer Cesium Viewer (only `dataSources` is used).
  * @param {Object} options.Cesium The Cesium namespace (injected).
  * @param {(event:Object)=>void} [options.onActivate] Card-open hook for clicks.
+ * @param {Object} [options.host] Overlay host
+ *   (`{ setEntries, setVisible, clearSource }`); defaults to the real
+ *   world-overlay host. Injectable so unit tests never touch the DOM.
  */
 export function createLiveNowMarkers({
   viewer,
   Cesium,
   onActivate = () => {},
+  host = LIVENOW_OVERLAY_HOST,
 } = {}) {
   if (!viewer?.dataSources)
     throw new TypeError('LiveNowMarkers requires a viewer with dataSources');
@@ -159,13 +215,15 @@ export function createLiveNowMarkers({
   function update(events) {
     dataSource.entities.removeAll();
     const selected = selectTopMarkers(events, LIVENOW_MARKER_LIMIT);
+    const entries = [];
     selected.forEach((event, index) => {
       const color = severityColor(event.severity);
       const phase = (index / Math.max(1, selected.length)) * 2 * Math.PI;
+      const position = Cesium.Cartesian3.fromDegrees(event.lon, event.lat, 0);
       dataSource.entities.add({
         id: `livenow:${event.id}`,
         name: event.title,
-        position: Cesium.Cartesian3.fromDegrees(event.lon, event.lat, 0),
+        position,
         ellipse: {
           semiMinorAxis: new Cesium.CallbackProperty(
             (time) =>
@@ -191,21 +249,18 @@ export function createLiveNowMarkers({
           outlineWidth: 2,
           height: 0,
         },
-        label: {
-          text: `S${event.severity}`,
-          font: '600 13px system-ui, sans-serif',
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -14),
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
       });
+      const entry = liveNowOverlayEntry(event, { position });
+      if (entry) entries.push(entry);
     });
     _count = selected.length;
     dataSource.show = _visible;
+    host.setVisible(LIVENOW_OVERLAY_SOURCE_ID, _visible);
+    host.setEntries(LIVENOW_OVERLAY_SOURCE_ID, entries, {
+      cohortLimit: LIVENOW_MARKER_LIMIT,
+      collisionCapacity: LIVENOW_MARKER_LIMIT,
+      moving: false,
+    });
     return _count;
   }
 
@@ -218,9 +273,12 @@ export function createLiveNowMarkers({
     setVisible(visible) {
       _visible = Boolean(visible);
       dataSource.show = _visible;
+      host.setVisible(LIVENOW_OVERLAY_SOURCE_ID, _visible);
     },
     clear() {
       dataSource.entities.removeAll();
+      host.clearSource(LIVENOW_OVERLAY_SOURCE_ID);
+      host.setVisible(LIVENOW_OVERLAY_SOURCE_ID, false);
       _count = 0;
     },
     get count() {
@@ -231,6 +289,8 @@ export function createLiveNowMarkers({
     },
     dispose() {
       dataSource.entities.removeAll();
+      host.clearSource(LIVENOW_OVERLAY_SOURCE_ID);
+      host.setVisible(LIVENOW_OVERLAY_SOURCE_ID, false);
       viewer.dataSources.remove(dataSource);
       _count = 0;
     },

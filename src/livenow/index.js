@@ -26,8 +26,10 @@ export {
   selectTopMarkers,
   eventToDeckDatum,
   liveNowScatterProps,
+  liveNowOverlayEntry,
   pulseRadiusMeters,
   severityColor,
+  LIVENOW_OVERLAY_SOURCE_ID,
 } from './markers.js';
 export {
   buildLiveNowTour,
