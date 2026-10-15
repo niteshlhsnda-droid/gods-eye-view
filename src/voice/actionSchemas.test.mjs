@@ -37,7 +37,9 @@ test('the complete Realtime tool payload pins the manifest-generated layer relea
     // omit top-level anyOf (OpenAI rejects it). Contacts list routing preserves
     // requested radius and center authority in descriptions only.
     // Street Level adds its toggle enum values and generated alias hint.
-    '9eb113454c5af5e32e27ffcdc7919d0e4600ba1d204f8f175e071152be41ad0f',
+    // Aircraft emergency adds the squawk/emergency/broadcast fields and the
+    // broadcast-caveat wording (no GNSS entry on this branch).
+    'd981e1f7c76d1995302b35603ace8a549c5e782ed4ce8eac4c8c2a7202dc626e',
   );
 });
 

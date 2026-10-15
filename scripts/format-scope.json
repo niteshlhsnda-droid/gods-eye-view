@@ -994,5 +994,7 @@
   "src/data/aircraftEmergency.js",
   "src/data/aircraftEmergency.test.mjs",
   "src/ui/flyToDataSource.js",
-  "src/ui/flyToDataSource.test.mjs"
+  "src/ui/flyToDataSource.test.mjs",
+  "scripts/qa-emergency-squawk.mjs",
+  "src/data/aircraftEmergencyAnalyst.test.mjs"
 ]
