@@ -155,6 +155,8 @@
     "./layers/earthquakes/source": "./src/layers/earthquakes/source.js",
     "./layers/firms": "./src/layers/firms/index.js",
     "./layers/firms/source": "./src/layers/firms/source.js",
+    "./layers/gnss": "./src/layers/gnss/index.js",
+    "./layers/gnss/source": "./src/layers/gnss/source.js",
     "./layers/flights": "./src/layers/flights/index.js",
     "./layers/flights/ingestion": "./src/layers/flights/ingestion.js",
     "./layers/flights/records": "./src/layers/flights/records.js",

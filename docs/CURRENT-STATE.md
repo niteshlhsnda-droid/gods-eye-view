@@ -3069,9 +3069,34 @@ its criteria cannot be silently ignored.
 | FIRMS Active Fires ▲   | NASA FIRMS live (VIIRS ×3 NRT + MODIS NRT, trailing 24h)                                                                                                                                        | `src/data/firmsHeatmap.js`                            | `/api/firms` (`FIRMS_MAP_KEY`)                           | 10 min (proxy TTL 30 min)                                                         |
 | Street Level 📷 | Street-level imagery; Mapillary is the first provider (vector tiles, Graph API, MapillaryJS) | `src/layers/streetLevel/` via `src/app/layers/streetLevel.js` | `/api/mapillary/status`, `/api/mapillary/tiles/coverage/{z}/{x}/{y}` (`MAPILLARY_CLIENT_TOKEN`) | camera-driven (320 ms debounce, ≤9 tiles, cached 24 h) |
 | Wind 🌬                 | NOAA GFS 10 m wind (keyless, 0.25°→1° grid; animated particles)                                                                                                                                 | `src/data/wind.js`                                    | `/api/wind`                                              | 1 h (forecast cycle)                                                              |
+| GNSS Integrity 📡 (`gnss-integrity`) | adsb.lol point snapshot, low navigation accuracy binned per 0.5° cell (GEV NIC/NACp threshold + gpsjam.org formula and bands, keyless, ODbL) | `src/layers/gnss/` via `src/app/layers/gnss.js` | `/api/gnss-integrity` | camera-driven (600 ms debounce, minimum 2.5 s between reads) + 60s poll (server cache 60 s; 30 min rolling window) |
 | Fire Perimeters 🔥 | NIFC WFIGS current interagency perimeters (keyless, paged past the 2000-record cap); InciWeb catalog + incident page origin and update time checks for verified incident-page links | `src/layers/perimeters/` via `src/app/layers/perimeters.js` | `/api/fire-perimeters` + `/api/fire-perimeters/inciweb/*` | 5 min (server caches: catalog 1 h; publication 30 min) |
 
 Fire Perimeters uses capped, timed server reads with stale-on-error caching and a per-client limit. Unchanged snapshots retain geometry; link checks cancel on disable or selection change, and the row legend shows reported containment.
+
+GNSS Integrity samples a 250 nm circle around the Earth point under the screen
+centre. Camera reads debounce for 600 ms with a monotonic 2.5 s minimum gap;
+nearby views share whole-degree cache keys, and a minute poll refreshes data.
+Counts and bands cover visited views over 30 minutes, including regions now off
+screen. Non-pickable ground primitives preserve Street Level and perimeter
+selection. The legend describes a low-accuracy score, not the raw aircraft share;
+`getStats().levels` exposes nominal, medium and high counts separately.
+
+Transient source failures keep activation enabled and show unavailable/degraded
+health with the next automatic retry. Upstream 429 deadlines are capped at one
+hour, with the longest concurrent deadline retained; 5xx, timeout and malformed
+responses impose a 15 s server cooldown. Cache hits and shared reads do not spend
+upstream admission. Cache age and cooldown use a monotonic clock; observation
+age comes from the upstream snapshot and is preserved in the row and voice stats.
+Snapshots older than 30 minutes or without a source timestamp are refused.
+Disable/destroy cancels pending requests, timers, subscriptions and primitives.
+
+The GEV classifier remains unvalidated; anomalies do not confirm interference.
+See [method, provenance and limits](../DATA_SOURCES.md#gnss-integrity), including
+MLAT-positioned GPS loss, derived-field exclusions and the NIC 0 exception.
+`scripts/qa-gnss.mjs` covers live freshness, bands, built primitives, camera/globe
+anchors, recovery, keyboard and mobile states; emergency repainting is covered
+by `scripts/qa-emergency-squawk.mjs`. Both accept `--timeout-ms` for slow boot.
 
 Street Level is a collapsible right-rail panel (`#street-level-panel`, layer
 token `0`, option owner `street-level`, panel `ui` token `t`) that starts
