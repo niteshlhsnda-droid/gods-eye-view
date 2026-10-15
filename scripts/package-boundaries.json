@@ -708,7 +708,14 @@
       "src/director/documentFields.js",
       "src/director/cameraDocument.js",
       "src/director/packs/manifest.js",
-      "src/director/interactions/document.js"
+      "src/director/interactions/document.js",
+      "src/overlays/worldOverlay.js",
+      "src/overlays/worldOverlayDraw.js",
+      "src/overlays/worldOverlayTokens.js",
+      "src/data/detectionCohort.js",
+      "src/data/labelArbiter.js",
+      "src/celestialRing.js",
+      "src/renderGovernor.js"
     ],
     "external": [
       "@knight-lab/timelinejs",
@@ -3751,8 +3758,17 @@
       "src/livenow/panel.js",
       "src/livenow/markers.js",
       "src/livenow/tour.js",
-      "docs/live-now/i18n.json"
+      "docs/live-now/i18n.json",
+      "src/overlays/worldOverlay.js",
+      "src/overlays/worldOverlayDraw.js",
+      "src/overlays/worldOverlayTokens.js",
+      "src/data/detectionCohort.js",
+      "src/data/labelArbiter.js",
+      "src/data/detectionPolicy.js",
+      "src/celestialRing.js",
+      "src/cyberSonar.js",
+      "src/renderGovernor.js"
     ],
-    "external": []
+    "external": ["cesium"]
   }
 }
