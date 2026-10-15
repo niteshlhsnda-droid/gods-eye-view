@@ -9,12 +9,12 @@ import {
 } from './strings.js';
 import copy from '../../docs/live-now/i18n.json' with { type: 'json' };
 
-test('all four locales ship every chrome key (69 keys each, non-empty)', () => {
+test('all four locales ship every chrome key (73 keys each, non-empty)', () => {
   for (const locale of LIVE_NOW_LOCALES) {
     assert.equal(
       Object.keys(copy[locale]).length,
-      69,
-      `${locale} should have 69 keys`,
+      73,
+      `${locale} should have 73 keys`,
     );
     for (const key of LIVE_NOW_CHROME_KEYS) {
       const value = copy[locale][key];

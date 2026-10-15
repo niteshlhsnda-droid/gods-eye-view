@@ -1,4 +1,6 @@
-# Contributing to God's Eye View
+# Contributing to God's Eye View (fork)
+
+> This is the fork at [niteshlhsnda-droid/gods-eye-view](https://github.com/niteshlhsnda-droid/gods-eye-view), maintained by [Nitesh Kumar](https://github.com/niteshlhsnda-droid). Upstream lives at [bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view) — see "Upstream sync policy" below before opening a PR.
 
 Thanks for being here. God's Eye View is an open foundation for live spatial intelligence in the browser, and it gets better when more people run it, break it, and extend it.
 
@@ -7,7 +9,7 @@ Thanks for being here. God's Eye View is an open foundation for live spatial int
 Use Node.js 24.14.x or 26.x (also enforced by `package.json`).
 
 ```bash
-git clone https://github.com/bilawalsidhu/gods-eye-view.git
+git clone https://github.com/niteshlhsnda-droid/gods-eye-view.git
 cd gods-eye-view
 nvm install 24.14.0
 nvm use 24.14.0
@@ -147,18 +149,33 @@ ownership and adoption process.
 
 ## Pull requests
 
-1. Branch off `main`.
+1. Branch off `main` of **this fork** (`niteshlhsnda-droid/gods-eye-view`).
+   Target your PR at this fork's `main` — not at upstream.
 2. Keep `npm run build`, `npm test`, and `npm run test:track` green and avoid new console errors, plus the [feature gate](#feature-regression-gates) for the area you touched.
 3. If you change runtime behavior, update `docs/CURRENT-STATE.md` and `CHANGELOG.md` in the same PR.
 4. If you add or change a data source, update [DATA_SOURCES.md](DATA_SOURCES.md) with its license and attribution. **Don't add data you don't have the right to redistribute** — fetch it at runtime instead.
 5. Describe what you changed and how you verified it (screenshots welcome for anything visual).
 
+## Upstream sync policy
+
+Upstream ([bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view)) is the canonical home of the original project. This fork syncs from upstream deliberately, never by blind merge:
+
+- The fork maintainer pulls upstream `main` on a `sync/upstream-<date>` branch, reviews the diff for conflicts with fork-only work (fork identity, Live Now refresh/Pages workflows, camera/street-view layers), resolves, runs the full CI gate, and merges.
+- Fork-only files and sections (fork notice, fork workflows, fork-specific docs) are never overwritten by a sync; if upstream adds a file with the same path, the sync keeps the fork's version and records the divergence in the merge commit message.
+- Security fixes from upstream are fast-tracked: same-day sync, minimal review, deploy after CI.
+
+### What belongs upstream?
+
+- **Upstream:** general bug fixes, core globe/layer/voice improvements, new public data sources of worldwide interest, docs that apply to both repos. If your change would help every God's Eye View user, open it upstream first; the fork will pick it up on the next sync.
+- **This fork:** fork identity/ownership, the fork's Pages/Live Now automation, camera and street-view coverage work for India/USA/Russia/Europe, and anything that depends on the fork's deployment. Open those here.
+- If you're unsure, open the issue in this fork and say so — the maintainer will redirect it upstream when that fits.
+
 ## Maintainers
 
-God's Eye View is maintained by [Bilawal Sidhu](https://github.com/bilawalsidhu)
+This fork is maintained by [Nitesh Kumar](https://github.com/niteshlhsnda-droid).
+Upstream is maintained by [Bilawal Sidhu](https://github.com/bilawalsidhu)
 and [Sameh Khamis](https://github.com/samehkhamis) at
-[Halfpixel](https://halfpixel.ai). Either maintainer can review and merge
-contributions.
+[Halfpixel](https://halfpixel.ai).
 
 ## Ground rules
 

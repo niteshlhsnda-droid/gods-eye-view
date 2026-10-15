@@ -6,8 +6,10 @@ God's Eye View is a local-first client for **public** data. It is built for expl
 
 Please report security issues **privately** — do not open a public issue for anything exploitable.
 
-- Use GitHub's [private vulnerability reporting](https://github.com/bilawalsidhu/gods-eye-view/security/advisories/new) (Security tab → "Report a vulnerability"), or
-- Reach the maintainer directly via the contact on the GitHub profile.
+- Use GitHub's [private vulnerability reporting](https://github.com/niteshlhsnda-droid/gods-eye-view/security/advisories/new) (Security tab → "Report a vulnerability") for this fork, or
+- Reach the fork maintainer directly via the contact on the [Nitesh Kumar](https://github.com/niteshlhsnda-droid) GitHub profile.
+
+> Note: private vulnerability reporting must be enabled in the fork's repo settings by the owner; until then, use the profile-contact route above and do not open a public issue for anything exploitable. Vulnerabilities that also affect upstream ([bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view)) should be reported to upstream separately — do not assume a report here reaches upstream.
 
 Include repro steps and impact. We'll acknowledge, investigate, and credit you (if you'd like) once a fix ships.
 

@@ -1,0 +1,136 @@
+name: Live Now refresh
+
+# Scheduled Live Now refresh + redeploy for the static GitHub Pages site.
+#
+# Every 10 minutes: run the ingest cron, validate the snapshot, rebuild the
+# site with the fresh snapshot, and deploy exactly one Pages artifact.
+# The snapshot is NEVER committed back to main by this workflow — it is
+# generated at deploy time and ships inside the artifact. That keeps main
+# free of 10-minute commit churn and makes "preserve last-known-good"
+# automatic: if the cron or the validator fails, this job fails before any
+# deploy, and the previous deployment (with its last good snapshot) keeps
+# serving.
+#
+# Companion workflow: .github/workflows/pages.yml handles push-to-main
+# deploys (with the full quality gate). This workflow skips the test suite
+# on purpose — a flaky unrelated test must not stall the 10-minute data
+# refresh — but it still runs schema validation, the deploy SLO gate, and
+# the production build, and the post-deploy smoke job verifies the live site.
+
+on:
+  schedule:
+    # Ingest cadence matches the Live Now 10-minute spec (§4.2).
+    - cron: '0,10,20,30,40,50 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: live-now-refresh
+  # Never cancel a refresh mid-deploy; a newer run waits.
+  cancel-in-progress: false
+
+jobs:
+  refresh-and-deploy:
+    name: Refresh snapshot, build, deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # FIRMS_MAP_KEY is optional: without it the fires source reports
+      # unavailable and the snapshot still validates (see the validator).
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+      CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_TOKEN }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      MAPILLARY_CLIENT_TOKEN: ${{ secrets.MAPILLARY_CLIENT_TOKEN }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Live Now ingest cycle
+        # Exit non-zero only on a programming error; a degraded source
+        # still produces a payload. The validator below is the deploy gate.
+        run: node scripts/live-now-cron.mjs
+
+      - name: Validate snapshot for deployment
+        # Fails the refresh when the payload violates the schema, has no
+        # feedHealth, is all-feeds-stale/unavailable, or is older than the
+        # 30-minute deploy SLO. No deploy happens on failure, so the
+        # last-known-good snapshot keeps serving.
+        run: node scripts/validate-live-now.mjs
+
+      - name: Write build metadata
+        run: |
+          node scripts/write-build-metadata.mjs \
+            public/data/live-now.json public/data/build-metadata.json
+
+      - name: Build production bundle
+        # The Pages site lives at /gods-eye-view/, so the build base must
+        # match — a root-relative build 404s on every asset.
+        run: npx vite build --base=/gods-eye-view/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  smoke:
+    name: Post-deploy smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [refresh-and-deploy]
+    env:
+      GEV_NO_WEBSERVER: '1'
+      GEV_BASE_URL: https://niteshlhsnda-droid.github.io/gods-eye-view/
+      GEV_POST_DEPLOY_SMOKE: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install locked dependencies and Playwright Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Post-deploy smoke (live Pages URL)
+        run: npx playwright test tests/post-deploy-smoke.spec.mjs
+
+      - name: Upload smoke report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: post-deploy-smoke-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

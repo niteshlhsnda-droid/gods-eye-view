@@ -108,4 +108,10 @@ Deferred (not blockers, flagged for next pass):
 7. i18n EN/HI/ES/PT; a11y — **PASS**
    (69 keys × 4 locales, full parity; keyboard nav; severity text+icon)
 
-Branch `feat/live-now`: 6 commits, not merged, not pushed. Awaiting user's word to merge.
+Branch `feat/live-now`: 6 commits. **Merged to `main` (merge commit
+`0a51c237`) — this line previously said "not merged, not pushed, awaiting
+user's word to merge"; that was the state on 2026-10-13, not the current
+state. The scoreboard above is the historical record of the feature
+branch; current Live Now automation lives in
+`.github/workflows/live-now-refresh.yml` (scheduled refresh + deploy) and
+`.github/workflows/pages.yml` (push-to-main deploy).

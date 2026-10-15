@@ -59,6 +59,20 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
+  quality-gate:
+    # Single gate signal for this workflow: green only when every CI job
+    # passed. Cross-workflow gates are not possible in GitHub Actions, so
+    # branch protection must additionally require the gate jobs from
+    # browser-gates.yml (smoke-and-a11y), secrets-scan.yml (gitleaks),
+    # live-now.yml (live-now-tests), and scorecard.yml (analysis) — see
+    # the pending owner actions in CHANGELOG.md (Phase 0).
+    name: Quality gate
+    runs-on: ubuntu-latest
+    needs: [verify, street-level-browser, windows-onboarding]
+    steps:
+      - name: All CI jobs passed
+        run: echo "CI quality gate green."
+
   street-level-browser:
     # Hermetic: every Mapillary request is answered from fixtures, so the
     # dummy token below never leaves the page.

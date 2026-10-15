@@ -95,6 +95,68 @@
 
 ## [Unreleased]
 
+### [0.3.0] — Phase 0: fork stabilise (niteshlhsnda-droid/gods-eye-view)
+
+Fork's first release line (package.json 0.2.1 → 0.3.0). No camera or
+street-view features yet — those come in Phase 1/2. Nothing was pushed or
+deployed by this change; the live demo is untouched.
+
+- Fixed the two broken workflow pins. The gitleaks pin had a one-character
+  typo (`…36d29…`, which 404s); it is now the real v3.0.0 commit
+  `e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e` (verified to resolve via the
+  GitHub API), fixed in both `secrets-scan.yml` and `live-now.yml`.
+  `scorecard.yml` now uses `github/codeql-action/upload-sarif@`
+  `9f759ee644a3e7c15c1390abf49868036c00067b` (v3.38.3, verified) — the old
+  line omitted both the `@` separator and the `/upload-sarif` subpath.
+- Fork identity: README fork notice (upstream credit kept visible, fork
+  purpose + material differences, Pinokio links still install upstream);
+  package.json repository/homepage/bugs point at the fork, author is
+  Nitesh Kumar, new `upstream` field points at bilawalsidhu/gods-eye-view;
+  CODEOWNERS `* @niteshlhsnda-droid`; CONTRIBUTING fork clone URLs, PR
+  targets, upstream-sync policy, and "what belongs upstream?" rule;
+  SECURITY fork reporting link; issue templates point at the fork.
+- Live Now refresh automation (`.github/workflows/live-now-refresh.yml`):
+  every 10 minutes it runs `scripts/live-now-cron.mjs`, validates the
+  snapshot with `scripts/validate-live-now.mjs` (schema, feedHealth
+  present, not all-feeds-stale, generatedAt within the 30-minute deploy
+  SLO), writes `build-metadata.json`, builds with base `/gods-eye-view/`,
+  and deploys exactly one Pages artifact. A failed refresh/validation
+  fails before any deploy, so the last-known-good deployment keeps
+  serving; the snapshot is never committed back to main.
+- Pages deployment from main (`.github/workflows/pages.yml`): checkout of
+  the audited commit, lockfile install, full quality gate (doctor,
+  formatting, boundaries, unit tests), snapshot refresh + validation,
+  build with base `/gods-eye-view/`, one Pages artifact, deploy only that
+  artifact, then the post-deploy smoke job. This is the one Pages deploy
+  path for code changes; the local `deploy_pages.py` helper remains as a
+  manual fallback, with its credential-helper import fixed (new
+  `custom-connector-setup/bin` path first, old `skill-creator/bin` path as
+  fallback).
+- Live Now panel honest states: an empty list with every feed
+  stale/unavailable now says so explicitly (`panel.allFeedsStale`) instead
+  of "Quiet planet"; a fetch that fails with no payload says the feed is
+  unavailable (`panel.unavailable`) instead of loading forever; and the
+  sheet renders a per-feed status list (label, state, age / last success)
+  whenever the payload carries `feedHealth.feeds`. Four new i18n keys in
+  EN/HI/ES/PT (73 chrome keys per locale, was 69).
+- CI gains a single `quality-gate` job in `ci.yml` that needs all three CI
+  jobs. A cross-workflow gate is not possible in GitHub Actions, so branch
+  protection must additionally require the gate jobs from browser-gates,
+  secrets-scan, live-now, and scorecard workflows.
+- Fixed a real browser-gates break: the three Playwright specs import
+  `@playwright/test`, but that package was never in `package.json` or the
+  lockfile (only `playwright` was), so `npx playwright test` failed on a
+  clean `npm ci` with "Cannot find package '@playwright/test'". Added
+  `@playwright/test@1.64.0` to devDependencies (matching `playwright`).
+
+PENDING OWNER ACTIONS (repo settings — not doable from a branch): enable
+Issues; set the repo homepage to the fork's Pages URL
+(`https://niteshlhsnda-droid.github.io/gods-eye-view/`); add repo topics;
+enable private vulnerability reporting; add `CESIUM_ION_TOKEN` /
+`GOOGLE_MAPS_API_KEY` / `MAPILLARY_CLIENT_TOKEN` / `FIRMS_MAP_KEY` secrets
+for full-fidelity deploys (builds still succeed without them, on keyless
+fallbacks); require the gate jobs in branch protection for `main`.
+
 - Keep later satellites when a TLE catalog entry is missing an orbital line.
   The parser skips the incomplete set and resumes at the next complete named
   set, instead of losing the rest of the group (#906).

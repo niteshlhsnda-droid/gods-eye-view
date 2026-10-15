@@ -8,6 +8,13 @@
  * background; stale sources degrade to a badge (`panel.sourcesStale`)
  * instead of killing the view.
  *
+ * Honest-state rules (Phase 0): the panel never presents an empty world as
+ * "nothing happening". When every feed is stale/unavailable, an empty list
+ * renders `panel.allFeedsStale`; when no payload could be fetched at all,
+ * it renders `panel.unavailable` instead of loading forever. Whenever the
+ * payload carries `feedHealth.feeds`, a per-feed status list (label, state,
+ * age / last success) renders at the foot of the sheet.
+ *
  * All DOM is built from injected `documentRef` (default: the real
  * document); styles are injected once as a `<style>` tag so the module is
  * self-contained. Wiring seams (`flyTo`, `onPlayTourProject`, `onToast`,
@@ -26,6 +33,39 @@ import { buildLiveNowTour, encodeTourFragment } from './tour.js';
 export const LIVE_NOW_SHEET_ID = 'gev-live-now-sheet';
 export const LIVE_NOW_BACKDROP_ID = 'gev-live-now-backdrop';
 export const LIVE_NOW_DOT_CLASS = 'live-now-dot';
+
+/** Feed states that still count as "the world is being observed". */
+const HEALTHY_FEED_STATES = new Set([
+  'nominal',
+  'loading',
+  'degraded',
+  'partial',
+  'fallback',
+]);
+
+/**
+ * True when the payload carries feeds and none of them is healthy —
+ * the "we don't know" case, which must never render as a quiet planet.
+ */
+export function allFeedsUnhealthy(feeds) {
+  if (!Array.isArray(feeds) || feeds.length === 0) return false;
+  return feeds.every((feed) => !HEALTHY_FEED_STATES.has(feed?.state));
+}
+
+/**
+ * Human age of a feed's last successful update, from the `time.*` keys.
+ * Unparsable/missing `lastUpdate` renders `panel.feedNever`.
+ */
+export function formatFeedAge(feed, locale, nowMs) {
+  const at = Date.parse(feed?.lastUpdate);
+  if (!Number.isFinite(at)) return ln(locale, 'panel.feedNever');
+  const diffMs = nowMs - at;
+  if (diffMs < 0) return ln(locale, 'time.justNow');
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return ln(locale, 'time.justNow');
+  if (minutes < 60) return ln(locale, 'time.minAgo', { m: minutes });
+  return ln(locale, 'time.hrAgo', { h: Math.floor(minutes / 60) });
+}
 
 const STYLE_ID = 'gev-live-now-styles';
 
@@ -61,6 +101,10 @@ function injectStyles(documentRef) {
 .ln-tour-btn{background:#ff7a1a;color:#1a0e02;border:none;border-radius:10px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer}
 .ln-tour-btn:hover{background:#ff8c3d}
 .ln-empty{padding:26px 18px;text-align:center;color:#9aa6d8;font-size:14px}
+.ln-feed-health{border-top:1px solid #2a3a7a;padding:10px 18px 16px}
+.ln-feed-health-title{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#9aa6d8}
+.ln-feed-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.ln-feed-item{font-size:12px;color:#c3cbf2}
 .ln-loading{padding:26px 18px;text-align:center;color:#9aa6d8;font-size:14px}
 #live-now-btn{position:relative}
 #live-now-btn .${LIVE_NOW_DOT_CLASS}{position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#f87171;box-shadow:0 0 6px #f87171;animation:ln-dot-pulse 1.6s ease-in-out infinite}
@@ -109,6 +153,7 @@ export function createLiveNowPanel({
 
   let _open = false;
   let _lastResult = null;
+  let _lastError = null;
   let _timer = null;
   let _sheetNodes = null;
 
@@ -134,11 +179,16 @@ export function createLiveNowPanel({
     }
     if (result?.payload) {
       _lastResult = result;
+      _lastError = null;
       try {
         onData(result.payload);
       } catch {
         /* Marker updates must never break the panel. */
       }
+    } else if (result?.error) {
+      // No payload and a failed fetch: remember it so the sheet renders
+      // the explicit unavailable state instead of loading forever.
+      _lastError = result.error;
     }
     const events = _lastResult?.payload?.events ?? [];
     setDotVisible(hasFreshCriticalEvent(events, nowMs()));
@@ -202,16 +252,35 @@ export function createLiveNowPanel({
     const body = el(documentRef, 'div', 'ln-carousel');
     body.setAttribute('role', 'list');
     const events = payload?.events ?? [];
+    const feeds = Array.isArray(payload?.feedHealth?.feeds)
+      ? payload.feedHealth.feeds
+      : [];
     if (!payload) {
-      body.append(el(documentRef, 'p', 'ln-loading', ln(loc, 'panel.loading')));
-      body.setAttribute('aria-busy', 'true');
+      if (_lastError) {
+        const unavailable = el(
+          documentRef,
+          'p',
+          'ln-empty',
+          ln(loc, 'panel.unavailable'),
+        );
+        unavailable.setAttribute('role', 'status');
+        body.append(unavailable);
+      } else {
+        body.append(
+          el(documentRef, 'p', 'ln-loading', ln(loc, 'panel.loading')),
+        );
+        body.setAttribute('aria-busy', 'true');
+      }
     } else if (events.length === 0) {
-      const minutes = minutesSinceGenerated(payload, nowMs()) ?? 0;
       const empty = el(
         documentRef,
         'p',
         'ln-empty',
-        ln(loc, 'panel.empty', { m: minutes }),
+        allFeedsUnhealthy(feeds)
+          ? ln(loc, 'panel.allFeedsStale')
+          : ln(loc, 'panel.empty', {
+              m: minutesSinceGenerated(payload, nowMs()) ?? 0,
+            }),
       );
       empty.setAttribute('role', 'status');
       body.append(empty);
@@ -257,6 +326,33 @@ export function createLiveNowPanel({
       });
       foot.append(tourBtn);
       sheet.append(foot);
+    }
+
+    if (feeds.length > 0) {
+      const health = el(documentRef, 'div', 'ln-feed-health');
+      health.append(
+        el(
+          documentRef,
+          'h3',
+          'ln-feed-health-title',
+          ln(loc, 'panel.feedHealth'),
+        ),
+      );
+      const list = el(documentRef, 'ul', 'ln-feed-list');
+      for (const feed of feeds) {
+        const label = feed?.label ?? feed?.id ?? '?';
+        const state = feed?.state ?? 'unknown';
+        list.append(
+          el(
+            documentRef,
+            'li',
+            'ln-feed-item',
+            `${label} · ${state} · ${formatFeedAge(feed, loc, nowMs())}`,
+          ),
+        );
+      }
+      health.append(list);
+      sheet.append(health);
     }
   }
 
