@@ -96,6 +96,20 @@ jobs:
         # match — a root-relative build 404s on every asset.
         run: npx vite build --base=/gods-eye-view/
 
+      - name: Relocate Cesium assets to the artifact root
+        # vite-plugin-cesium emits the Cesium tree under
+        # dist/gods-eye-view/cesium, but the built HTML references
+        # /gods-eye-view/cesium/... — without this move every Cesium asset
+        # 404s and the globe never boots (the post-deploy smoke test catches
+        # it, but shipping a broken globe to find out is not the plan).
+        # Fail loudly if the tree is missing: a plugin change must not
+        # silently ship a globe without Cesium.
+        run: |
+          test -d dist/gods-eye-view/cesium || { echo "Cesium tree missing from dist/gods-eye-view/cesium"; exit 1; }
+          mv dist/gods-eye-view/cesium dist/cesium
+          rmdir dist/gods-eye-view
+          test -f dist/cesium/Cesium.js || { echo "Cesium.js missing after relocate"; exit 1; }
+
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
