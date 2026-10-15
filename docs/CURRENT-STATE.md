@@ -3083,7 +3083,9 @@ meaning), one viewer host and one on-globe credit per active provider. Each
 provider draws in one colour (`PROVIDER_COLORS` in
 `src/layers/streetLevel/policy.js`); 360° cones are rings and the selected
 sequence is GEV cyan. Share options: `m` (Mapillary), `p` (`a`/`p`/`f`
-panoramas), `s` (since, days). Only Mapillary is registered. Without
+panoramas), `s` (since, days). Share options: `m` (Mapillary), `r` (the other providers' switches by id,
+e.g. `google-1` for Street View). Mapillary, Google
+Street View and KartaView are registered. Without
 `MAPILLARY_CLIENT_TOKEN` the panel reads KEY REQUIRED and the controls are
 disabled. With it, coverage draws as z0–5 overview points from orbit and z11–14
 sequence lines below 60 km; the proxy strips the unused `image` layer from z14
@@ -3107,8 +3109,9 @@ miss cooldown. Roads on elevated decks are still drawn at
 ground level. Framing a photo ignores mesh samples far below the bare earth
 (unloaded tiles).
 
-The header pill is the layer switch. With one provider its chip is a layer
-switch too; with several, darkening the last lit chip turns the layer off. The
+The header pill is the layer switch. One provider is lit at a time: lighting
+a chip lights it and darkens the others, and darkening the lit chip turns the
+layer off. The
 viewer sits under the header with EXPAND, FIT/FILL, FOLLOW and close above the
 image. FOLLOW needs the Google 3D map stack (`attachMapStackController`) and
 stops when the stack changes. Camera moves go through the application's
@@ -3133,8 +3136,9 @@ group in `src/data/layerState.js` and its modules to
 layer's `requiresKeyId` becomes null and the key gate moves to the chips.
 
 Street Level has two browser gates. `npm run qa:street-level -- --url <server>`
-runs against real Mapillary and needs `MAPILLARY_CLIENT_TOKEN`. `npm run
-qa:street-level:fixtures -- --url <server>` answers every Mapillary request
+runs against real Mapillary and KartaView and needs `MAPILLARY_CLIENT_TOKEN`
+(Google steps need a Google key). `npm run
+qa:street-level:fixtures -- --url <server>` answers every Mapillary and KartaView request
 from fixtures (`providers/mapillary/coverageFixture.mjs`,
 `scripts/fixtures/street-level/`), so it needs no network and covers the whole
 photo flow. CI runs the fixture gate and `qa:panel-resize`
