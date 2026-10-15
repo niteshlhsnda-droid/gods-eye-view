@@ -1,4 +1,5 @@
 import { MAX_POST_TLE_RETRIES, POST_TLE_RETRY_DELAY_MS } from './policy.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 export function createIngestion({
   state: layerState,
@@ -216,6 +217,9 @@ export function createIngestion({
       layerState._lastError = null;
     } catch (error) {
       if (layerState._enabled && token === layerState._lifecycleToken) {
+        // Terminal: static hosting has no /api backend, so there is nothing
+        // to retry — the honest message renders via _lastError.
+        if (isNeedsDesktopServerError(error)) layerState._staticTerminal = true;
         layerState._lastError = error.message;
         console.warn('[Data:RocketLaunches] Fetch error:', error);
       }
@@ -223,7 +227,9 @@ export function createIngestion({
   }
 
   function requestMissionUpdate() {
-    if (!layerState._enabled) return Promise.resolve();
+    // Static-hosting honest state is terminal: the first update settled it.
+    if (!layerState._enabled || layerState._staticTerminal)
+      return Promise.resolve();
     const token = layerState._lifecycleToken;
     layerState._updateDirty = true;
     if (layerState._updatePromise && layerState._updatePromiseToken === token)

@@ -100,6 +100,8 @@ export function weatherTileUrl(product, time, { size } = {}) {
   return `/api/weather/tile?product=${product}&time=${encodeURIComponent(time)}&z={z}&x={x}&y={y}${size === undefined ? '' : `&size=${size}`}`;
 }
 
+import { throwIfStaticHosting } from '../../sources/needsDesktopServer.js';
+
 /** Acquisition is lazy and shares the application's existing source contract. */
 export function createWeatherSource({
   fetchImpl = (...args) => globalThis.fetch(...args),
@@ -107,6 +109,9 @@ export function createWeatherSource({
 } = {}) {
   return {
     async getSnapshot({ product = 'radar', signal } = {}) {
+      // Static hosting has no /api/weather backend: settle into the honest
+      // terminal state instead of a doomed request + retry storm.
+      throwIfStaticHosting('Observed weather');
       if (!WEATHER_PRODUCTS.includes(product))
         throw new Error('Unknown weather product');
       const controller = new AbortController();
@@ -134,6 +139,7 @@ export function createWeatherSource({
     },
     /** Read one image frame through the bounded image route. */
     async getImage({ product, time, size, bbox = null, signal } = {}) {
+      throwIfStaticHosting('Observed weather');
       signal?.throwIfAborted();
       const response = await fetchImpl(
         weatherImageUrl(product, time, size, bbox),

@@ -35,7 +35,7 @@ jobs:
 
       - name: Upload SARIF results
         if: always()
-        uses: github/codeql-action/cf12ceefebab2c867b9c35d7f907e059681d37ab # v3
+        uses: github/codeql-action/upload-sarif@9f759ee644a3e7c15c1390abf49868036c00067b # v3.38.3 — full commit SHA of the v3 tag tip, verified to resolve via the GitHub API (2026-10-15). The previous line omitted both the `@` separator and the `/upload-sarif` subpath.
         with:
           category: scorecard
           sarif_file: scorecard-results.sarif

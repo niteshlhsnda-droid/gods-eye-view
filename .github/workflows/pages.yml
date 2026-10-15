@@ -1,0 +1,147 @@
+name: Pages
+
+# Deploy main to GitHub Pages (project site at /gods-eye-view/).
+#
+# This is the ONE Pages deploy path for code changes: it checks out the
+# audited commit, installs from the lockfile, runs the quality gate
+# (doctor, formatting, boundaries, unit tests), refreshes the Live Now
+# snapshot and validates it, builds with base /gods-eye-view/, uploads
+# exactly one Pages artifact, and deploys only that artifact. The
+# post-deploy smoke job then verifies the live site.
+#
+# The scheduled Live Now refresh (.github/workflows/live-now-refresh.yml)
+# is the companion workflow: same refresh → validate → build → deploy
+# shape, but without the test suite, so data stays fresh even when an
+# unrelated test is flaky. Do NOT add a second deploy mechanism (no manual
+# gh-pages pushes, no local deploy script as a second path) — one artifact,
+# one deploy, in each workflow.
+#
+# The snapshot is generated at deploy time and ships inside the artifact;
+# it is never committed back to main. A failed refresh/validation fails
+# the job before any deploy, so the last-known-good deployment keeps
+# serving.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-deploy
+  # Never cancel a deploy mid-flight; a newer push waits.
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Quality gate, refresh, build, deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+      CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_TOKEN }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+      MAPILLARY_CLIENT_TOKEN: ${{ secrets.MAPILLARY_CLIENT_TOKEN }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run setup policy checks
+        run: npm run doctor -- --json
+
+      - name: Check adopted formatting
+        run: npm run format:check
+
+      - name: Check package boundaries
+        run: npm run check:boundaries
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run Live Now ingest cycle
+        run: node scripts/live-now-cron.mjs
+
+      - name: Validate snapshot for deployment
+        # Fails the deploy when the payload violates the schema, has no
+        # feedHealth, is all-feeds-stale/unavailable, or is older than the
+        # 30-minute deploy SLO. No deploy happens on failure.
+        run: node scripts/validate-live-now.mjs
+
+      - name: Write build metadata
+        run: |
+          node scripts/write-build-metadata.mjs \
+            public/data/live-now.json public/data/build-metadata.json
+
+      - name: Build production bundle
+        # The Pages site lives at /gods-eye-view/, so the build base must
+        # match — a root-relative build 404s on every asset.
+        run: npx vite build --base=/gods-eye-view/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  smoke:
+    name: Post-deploy smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build-and-deploy]
+    env:
+      GEV_NO_WEBSERVER: '1'
+      GEV_BASE_URL: https://niteshlhsnda-droid.github.io/gods-eye-view/
+      GEV_POST_DEPLOY_SMOKE: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      - name: Install locked dependencies and Playwright Chromium
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Post-deploy smoke (live Pages URL)
+        run: npx playwright test tests/post-deploy-smoke.spec.mjs
+
+      - name: Upload smoke report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: post-deploy-smoke-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14

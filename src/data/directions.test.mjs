@@ -5,6 +5,7 @@ import {
   DEFAULT_DIRECTIONS_MODE,
   DIRECTIONS_MODES,
   DIRECTIONS_POINTER_OWNER,
+  DIRECTIONS_OSRM_ATTRIBUTION,
   DIRECTIONS_ROUTE_COLOR,
   createDirectionsStepOverlayEntry,
   directionsRequestUrl,
@@ -772,4 +773,21 @@ test('the refusal reaches the app toast, and a successful arming says nothing', 
   directionsLayer.setParams({ arm: 'a' });
   assert.equal(toasts.length, 1, 'a successful arming is silent');
   assert.equal(pointerOwner(), DIRECTIONS_POINTER_OWNER);
+});
+
+test('row info carries the OSRM attribution whenever a route is shown', () => {
+  assert.equal(
+    directionsRowControls(idle).info,
+    null,
+    'no route, no attribution line',
+  );
+  assert.equal(
+    directionsRowControls({ ...idle, route }).info,
+    DIRECTIONS_OSRM_ATTRIBUTION,
+    'attribution shown with the route',
+  );
+  assert.equal(
+    DIRECTIONS_OSRM_ATTRIBUTION,
+    'Routing by OSRM (FOSSGIS demo server)',
+  );
 });

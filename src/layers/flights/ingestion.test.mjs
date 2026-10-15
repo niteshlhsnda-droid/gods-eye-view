@@ -83,3 +83,43 @@ test('civil acquisition publishes source time and uses a replaced source on the 
   assert.deepEqual(probe.labels, ['First', 'Second']);
   assert.equal(probe.restores.length, 2);
 });
+
+test('static hosting honest state is terminal: one settle, then update() no-ops', async () => {
+  const { needsDesktopServerError } =
+    await import('../../sources/needsDesktopServer.js');
+  let calls = 0;
+  const probe = setup({
+    async getSnapshot() {
+      calls += 1;
+      throw needsDesktopServerError('Live flights');
+    },
+  });
+  // First update — the same call the manager makes after a hash-restore
+  // enable — settles the honest state.
+  await probe.update(null);
+  assert.equal(calls, 1);
+  assert.equal(probe.feed._staticTerminal, true);
+  assert.match(probe.feed._lastError, /needs the desktop server/);
+  assert.equal(probe.feed._backoff, false);
+  assert.equal(probe.feed._retryAt, 0);
+  assert.equal(probe.accepted.length, 0);
+  // Later manager ticks must not re-enter the source: no retry storm.
+  await probe.update(null);
+  await probe.update(null);
+  assert.equal(calls, 1);
+  assert.match(probe.feed._lastError, /needs the desktop server/);
+});
+
+test('non-honest errors still schedule backoff on static-unaware feeds', async () => {
+  let calls = 0;
+  const probe = setup({
+    async getSnapshot() {
+      calls += 1;
+      throw new Error('boom');
+    },
+  });
+  await probe.update(null);
+  assert.equal(probe.feed._staticTerminal ?? false, false);
+  assert.equal(probe.feed._lastError, 'Live data unavailable');
+  assert.ok(probe.feed._retryAt > Date.now());
+});

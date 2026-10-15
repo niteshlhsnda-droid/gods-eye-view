@@ -204,6 +204,8 @@ export function createLifecycle({ state, services, parts }) {
      */
     disable(viewer) {
       state._enabled = false;
+      // Re-arm the static-hosting honest state so a re-enable re-settles it.
+      state._staticTerminal = false;
       unbindVisibility();
       parts.testing._stopTransitProbeForTest();
       state._qaFixtureFloors?.clear();
@@ -264,7 +266,7 @@ export function createLifecycle({ state, services, parts }) {
      * @returns {Promise<void>}
      */
     async update() {
-      if (!state._enabled) return;
+      if (!state._enabled || state._staticTerminal) return;
       parts.ingestion.sweepAgedVehicles(Date.now());
       if (state._activeFeeds.size === 0) return;
       const generation = state._generation;

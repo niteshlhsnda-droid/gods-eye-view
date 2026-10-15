@@ -2,7 +2,11 @@
 
 # 🌐 God's Eye View
 
-[![CI](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bilawalsidhu/gods-eye-view/actions/workflows/ci.yml) [![Reached #1 on GitHub Trending](https://img.shields.io/badge/%231_GitHub_Trending-thank_you!-F0A63C?style=flat-square&logo=github)](https://x.com/bilawalsidhu/status/2093798887815348521)
+> **Fork notice.** This repository is a fork of [bilawalsidhu/gods-eye-view](https://github.com/bilawalsidhu/gods-eye-view) by [Bilawal Sidhu](https://github.com/bilawalsidhu) and [Sameh Khamis](https://github.com/samehkhamis), maintained here by [Nitesh Kumar](https://github.com/niteshlhsnda-droid). Original credit stays with the upstream authors; the upstream project remains the canonical home of the original work.
+>
+> **This fork's purpose:** stabilise the fork (fix broken CI pins, honest degraded states, scheduled Live Now refresh), then add public-camera and street-view coverage for India, the USA, Russia, and Europe — using public sources only. Material differences from upstream: fork identity/ownership, a scheduled Live Now refresh + Pages workflow, per-feed Live Now health in the panel, and (planned) camera/street-view layers. See [CHANGELOG.md](CHANGELOG.md) for the fork's release line. Pinokio links in this README still install upstream; to run this fork, use the terminal clone below.
+
+[![CI](https://github.com/niteshlhsnda-droid/gods-eye-view/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/niteshlhsnda-droid/gods-eye-view/actions/workflows/ci.yml)
 
 ### A spy-satellite simulator in your browser — then you realize the sources are public and the data is real.
 
@@ -123,7 +127,7 @@ Use **Node.js 24.x (24.14.0 or later) or 26.x**. The setup doctor warns about
 Node 25, which is end-of-life.
 
 ```bash
-git clone https://github.com/bilawalsidhu/gods-eye-view.git
+git clone https://github.com/niteshlhsnda-droid/gods-eye-view.git
 cd gods-eye-view
 npm ci
 npm run doctor
@@ -551,7 +555,7 @@ God's Eye View runs on **public data, clear sources, and local-first execution.*
 
 **Status:** An evolving open-source client for exploration and learning — a fast, hackable foundation, not a hardened production service. Released under the **[MIT License](LICENSE)**. Bundled and live datasets carry their own terms — see **[DATA_SOURCES.md](DATA_SOURCES.md)**. Security model: **[SECURITY.md](SECURITY.md)**. Want to contribute? **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-**Maintainers:** [Bilawal Sidhu](https://github.com/bilawalsidhu) and [Sameh Khamis](https://github.com/samehkhamis) at [Halfpixel](https://halfpixel.ai).
+**Maintainers (this fork):** [Nitesh Kumar](https://github.com/niteshlhsnda-droid). Upstream created and maintained by [Bilawal Sidhu](https://github.com/bilawalsidhu) and [Sameh Khamis](https://github.com/samehkhamis) at [Halfpixel](https://halfpixel.ai) — see the fork notice at the top of this README.
 
 <sub>Media note: the capture GIFs on this page show Google Photorealistic 3D Tiles and live data layers, used promotionally with in-frame attribution; they aren't licensed for standalone reuse. See [media provenance and permissions](docs/media/README.md); full source terms in [DATA_SOURCES.md](DATA_SOURCES.md).</sub>
 

@@ -39,6 +39,10 @@ export const DEFAULT_DIRECTIONS_MODE = 'car';
 
 /** Route colour — the annotation palette's cyan, so voice routes and Directions match. */
 export const DIRECTIONS_ROUTE_COLOR = '#39d0ff';
+
+/** Routing attribution (FOSSGIS demo-server policy): shown with every route. */
+export const DIRECTIONS_OSRM_ATTRIBUTION =
+  'Routing by OSRM (FOSSGIS demo server)';
 const MARKER_A_COLOR = Cesium.Color.fromCssColorString('#5dff9f');
 const MARKER_B_COLOR = Cesium.Color.fromCssColorString('#ff6b6b');
 const STEP_COLOR = Cesium.Color.WHITE.withAlpha(0.95);
@@ -165,6 +169,9 @@ export function directionsRowControls(state) {
   return {
     chips,
     legend: [],
+    // FOSSGIS demo-server policy asks that OSRM be credited as the routing
+    // source wherever routing results are shown.
+    info: route ? DIRECTIONS_OSRM_ATTRIBUTION : null,
     list: directionsStepList({
       route,
       selectedStep: selectedStep ?? null,

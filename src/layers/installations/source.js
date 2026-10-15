@@ -18,6 +18,40 @@ import {
   sourceResponseError,
 } from '../../sources/capability.js';
 import { normalizeMilitaryInstallations } from '../../data/militaryInstallationData.js';
+import { isStaticHosting } from '../../sources/staticHosting.js';
+import { throwIfStaticHosting } from '../../sources/needsDesktopServer.js';
+import {
+  OVERPASS_DIRECT_URL,
+  OVERPASS_MIRROR_URL,
+  OVERPASS_RETRY_PAUSE_MS,
+} from '../alpr/policy.js';
+
+/**
+ * Element cap for the direct Overpass query below. Mirrors
+ * MILITARY_INSTALLATION_ELEMENT_CAP in server/providers/military-installations/
+ * constants.js (browser code cannot import server modules); the cap travels
+ * with the payload so the client never hard-codes truncation silently.
+ */
+const MILITARY_INSTALLATION_DIRECT_ELEMENT_CAP = 700;
+
+/** Abort-aware sleep for the OSM wiki's pause-before-retry on 429/406. */
+function sleepAbortable(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
 
 /** Preserve legacy cache admission even when the explicit saturation flag is absent. */
 export function installationResponseSaturated(payload) {
@@ -101,6 +135,87 @@ export function createInstallationSource({
 } = {}) {
   let overpassUnavailable = false;
   const installationIds = new Map();
+
+  /**
+   * POST one Overpass query to the direct public endpoint (CORS-safelisted
+   * form encoding, no preflight), with the OSM wiki's 30 s pause before
+   * retrying a 429/406 on the mirror and an immediate mirror fallback on a
+   * 504 — the same hardening as the ALPR direct-Overpass path.
+   */
+  async function postOverpassDirect(query, signal) {
+    const post = (url) =>
+      fetchImpl(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`,
+        signal,
+      });
+    let response = await post(OVERPASS_DIRECT_URL);
+    if (!response.ok) {
+      if (response.status === 429 || response.status === 406) {
+        try {
+          await response.body?.cancel();
+        } catch {
+          /* already closed */
+        }
+        await sleepAbortable(OVERPASS_RETRY_PAUSE_MS, signal);
+        signal?.throwIfAborted();
+        response = await post(OVERPASS_MIRROR_URL);
+      } else if (response.status === 504) {
+        try {
+          await response.body?.cancel();
+        } catch {
+          /* already closed */
+        }
+        response = await post(OVERPASS_MIRROR_URL);
+      }
+    }
+    return response;
+  }
+
+  /**
+   * Static-hosting path for mapped sites: query Overpass directly with the
+   * verbatim query the desktop proxy runs (see
+   * server/providers/military-installations.js), then shape the snapshot
+   * exactly like the proxy response so ingestion needs no changes. A
+   * transient upstream outage falls back to the tile path — the same
+   * coverage-preserving fallback the proxy path uses — never to an empty
+   * all-clear.
+   */
+  async function getDirectOverpassSites(box, signal, thinned) {
+    const bbox = `${box.south},${box.west},${box.north},${box.east}`;
+    const query = `[out:json][timeout:20];(nwr["military"~"^(airfield|naval_base|range|barracks|base)$"](${bbox});nwr["landuse"="military"](${bbox}););out center tags geom ${MILITARY_INSTALLATION_DIRECT_ELEMENT_CAP};`;
+    let response;
+    try {
+      response = await postOverpassDirect(query, signal);
+    } catch (error) {
+      if (error?.name === 'AbortError' || signal?.aborted) throw error;
+      return getTileSites(box, signal, thinned);
+    }
+    signal?.throwIfAborted();
+    let payload = null;
+    try {
+      if (!response.ok) throw new Error(`Overpass HTTP ${response.status}`);
+      payload = await response.json();
+    } catch (error) {
+      if (error?.name === 'AbortError' || signal?.aborted) throw error;
+      return getTileSites(box, signal, thinned);
+    }
+    signal?.throwIfAborted();
+    if (!Array.isArray(payload?.elements))
+      throw new Error('Malformed installation snapshot');
+    const retrievedAt = new Date().toISOString();
+    const elements = payload.elements.slice(
+      0,
+      MILITARY_INSTALLATION_DIRECT_ELEMENT_CAP,
+    );
+    return {
+      ...normalizeMilitaryInstallations({ elements }, retrievedAt),
+      status: 'ready',
+      saturated: elements.length >= MILITARY_INSTALLATION_DIRECT_ELEMENT_CAP,
+    };
+  }
+
   async function getNamedSites(box, signal, thinned = true) {
     const names = await waitForSignal(loadNames(), signal).catch((cause) => {
       signal?.throwIfAborted();
@@ -205,6 +320,11 @@ export function createInstallationSource({
       if (east < west || north - south > 10 || east - west > 10)
         return getNamedSites(box, signal, thinned);
       if (overpassUnavailable) return getTileSites(box, signal, thinned);
+      // Static hosting has no /api/military-installations proxy: query the
+      // public Overpass API directly (the Google text-search half below is
+      // still server-only and gets the honest state instead).
+      if (isStaticHosting())
+        return getDirectOverpassSites(box, signal, thinned);
       const query = new URLSearchParams(
         Object.entries({ south, west, north, east }).map(([key, value]) => [
           key,
@@ -248,6 +368,9 @@ export function createInstallationSource({
       };
     },
     async searchNearby({ latitude, longitude, radiusM }, { signal } = {}) {
+      // Google Places text search is a server-side keyed API with no keyless
+      // direct equivalent: honest state on static hosting, not a doomed fetch.
+      throwIfStaticHosting('Google Places text search');
       if (
         ![latitude, longitude, radiusM].every(Number.isFinite) ||
         Math.abs(latitude) > 90 ||

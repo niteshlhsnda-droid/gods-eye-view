@@ -1,18 +1,24 @@
 {
   "name": "gods-eye-view",
   "private": true,
-  "version": "0.2.1",
-  "description": "A real-time intelligence console for planet Earth \u2014 photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
+  "version": "0.3.0",
+  "description": "A real-time intelligence console for planet Earth — photorealistic 3D globe, live aircraft/ships/satellites/earthquakes/CCTV, and hands-free voice control. Runs in a browser.",
   "type": "module",
   "license": "MIT",
-  "author": "Bilawal Sidhu",
-  "homepage": "https://github.com/bilawalsidhu/gods-eye-view#readme",
+  "author": "Nitesh Kumar (niteshlhsnda-droid)",
+  "homepage": "https://github.com/niteshlhsnda-droid/gods-eye-view#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bilawalsidhu/gods-eye-view.git"
+    "url": "https://github.com/niteshlhsnda-droid/gods-eye-view.git"
   },
   "bugs": {
-    "url": "https://github.com/bilawalsidhu/gods-eye-view/issues"
+    "url": "https://github.com/niteshlhsnda-droid/gods-eye-view/issues"
+  },
+  "upstream": {
+    "name": "gods-eye-view",
+    "author": "Bilawal Sidhu",
+    "url": "https://github.com/bilawalsidhu/gods-eye-view.git",
+    "homepage": "https://github.com/bilawalsidhu/gods-eye-view#readme"
   },
   "engines": {
     "node": ">=24.14.0 <25 || >=26 <27"
@@ -73,6 +79,7 @@
     "driver.js": "1.9.0",
     "echarts": "6.1.0",
     "egm96-universal": "^1.1.1",
+    "fflate": "^0.8.3",
     "h3-js": "4.5.0",
     "heatmap.js": "2.0.5",
     "hls.js": "^1.7.3",
@@ -90,6 +97,7 @@
     "yuka": "0.7.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "axe-core": "4.14.0",
     "playwright": "1.64.0",
     "prettier": "3.9.6",

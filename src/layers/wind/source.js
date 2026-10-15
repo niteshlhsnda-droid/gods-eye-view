@@ -1,4 +1,5 @@
 import { readWindBody } from '../../sources/windBody.js';
+import { throwIfStaticHosting } from '../../sources/needsDesktopServer.js';
 
 /** Create a bounded, cancellable source for the same-origin wind provider. */
 export function createWindSource({
@@ -7,6 +8,9 @@ export function createWindSource({
 } = {}) {
   return {
     async getSnapshot({ signal, model = 'gfs', overlay = 'none' } = {}) {
+      // Static hosting has no /api/wind backend: settle into the honest
+      // terminal state instead of a doomed request.
+      throwIfStaticHosting('Wind');
       if (!['gfs', 'ifs'].includes(model))
         throw new Error('Unknown wind model');
       if (!['none', 'temperature', 'pressure'].includes(overlay))

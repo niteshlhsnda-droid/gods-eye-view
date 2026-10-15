@@ -1,6 +1,9 @@
 import { tilesForBounds, tileToBBox } from '../../data/tomtomTiles.js';
+import { isStaticHosting } from '../../sources/staticHosting.js';
 import {
-  OVERPASS_URL,
+  OVERPASS_MIRROR_URL,
+  OVERPASS_RETRY_PAUSE_MS,
+  resolveOverpassUrl,
   QUERY_LIMIT,
   MAX_VIEWPORT_DEGREES,
   QUERY_SNAP_DEGREES,
@@ -194,10 +197,58 @@ export function createAlprTileSource({
   };
 }
 
+/** Abort-aware sleep for the Overpass retry pause. */
+function sleepAbortable(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+async function cancelBody(response) {
+  try {
+    await response.body?.cancel();
+  } catch {
+    /* already closed */
+  }
+}
+
+function overpassError(status) {
+  return new Error(
+    status === 429
+      ? 'Overpass rate-limited'
+      : status === 504
+        ? 'Overpass timed out'
+        : 'Overpass temporarily unavailable',
+  );
+}
+
 /** Construct the bounded OSM request adapter without starting a request. */
 export function createOverpassAlprSource({
   fetchImpl = (...args) => globalThis.fetch(...args),
+  retryPauseMs = OVERPASS_RETRY_PAUSE_MS,
+  sleepImpl = sleepAbortable,
 } = {}) {
+  async function postQuery(url, query, signal) {
+    return fetchImpl(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+      signal,
+    });
+  }
+
   async function fetchAlprNodes(box, signal) {
     signal?.throwIfAborted();
     if (
@@ -216,25 +267,27 @@ export function createOverpassAlprSource({
       throw new TypeError('ALPR requires a bounded city viewport');
     }
     const query = buildOverpassQuery(box.south, box.west, box.north, box.east);
-    const response = await fetchImpl(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(query)}`,
-      signal,
-    });
-    if (!response.ok) {
-      try {
-        await response.body?.cancel();
-      } catch {
-        /* already closed */
+    // Static hosting has no /api/overpass proxy: talk to the public
+    // Overpass API directly (CORS-safelisted POST, no preflight), with the
+    // OSM wiki's 30s pause-before-retry on 429/406 and a mirror fallback.
+    // The desktop proxy path is unchanged.
+    const direct = isStaticHosting();
+    let response = await postQuery(resolveOverpassUrl(), query, signal);
+    if (direct && !response.ok) {
+      if (response.status === 429 || response.status === 406) {
+        await cancelBody(response);
+        await sleepImpl(retryPauseMs, signal);
+        signal?.throwIfAborted();
+        response = await postQuery(OVERPASS_MIRROR_URL, query, signal);
+      } else if (response.status === 504) {
+        // The main instance is frequently overloaded; try the mirror.
+        await cancelBody(response);
+        response = await postQuery(OVERPASS_MIRROR_URL, query, signal);
       }
-      const message =
-        response.status === 429
-          ? 'Overpass rate-limited'
-          : response.status === 504
-            ? 'Overpass timed out'
-            : 'Overpass temporarily unavailable';
-      throw new Error(message);
+    }
+    if (!response.ok) {
+      await cancelBody(response);
+      throw overpassError(response.status);
     }
     const stale = response.headers.get('x-overpass-cache') === 'STALE';
     const payload = await response.json();
@@ -266,6 +319,38 @@ export function createOverpassAlprSource({
       description: 'OpenStreetMap contributors (ODbL 1.0; community mapped)',
       text: '© OpenStreetMap contributors',
       href: 'https://www.openstreetmap.org/copyright',
+    },
+  };
+}
+
+/**
+ * Runtime camera source: on static hosting the layer is fed by direct
+ * Overpass enrichment (no /api/overpass proxy exists there); on the desktop
+ * server the hourly vector-tile extract is unchanged. The choice is read at
+ * request time so a late-resolving static-hosting probe is honored.
+ */
+export function createAlprRuntimeSource({
+  fetchImpl = (...args) => globalThis.fetch(...args),
+  tileFetchImpl = fetchImpl,
+  retryPauseMs = OVERPASS_RETRY_PAUSE_MS,
+  sleepImpl = sleepAbortable,
+} = {}) {
+  const tiles = createAlprTileSource({ tileFetchImpl });
+  const overpass = createOverpassAlprSource({
+    fetchImpl,
+    retryPauseMs,
+    sleepImpl,
+  });
+  const active = () => (isStaticHosting() ? overpass : tiles);
+  return {
+    fetch: (box, signal) => active().fetch(box, signal),
+    detailZoom: (box) => active().detailZoom?.(box) ?? null,
+    destroy: () => tiles.destroy?.(),
+    get label() {
+      return active().label;
+    },
+    get attribution() {
+      return active().attribution;
     },
   };
 }

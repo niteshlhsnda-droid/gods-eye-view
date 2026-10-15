@@ -1,5 +1,6 @@
 import { militaryOsmKey } from '../../data/militaryNames.js';
 import { isUnavailableCapability } from '../../sources/capability.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 /** Keep named point coverage until its matching polygon takes over. */
 export function retainNamedHandoff(previous, records, box) {
   const named = new Map(
@@ -198,8 +199,12 @@ export function createIngestion({
             error?.name === 'AbortError'
           )
             return;
-          placesError =
-            'Google Places search unavailable; showing mapped sites';
+          // On static hosting the Google text-search half is server-only:
+          // say so honestly instead of implying a transient outage. No retry
+          // is scheduled for this — the search is user-initiated.
+          placesError = isNeedsDesktopServerError(error)
+            ? 'Google Places text search needs the desktop server; showing mapped sites'
+            : 'Google Places search unavailable; showing mapped sites';
         }
       }
       let floorTimer;

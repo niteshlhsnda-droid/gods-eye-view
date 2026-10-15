@@ -7,6 +7,7 @@ import {
   GLOBAL_INFRARED_MAX_GAP_MS,
   LIGHTNING_MAX_GAP_MS,
 } from './clock.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 const STOPS = [
   [10, '#00ecec'],
@@ -64,6 +65,9 @@ export function createWeatherLayer({
     timer = null,
     error = null,
     removeCamera = null;
+  // Static-hosting honest state: once settled, update() returns early instead
+  // of re-entering acquisition.
+  let staticTerminal = false;
   let motion = null;
   let runNavigation = null;
   let imageryHost = null;
@@ -311,10 +315,12 @@ export function createWeatherLayer({
       manifest = null;
       loading = false;
       error = null;
+      // Re-arm the static-hosting honest state so a re-enable re-settles it.
+      staticTerminal = false;
       followLatest = true;
     },
     async update(_viewer, { signal } = {}) {
-      if (!enabled) return false;
+      if (!enabled || staticTerminal) return false;
       checkHost(false);
       clearTimeout(timer);
       timer = null;
@@ -368,6 +374,9 @@ export function createWeatherLayer({
         return !controller.signal.aborted && request === controller && enabled;
       } catch (cause) {
         if (controller.signal.aborted || request !== controller) return false;
+        // Terminal: static hosting has no /api backend, so there is nothing
+        // to retry — the honest message renders via getStats().
+        if (isNeedsDesktopServerError(cause)) staticTerminal = true;
         error = cause?.message || 'Weather unavailable';
         stop();
         return true;

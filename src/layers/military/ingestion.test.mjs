@@ -66,3 +66,25 @@ test('military acquisition keeps the degraded source reason and respects retry a
     'source-unavailable',
   );
 });
+
+test('static hosting honest state is terminal: one settle, then update() no-ops', async () => {
+  const { needsDesktopServerError } =
+    await import('../../sources/needsDesktopServer.js');
+  let calls = 0;
+  const probe = setup({
+    async getSnapshot() {
+      calls += 1;
+      throw needsDesktopServerError('Military flights');
+    },
+  });
+  assert.equal(probe.feed._staticTerminal, false);
+  await probe.update(null);
+  assert.equal(calls, 1);
+  assert.equal(probe.feed._staticTerminal, true);
+  assert.match(probe.feed._lastError, /Military flights/);
+  assert.match(probe.feed._lastError, /needs the desktop server/);
+  assert.equal(probe.feed._backoff, false);
+  assert.equal(probe.feed._retryAt, 0);
+  await probe.update(null);
+  assert.equal(calls, 1);
+});

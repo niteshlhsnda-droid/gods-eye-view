@@ -6,8 +6,20 @@ import {
   createAlprPrecisionCache,
   createAlprTileSource,
   createOverpassAlprSource,
+  createAlprRuntimeSource,
   buildOverpassQuery,
 } from './source.js';
+import {
+  resolveOverpassUrl,
+  OVERPASS_URL,
+  OVERPASS_DIRECT_URL,
+  OVERPASS_MIRROR_URL,
+  OVERPASS_RETRY_PAUSE_MS,
+} from './policy.js';
+import {
+  probeApiAvailable,
+  resetStaticHostingProbe,
+} from '../../sources/staticHosting.js';
 import { validateAlprSnapshot, alprCreditMarkup } from './model.js';
 const box = { south: 30, west: -98, north: 30.1, east: -97.9 };
 test('the source rejects invalid and unbounded queries before fetching', async () => {
@@ -287,4 +299,172 @@ test('the tile adapter never passes public URLs through an injected API transpor
   assert.ok(result.records.length);
   assert.ok(urls.length > 1);
   assert.ok(urls.every((url) => url.startsWith('https://tiles.')));
+});
+
+test('overpass endpoint resolves direct on static hosting, proxy on desktop', async () => {
+  resetStaticHostingProbe();
+  try {
+    assert.equal(resolveOverpassUrl(), OVERPASS_URL);
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    assert.equal(resolveOverpassUrl(), OVERPASS_DIRECT_URL);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static 429 pauses per the wiki rule, then falls back to the mirror', async () => {
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const calls = [];
+    const slept = [];
+    const source = createOverpassAlprSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        if (url === OVERPASS_DIRECT_URL)
+          return { ok: false, status: 429, body: { cancel: async () => {} } };
+        return Response.json({ elements: [] });
+      },
+      sleepImpl: async (ms) => {
+        slept.push(ms);
+      },
+    });
+    const result = await source.fetch(box);
+    assert.deepEqual(result.records, []);
+    assert.deepEqual(calls, [OVERPASS_DIRECT_URL, OVERPASS_MIRROR_URL]);
+    assert.deepEqual(slept, [OVERPASS_RETRY_PAUSE_MS]);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static 504 tries the mirror without the 30s pause', async () => {
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const calls = [];
+    let slept = 0;
+    const source = createOverpassAlprSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        if (url === OVERPASS_DIRECT_URL)
+          return { ok: false, status: 504, body: { cancel: async () => {} } };
+        return Response.json({ elements: [] });
+      },
+      sleepImpl: async () => {
+        slept += 1;
+      },
+    });
+    await source.fetch(box);
+    assert.deepEqual(calls, [OVERPASS_DIRECT_URL, OVERPASS_MIRROR_URL]);
+    assert.equal(slept, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static double-429 surfaces the rate-limited taxonomy', async () => {
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const source = createOverpassAlprSource({
+      fetchImpl: async () => ({
+        ok: false,
+        status: 429,
+        body: { cancel: async () => {} },
+      }),
+      sleepImpl: async () => {},
+    });
+    await assert.rejects(source.fetch(box), /Overpass rate-limited/);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('desktop 429 keeps the single-proxy behavior: no mirror, no pause', async () => {
+  resetStaticHostingProbe();
+  try {
+    const calls = [];
+    let slept = 0;
+    const source = createOverpassAlprSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        return { ok: false, status: 429, body: { cancel: async () => {} } };
+      },
+      sleepImpl: async () => {
+        slept += 1;
+      },
+    });
+    await assert.rejects(source.fetch(box), /Overpass rate-limited/);
+    assert.deepEqual(calls, ['/api/overpass']);
+    assert.equal(slept, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('runtime source uses direct Overpass on static, tiles on desktop', async () => {
+  const overpassPayload = {
+    elements: [
+      {
+        type: 'node',
+        id: 42,
+        lat: 30.05,
+        lon: -97.95,
+        tags: { 'surveillance:type': 'ALPR', operator: 'Test' },
+      },
+    ],
+  };
+  // Static: the runtime source enriches via direct Overpass.
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const calls = [];
+    const source = createAlprRuntimeSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        return Response.json(overpassPayload);
+      },
+      tileFetchImpl: () => assert.fail('tiles must not be used on static'),
+      sleepImpl: async () => {},
+    });
+    const result = await source.fetch(box);
+    assert.equal(result.records.length, 1);
+    assert.deepEqual(calls, [OVERPASS_DIRECT_URL]);
+    assert.match(source.label, /OpenStreetMap/);
+  } finally {
+    resetStaticHostingProbe();
+  }
+  // Desktop (unprobed): the runtime source stays on the tile extract.
+  resetStaticHostingProbe();
+  try {
+    let overpassCalls = 0;
+    const source = createAlprRuntimeSource({
+      fetchImpl: () => {
+        overpassCalls += 1;
+        return assert.fail('overpass must not be used on desktop');
+      },
+      tileFetchImpl: () => assert.fail('no network expected in Europe'),
+    });
+    const result = await source.fetch({
+      south: 51,
+      north: 51.1,
+      west: 0,
+      east: 0.1,
+    });
+    assert.equal(result.noCoverage, true);
+    assert.equal(overpassCalls, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
 });

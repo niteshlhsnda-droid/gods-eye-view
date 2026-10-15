@@ -262,3 +262,149 @@ test('installation API transports never receive vector-tile URLs', async (t) => 
   }
   assert.ok(calls.length >= 4);
 });
+
+test('static hosting: mapped sites query Overpass directly with the verbatim proxy query', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { OVERPASS_DIRECT_URL } = await import('../alpr/policy.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const calls = [];
+    const elements = [
+      {
+        type: 'node',
+        id: 424242,
+        lat: 30.2,
+        lon: -97.8,
+        tags: { landuse: 'military', name: 'Test Base' },
+      },
+    ];
+    const source = createInstallationSource({
+      fetchImpl: async (url, init) => {
+        calls.push({ url, init });
+        return { ok: true, status: 200, json: async () => ({ elements }) };
+      },
+      loadNames: async () => [],
+    });
+    const payload = await source.getMappedSites(box);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, OVERPASS_DIRECT_URL);
+    assert.equal(calls[0].init.method, 'POST');
+    assert.equal(
+      calls[0].init.headers['Content-Type'],
+      'application/x-www-form-urlencoded',
+    );
+    const body = decodeURIComponent(calls[0].init.body.replace(/^data=/, ''));
+    assert.match(body, /\[out:json\]\[timeout:20\]/);
+    assert.match(
+      body,
+      /\["military"~\"\^\(airfield\|naval_base\|range\|barracks\|base\)\$\"\]/,
+    );
+    assert.match(body, /\["landuse"="military"\]/);
+    assert.match(body, /\(30\.1,-97\.9,30\.3,-97\.6\)/);
+    assert.match(body, /out center tags geom 700/);
+    assert.equal(payload.status, 'ready');
+    assert.equal(payload.saturated, false);
+    assert.equal(payload.records.length, 1);
+    assert.equal(payload.records[0].name, 'Test Base');
+    assert.equal(payload.records[0].class, 'military_land');
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static hosting: an overloaded direct endpoint falls back to the mirror', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { OVERPASS_DIRECT_URL, OVERPASS_MIRROR_URL } =
+    await import('../alpr/policy.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const calls = [];
+    const elements = [
+      {
+        type: 'node',
+        id: 777,
+        lat: 30.2,
+        lon: -97.8,
+        tags: { military: 'barracks', name: 'Mirror Base' },
+      },
+    ];
+    const source = createInstallationSource({
+      fetchImpl: async (url) => {
+        calls.push(url);
+        if (url === OVERPASS_DIRECT_URL)
+          return { ok: false, status: 504, json: async () => ({}) };
+        return { ok: true, status: 200, json: async () => ({ elements }) };
+      },
+      loadNames: async () => [],
+    });
+    const payload = await source.getMappedSites(box);
+    assert.deepEqual(calls, [OVERPASS_DIRECT_URL, OVERPASS_MIRROR_URL]);
+    assert.equal(payload.records.length, 1);
+    assert.equal(payload.records[0].name, 'Mirror Base');
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static hosting: a dead direct endpoint falls back to tiles, never an empty all-clear', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    const source = createInstallationSource({
+      fetchImpl: async () => {
+        throw new TypeError('fetch failed');
+      },
+      loadNames: async () => [],
+      mapTiles: {
+        fetchBounds: async () => ({ tiles: [], partial: false }),
+        clear() {},
+      },
+    });
+    const payload = await source.getMappedSites(box);
+    assert.equal(payload.tileSource, true);
+    assert.deepEqual(payload.records, []);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});
+
+test('static hosting: Google text search gets the honest state, never a doomed fetch', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { NEEDS_DESKTOP_SERVER_CODE } =
+    await import('../../sources/needsDesktopServer.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    let calls = 0;
+    const source = createInstallationSource({
+      fetchImpl: async () => {
+        calls += 1;
+        return { ok: true, status: 200, json: async () => ({ places: [] }) };
+      },
+    });
+    const error = await source
+      .searchNearby({ latitude: 30.2, longitude: -97.8, radiusM: 5000 })
+      .catch((e) => e);
+    assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
+    assert.match(error.message, /Google Places text search/);
+    assert.match(error.message, /needs the desktop server/);
+    assert.equal(calls, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});

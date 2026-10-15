@@ -51,3 +51,35 @@ test('launch factories construct independently without starting a scene or sourc
   assert.equal(first.getStats().count, 0);
   assert.equal(second.getStats().count, 0);
 });
+
+test('static hosting: launches and TLE throw the honest error before any fetch', async () => {
+  const { probeApiAvailable, resetStaticHostingProbe } =
+    await import('../../sources/staticHosting.js');
+  const { NEEDS_DESKTOP_SERVER_CODE } =
+    await import('../../sources/needsDesktopServer.js');
+  resetStaticHostingProbe();
+  try {
+    await probeApiAvailable({
+      fetchImpl: async () => ({ ok: false, status: 404 }),
+    });
+    let calls = 0;
+    const source = createLaunchSource({
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response(JSON.stringify({ results: [] }));
+      },
+    });
+    for (const call of [
+      () => source.getLaunches(),
+      () => source.getActiveTle(),
+    ]) {
+      const error = await call().catch((e) => e);
+      assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
+      assert.match(error.message, /Space missions/);
+      assert.match(error.message, /needs the desktop server/);
+    }
+    assert.equal(calls, 0);
+  } finally {
+    resetStaticHostingProbe();
+  }
+});

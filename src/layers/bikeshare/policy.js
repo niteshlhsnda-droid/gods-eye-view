@@ -1,5 +1,12 @@
 import * as Cesium from 'cesium';
 
+// Direct-fetch allowlist lives in ./directFetch.js (cesium-free, so the
+// data-source module can import it); re-exported here for discoverability.
+export {
+  GBFS_DIRECT_CORS_HOSTS,
+  GBFS_NEEDS_DESKTOP_SERVER_CODE,
+} from './directFetch.js';
+
 export const BIKESHARE_SELECTED_OVERLAY_SOURCE_ID = 'bikeshare-selected';
 
 export const BIKESHARE_SELECTED_OVERLAY_SOURCE_OPTIONS = Object.freeze({

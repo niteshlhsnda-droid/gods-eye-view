@@ -1,4 +1,6 @@
 import { readResponseJsonCapped } from '../../sources/httpBody.js';
+import { isStaticHosting } from '../../sources/staticHosting.js';
+import { fetchNhcDirectSnapshot, NHC_DIRECT_TIMEOUT_MS } from './nhcDirect.js';
 
 export const CYCLONE_RESPONSE_LIMIT = 4 * 1024 * 1024;
 const malformed = () => new Error('Malformed cyclone snapshot');
@@ -208,9 +210,27 @@ export function validateCycloneSnapshot(value) {
 export function createCycloneSource({
   fetchImpl = (...args) => globalThis.fetch(...args),
   timeoutMs = 15_000,
+  // Override seams for the static NHC direct flow (tests pin the advisory
+  // clock; the desktop path never reads them).
+  directYear,
+  directNowMs,
 } = {}) {
   return {
     async getSnapshot({ signal } = {}) {
+      if (isStaticHosting()) {
+        // No /api/* proxy on static hosting: probe NHC's keyless,
+        // CORS-open storm-graphics KMZ products directly. Discovery needs
+        // headroom for up to 90 probes, so the single-request deadline is
+        // raised for this path only.
+        const snapshot = await fetchNhcDirectSnapshot({
+          fetchImpl,
+          signal,
+          timeoutMs: Math.max(timeoutMs, NHC_DIRECT_TIMEOUT_MS),
+          ...(directYear !== undefined ? { year: directYear } : {}),
+          ...(directNowMs !== undefined ? { nowMs: directNowMs } : {}),
+        });
+        return validateCycloneSnapshot(snapshot);
+      }
       const controller = new AbortController();
       const abort = () => controller.abort(signal.reason);
       signal?.addEventListener('abort', abort, { once: true });

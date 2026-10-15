@@ -489,4 +489,8 @@ export {
   QUERY_SNAP_DEGREES,
   QUERY_REUSE_MS,
 } from './policy.js';
-export { createOverpassAlprSource, createAlprTileSource } from './source.js';
+export {
+  createOverpassAlprSource,
+  createAlprTileSource,
+  createAlprRuntimeSource,
+} from './source.js';

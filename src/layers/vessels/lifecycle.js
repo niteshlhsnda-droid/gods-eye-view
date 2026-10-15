@@ -102,6 +102,8 @@ export function createLifecycle({
     state.feed.stale = false;
     state.feed.partial = false;
     state.feed.error = null;
+    // Re-arm the static-hosting honest state so a re-enable re-settles it.
+    state.feed.staticTerminal = false;
     state.feed.loadingLabel = '';
     state.feed.lastUpdate = null;
     state.feed.count = 0;

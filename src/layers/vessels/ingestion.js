@@ -1,5 +1,6 @@
 import { AIS_FIRST_CONNECT_LABEL } from './recordPolicy.js';
 import { viewAreaMovedEnough } from './viewArea.js';
+import { isNeedsDesktopServerError } from '../../sources/needsDesktopServer.js';
 
 /** Own source requests and classified feed state through explicit operations. */
 export function createIngestion({
@@ -19,7 +20,9 @@ export function createIngestion({
   setSourceLabel,
 }) {
   async function loadLivePositions(viewer) {
-    if (!viewer || feed.loading) return;
+    // Static-hosting honest state is terminal: the first load settled it, so
+    // manager ticks and camera moves must not re-enter acquisition.
+    if (!viewer || feed.loading || feed.staticTerminal) return;
     feed.loading = true;
     feed.loadingLabel = feed.loaded ? 'refreshing...' : 'loading...';
     const requestController = new AbortController();
@@ -69,6 +72,9 @@ export function createIngestion({
         ownsAisRequest(requestController, requestSessionId) &&
         error?.name !== 'AbortError'
       ) {
+        // Terminal: static hosting has no /api backend, so there is nothing
+        // to retry — the honest message renders via markUnavailable.
+        if (isNeedsDesktopServerError(error)) feed.staticTerminal = true;
         markUnavailable(error?.message || 'AIS live load failed');
         console.warn('[Data:ais-live-vessels]', feed.error, error);
       }
@@ -185,7 +191,7 @@ export function createIngestion({
 
   const methods = {
     update(viewer) {
-      if (!feed.enabled) return Promise.resolve();
+      if (!feed.enabled || feed.staticTerminal) return Promise.resolve();
       return loadLivePositions(viewer || readViewer());
     },
   };
@@ -209,6 +215,8 @@ export function createVesselFeed() {
     stale: false,
     partial: false,
     error: null,
+    // Static-hosting honest state: once settled, acquisition no-ops.
+    staticTerminal: false,
     loadingLabel: '',
     lastUpdate: null,
     count: 0,

@@ -1,9 +1,14 @@
+import { throwIfStaticHosting } from '../../sources/needsDesktopServer.js';
+
 /** Read launch records and their optional active-orbit catalog with explicit cancellation. */
 export function createLaunchSource({
   fetchImpl = (...args) => globalThis.fetch(...args),
 } = {}) {
   /** The launch payload, and whether the proxy served it from a stale cache. */
   async function getLaunchSnapshot({ signal } = {}) {
+    // Static hosting has no /api/launches backend: settle into the honest
+    // terminal state instead of a doomed request + retry storm.
+    throwIfStaticHosting('Space missions');
     signal?.throwIfAborted();
     const response = await fetchImpl('/api/launches', { signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -22,6 +27,7 @@ export function createLaunchSource({
       return (await getLaunchSnapshot(options)).payload;
     },
     async getActiveTle({ signal } = {}) {
+      throwIfStaticHosting('Space missions');
       signal?.throwIfAborted();
       const response = await fetchImpl('/api/celestrak/active', { signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

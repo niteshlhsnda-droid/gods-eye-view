@@ -284,7 +284,7 @@ export const DATA_CREDITS = [
   },
   {
     key: 'weather-cyclones',
-    html: 'Cyclone advisories: <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">NOAA/NWS NHC / CPHC</a> · Atlantic and eastern/central North Pacific. Forecast center uncertainty, not storm size.',
+    html: 'Cyclone advisories: <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener">National Hurricane Center / NOAA</a> · Atlantic and eastern/central North Pacific only — Bay of Bengal / Arabian Sea not covered (IMD publishes no machine-readable products). Forecast center uncertainty, not storm size.',
   },
   {
     key: 'weather-lightning',

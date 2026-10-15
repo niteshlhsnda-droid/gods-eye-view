@@ -144,7 +144,7 @@ test('empty events render the quiet-planet state with minutes', async () => {
   panel.stop();
 });
 
-test('no payload renders the loading state', async () => {
+test('failed fetch with no payload renders the unavailable state', async () => {
   const { doc, panel } = fixture({
     fetchData: async () => ({
       payload: null,
@@ -157,7 +157,99 @@ test('no payload renders the loading state', async () => {
   await tick();
   await tick();
   const text = sheetText(doc);
+  assert.ok(
+    text.includes('Live data unavailable'),
+    'unavailable state rendered',
+  );
+  panel.stop();
+});
+
+test('loading shows before the first fetch resolves', async () => {
+  const { doc, panel } = fixture({
+    fetchData: () => new Promise(() => {}),
+  });
+  panel.open();
+  await tick();
+  const text = sheetText(doc);
   assert.ok(text.includes('Checking the planet'), 'loading state rendered');
+  panel.stop();
+});
+
+test('empty events with all feeds stale render the all-feeds-stale state', async () => {
+  const { doc, panel } = fixture({
+    fetchData: async () => ({
+      payload: {
+        schema: 'gev/live-now',
+        version: 1,
+        generatedAt: '2026-10-13T14:55:00.000Z',
+        events: [],
+        staleSources: ['quakes', 'fires'],
+        feedHealth: {
+          feeds: [
+            { id: 'quakes', label: 'Earthquakes (USGS)', state: 'stale' },
+            { id: 'fires', label: 'Fires (NASA FIRMS)', state: 'unavailable' },
+          ],
+        },
+      },
+      fresh: true,
+      fromCache: false,
+    }),
+  });
+  panel.open();
+  await tick();
+  await tick();
+  const text = sheetText(doc);
+  assert.ok(
+    text.includes('every source is stale'),
+    'all-feeds-stale state rendered, not quiet planet',
+  );
+  assert.ok(!text.includes('Quiet planet'), 'no quiet-planet mislabel');
+  panel.stop();
+});
+
+test('per-feed health list shows state and age', async () => {
+  const { doc, panel } = fixture({
+    fetchData: async () => ({
+      payload: {
+        schema: 'gev/live-now',
+        version: 1,
+        generatedAt: '2026-10-13T14:55:00.000Z',
+        events: [event('a')],
+        staleSources: ['fires'],
+        feedHealth: {
+          feeds: [
+            {
+              id: 'quakes',
+              label: 'Earthquakes (USGS)',
+              state: 'nominal',
+              lastUpdate: '2026-10-13T14:55:00.000Z',
+            },
+            {
+              id: 'fires',
+              label: 'Fires (NASA FIRMS)',
+              state: 'unavailable',
+              lastUpdate: null,
+            },
+          ],
+        },
+      },
+      fresh: true,
+      fromCache: false,
+    }),
+  });
+  panel.open();
+  await tick();
+  await tick();
+  const text = sheetText(doc);
+  assert.ok(text.includes('Source status'), 'feed health heading rendered');
+  assert.ok(
+    text.includes('Earthquakes (USGS) · nominal · 5 min ago'),
+    'healthy feed line with age rendered',
+  );
+  assert.ok(
+    text.includes('Fires (NASA FIRMS) · unavailable · never updated'),
+    'dead feed line with never-updated rendered',
+  );
   panel.stop();
 });
 

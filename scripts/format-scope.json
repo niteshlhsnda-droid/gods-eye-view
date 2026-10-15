@@ -985,5 +985,10 @@
   "src/director/sharing/bundleTrust.test.mjs",
   "tests/smoke.spec.mjs",
   "tests/axe-audit.spec.mjs",
-  "playwright.config.mjs"
+  "playwright.config.mjs",
+  "scripts/validate-live-now.mjs",
+  "scripts/write-build-metadata.mjs",
+  "src/tooling/validateLiveNow.test.mjs",
+  "src/tooling/writeBuildMetadata.test.mjs",
+  "tests/post-deploy-smoke.spec.mjs"
 ]
