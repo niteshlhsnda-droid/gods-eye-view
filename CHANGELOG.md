@@ -1,5 +1,16 @@
 # Changelog
 
+- GNSS Integrity (Events, voice-addressable, share token `3`) draws navigation
+  accuracy scores from a keyless regional adsb.lol sample; aircraft-level analyst
+  queries are unavailable for these aggregate cells. Cells do not intercept
+  map clicks. Pan/zoom refreshes automatically; feed failures retain the display
+  and explain the next retry. Aircraft-reported quality includes MLAT-positioned
+  contacts after GPS loss, excludes TIS-B/MLAT-derived quality, and locates GPS-loss
+  evidence at the last good GNSS position when available. Scores discount one
+  bad aircraft per cell and retain 30 minutes of visited-view evidence; they
+  do not confirm jamming. See [method and limits](DATA_SOURCES.md#gnss-integrity).
+  Ported from upstream.
+
 - Treat explicitly current, complete empty vessel coverage as a successful update,
   clearing obsolete contacts while retaining stale or incomplete snapshots.
 
