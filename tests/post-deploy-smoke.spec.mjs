@@ -40,7 +40,10 @@ async function clearFirstRun(page) {
 test('deployed app boots and the globe renders', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
-  await page.goto('/', { waitUntil: 'load' });
+  // Navigate to the base URL itself: a leading '/' would escape the
+  // /gods-eye-view/ project subpath to the Pages root, which serves a
+  // different site (no canvas) — that is a spec bug, not an app bug.
+  await page.goto('', { waitUntil: 'load' });
   const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible({ timeout: 90000 });
   const box = await canvas.boundingBox();
@@ -89,7 +92,7 @@ test('share-link restore: the app-written hash reboots the globe', async ({
 }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
-  await page.goto('/', { waitUntil: 'load' });
+  await page.goto('', { waitUntil: 'load' });
   await expect(page.locator('canvas').first()).toBeVisible({
     timeout: 90000,
   });
@@ -105,7 +108,7 @@ test('share-link restore: the app-written hash reboots the globe', async ({
   const restored = await context.newPage();
   const restoredErrors = [];
   restored.on('pageerror', (error) => restoredErrors.push(String(error)));
-  await restored.goto(`/${hash}`, { waitUntil: 'load' });
+  await restored.goto(`${hash}`, { waitUntil: 'load' });
   await expect(restored.locator('canvas').first()).toBeVisible({
     timeout: 90000,
   });
@@ -118,7 +121,7 @@ test('share-link restore: the app-written hash reboots the globe', async ({
 test('keyboard Tab moves focus into the page', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error)));
-  await page.goto('/', { waitUntil: 'load' });
+  await page.goto('', { waitUntil: 'load' });
   await expect(page.locator('canvas').first()).toBeVisible({
     timeout: 90000,
   });
