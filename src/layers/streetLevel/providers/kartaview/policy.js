@@ -65,12 +65,22 @@ export const PHOTO_API_RETRY_MAX_MS = 10_000;
 export const TILE_CONCURRENCY = 3;
 export const PAGE_CONCURRENCY = 1;
 export const TILE_TIMEOUT_MS = 20_000;
-export const PHOTO_API_TIMEOUT_MS = 15_000;
+export const PHOTO_API_TIMEOUT_MS = 20_000;
 /**
  * The first try of a lookup: KartaView sometimes sits on a lookup for 11 s
- * and more, then answers the same one again in 3 s.
+ * and more, then answers the same one again in 3 s. A live probe of
+ * /2.0/photo/ at Berlin Mitte took 18.6 s (and 23.7 s wall / 21.3 s server
+ * time on a second probe), past the old 8 s + 15 s budget, so the first
+ * try gets 12 s and the retries 20 s.
  */
-export const PHOTO_API_FIRST_TIMEOUT_MS = 8_000;
+export const PHOTO_API_FIRST_TIMEOUT_MS = 12_000;
+/**
+ * How many times a timed-out photo-API call is asked again (the 18.6 s
+ * Berlin Mitte probe needed the retry, and a later probe needed more than
+ * the old single retry's budget). Worst case a lookup waits
+ * 12 s + 20 s + 20 s before it reports KartaView did not answer.
+ */
+export const PHOTO_API_TIMEOUT_RETRIES = 2;
 /** A sequence page is about 650 kB of JSON. */
 export const PAGE_TIMEOUT_MS = 30_000;
 /** Real tiles are under 1 MB; refuse anything absurd before parsing it. */
@@ -88,6 +98,14 @@ export const ARCHIVED_MESSAGE =
 export const NEAREST_LIMIT = 10;
 /** The photo API's search zoom: 18 searches the few tens of metres around the point. */
 export const NEAREST_SEARCH_ZOOM = 18;
+/**
+ * The wider second search, when the zoom-18 search finds nothing within
+ * range: zoom 16 covers a wider cell (a photo just across the zoom-18
+ * cell's edge is missed otherwise), and more rows are asked for. The
+ * 50 m radius still bounds what may open; this only widens the search.
+ */
+export const NEAREST_WIDE_SEARCH_ZOOM = 16;
+export const NEAREST_WIDE_LIMIT = 25;
 
 /**
  * Photos of a sequence fetched at once, around the open one. Records are
@@ -139,6 +157,15 @@ export const MASK_SLOW_MESSAGE =
   'KartaView did not filter this area in time — move the map to ask again';
 export const FILTERED_OUT_MESSAGE =
   'None of KartaView’s photos here pass the imagery filter';
+/**
+ * The photo search itself returned nothing, on the narrow and the wider
+ * search alike — distinct from "no imagery within 50 m", which is what the
+ * core reports when photos exist but none is close enough. Coverage lines
+ * are drawn from tiles and may sit just off the point searched, so the
+ * user is pointed back at a line rather than told there is no imagery.
+ */
+export const SEARCH_EMPTY_MESSAGE =
+  'KartaView’s photo search returned nothing here — try a point on a coverage line';
 /** Under the SINCE slider while KartaView is lit. */
 export const SINCE_NOTE = 'KartaView: by upload date';
 
@@ -277,6 +304,23 @@ export function assignCourses(photos, metres) {
 /** Where the camera looked: the direction of travel, else the compass, else unknown. */
 export function cameraBearing(photo) {
   return photo?.course ?? photo?.heading ?? null;
+}
+
+/**
+ * Nearest showable candidates, freshest shot first: the newest `capturedAt`
+ * (the photo's shotDate, not its upload date — KartaView's `startDate`
+ * filters by upload date, so shotDate freshness is a client-side sort on
+ * top of it) wins, an unknown shot date sorts last, distance breaks ties.
+ * The candidate set is already bounded to the 50 m radius, so freshness
+ * decides among genuinely near photos, never a far one over a near one.
+ * @param {Array<{photo: {capturedAt: number|null}, metres: number}>} entries
+ */
+export function freshestFirst(entries) {
+  return [...entries].sort(
+    (a, b) =>
+      (b.photo.capturedAt || 0) - (a.photo.capturedAt || 0) ||
+      a.metres - b.metres,
+  );
 }
 
 /** A coordinate pair as numbers; the road-matched one when KartaView has it. */

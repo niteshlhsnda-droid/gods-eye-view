@@ -8,6 +8,7 @@ import {
 import {
   FILTERED_OUT_MESSAGE,
   NO_COVERAGE_HINT,
+  SEARCH_EMPTY_MESSAGE,
   SEQUENCE_PAGE_SIZE,
   TOO_HIGH_HINT,
 } from './policy.js';
@@ -252,6 +253,45 @@ test('the nearest photo passes the imagery filter by its upload date, as KartaVi
     { filter },
   );
   assert.equal(await sameDay.instance.nearestImage(at), 'early');
+});
+
+test('an empty search on both tries says the search returned nothing, not that there is no imagery', async () => {
+  const { instance, source } = setup({ nearest: [] });
+  await assert.rejects(instance.nearestImage({ lat: 42.3314, lon: -83.0458 }), {
+    message: SEARCH_EMPTY_MESSAGE,
+  });
+  // Narrow, then wider: two searches before giving up.
+  assert.equal(source.calls.nearest, 2);
+});
+
+test('a search that finds nothing narrow finds the photo on the wider retry', async () => {
+  const { instance, source } = setup({ nearest: [] });
+  const found = photoRecord('wide-hit', { metres: 9 });
+  source.nearestPhotos = async (point, { wide } = {}) => {
+    source.calls.nearest++;
+    return wide ? [found] : [];
+  };
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'wide-hit',
+  );
+  assert.equal(source.calls.nearest, 2);
+});
+
+test('among the nearest showable photos the newest shotDate wins, not the nearest', async () => {
+  const { instance } = setup({
+    nearest: [
+      photoRecord('old-near', { metres: 3 }),
+      {
+        ...photoRecord('new-far', { metres: 20 }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'new-far',
+  );
 });
 
 test('a cone opens its photo; a line opens the photo nearest the click', () => {

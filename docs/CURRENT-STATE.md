@@ -3177,7 +3177,16 @@ list is not cached. A click on a line reaches
 framing: many photos are archived (their file answers 409, while a HEAD says
 200) or have no file, so the six nearest are probed at once with a GET cut
 off at the headers, and where all are gone the panel says KartaView's photos
-there are archived. Only a definite answer (403/404/409/410, or 200) is
+there are archived. When the search itself returns nothing, or nothing
+within range, it is asked once more wider (zoom 16, 25 rows) before giving
+up; empty on both tries the panel says the photo search returned nothing
+here and points at a coverage line, distinct from "no imagery within
+50 m" for photos that exist but are all too far away. Among the nearest
+showable photos the newest shotDate wins (freshness sort; distance breaks
+ties) — KartaView's `startDate` filters by upload date, verified by live
+probe (a photo shot 2017-09-04 but uploaded 2020-07-26 survives
+`startDate=2018-01-01` and is cut by `startDate=2021-01-01`), so shotDate
+freshness is a client-side sort on top of the upload-date SINCE.
 remembered; a storage timeout or 5xx is asked again. The open photo's
 sequence draws as cones from the 250-photo page holding it
 (`/2.0/sequence/{id}/photos`); the panel counts the drive's own photos
@@ -3198,8 +3207,8 @@ up front at the ends. `api.kartaview.org` speaks HTTP/1.1, so of the
 browser's six connections to it tiles take three, lookups two and pages one
 (newest first), and a lookup never waits behind tiles; the photo API answers
 429 to more than about three requests at once, so a 429 is retried with
-backoff (at most 10 s), and a lookup gets 8 s, then 15 s once more (KartaView
-sometimes sits on a lookup for 11 s and answers the same one in 3 s); a
+backoff (at most 10 s), and a lookup gets 12 s, then 20 s twice more (a
+live Berlin Mitte probe took 18.6 s, past the old 8 s + 15 s budget); a
 request that could not be made at all (no network, CORS) says so and is not
 repeated. Answers
 are read with a running byte count and cut off past 16 MB (KartaView sends

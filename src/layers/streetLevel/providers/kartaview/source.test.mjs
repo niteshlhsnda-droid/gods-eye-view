@@ -10,10 +10,13 @@ import {
   MASK_SLOW_MESSAGE,
   NEAREST_LIMIT,
   NEAREST_SEARCH_ZOOM,
+  NEAREST_WIDE_LIMIT,
+  NEAREST_WIDE_SEARCH_ZOOM,
   PHOTO_API_CONCURRENCY,
   PHOTO_API_RETRIES,
   PHOTO_API_FIRST_TIMEOUT_MS,
   PHOTO_API_TIMEOUT_MS,
+  PHOTO_API_TIMEOUT_RETRIES,
   PAGE_TIMEOUT_MS,
   TILE_CONCURRENCY,
 } from './policy.js';
@@ -286,7 +289,7 @@ test('tiles, lookups and sequence pages queue separately, so a lookup never wait
   assert.equal(peak.page, 1);
 });
 
-test('a lookup that times out is asked once more, then reported as no answer in time', async (t) => {
+test('a lookup that times out is asked twice more, then reported as no answer in time', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   let calls = 0;
   const outcome = await onMockClock(t, () =>
@@ -304,7 +307,7 @@ test('a lookup that times out is asked once more, then reported as no answer in 
     /did not answer in time — try again/,
   );
   assert.equal(outcome.error.timedOut, true);
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
 });
 
 test('an image probe reads only the status: an archived photo (409) is not showable', async () => {
@@ -471,7 +474,7 @@ test('429 waits double from 0.8 s, wait out a longer Retry-After up to 10 s, and
   assert.deepEqual(await waits(undefined), [2000, 2000, 3200], 'assumed 2 s');
 });
 
-test('a lookup that hangs is given up after a short first try, then the full timeout, then reported', async (t) => {
+test('a lookup that hangs is given up after a short first try, then two full timeouts, then reported', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const asked = [];
   const outcome = await onMockClock(t, (stamp) =>
@@ -484,9 +487,40 @@ test('a lookup that hangs is given up after a short first try, then the full tim
       },
     }).getPhoto('1'),
   );
-  assert.deepEqual(asked, [0, PHOTO_API_FIRST_TIMEOUT_MS]);
+  assert.equal(PHOTO_API_TIMEOUT_RETRIES, 2);
+  assert.deepEqual(asked, [
+    0,
+    PHOTO_API_FIRST_TIMEOUT_MS,
+    PHOTO_API_FIRST_TIMEOUT_MS + PHOTO_API_TIMEOUT_MS,
+  ]);
   assert.match(String(outcome?.error?.message), /did not answer in time/);
-  assert.equal(outcome.at, PHOTO_API_FIRST_TIMEOUT_MS + PHOTO_API_TIMEOUT_MS);
+  assert.equal(
+    outcome.at,
+    PHOTO_API_FIRST_TIMEOUT_MS + 2 * PHOTO_API_TIMEOUT_MS,
+  );
+});
+
+test('a lookup that hangs twice is answered on its third try', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const asked = [];
+  const outcome = await onMockClock(t, (stamp) =>
+    createKartaViewSource({
+      fetchImpl: (url, { signal }) => {
+        asked.push(stamp());
+        if (asked.length < 3)
+          return new Promise((resolve, reject) =>
+            signal.addEventListener('abort', () => reject(signal.reason)),
+          );
+        return ok(photoPayload({ id: '1' }));
+      },
+    }).getPhoto('1'),
+  );
+  assert.deepEqual(asked, [
+    0,
+    PHOTO_API_FIRST_TIMEOUT_MS,
+    PHOTO_API_FIRST_TIMEOUT_MS + PHOTO_API_TIMEOUT_MS,
+  ]);
+  assert.deepEqual(outcome?.value, { id: '1' });
 });
 
 test('the nearest lookup asks for the few photos around the point at the search zoom', async () => {
@@ -507,6 +541,27 @@ test('the nearest lookup asks for the few photos around the point at the search 
   });
   assert.equal(NEAREST_SEARCH_ZOOM, 18);
   assert.equal(NEAREST_LIMIT, 10);
+});
+
+test('a wide nearest lookup asks at the wider search zoom with more rows', async () => {
+  const urls = [];
+  const source = createKartaViewSource({
+    fetchImpl: async (url) => {
+      urls.push(new URL(url));
+      return ok(photoPayload([]));
+    },
+  });
+  await source.nearestPhotos({ lat: 42.33, lon: -83.04 }, { wide: true });
+  assert.equal(
+    urls[0].searchParams.get('zoomLevel'),
+    String(NEAREST_WIDE_SEARCH_ZOOM),
+  );
+  assert.equal(
+    urls[0].searchParams.get('itemsPerPage'),
+    String(NEAREST_WIDE_LIMIT),
+  );
+  assert.equal(NEAREST_WIDE_SEARCH_ZOOM, 16);
+  assert.equal(NEAREST_WIDE_LIMIT, 25);
 });
 
 test('a chunked answer with no length is cut off once it grows past the cap', async () => {
@@ -577,7 +632,7 @@ test('a chunked answer split mid-character is reassembled in order', async () =>
   assert.deepEqual(await source.getTile({ x: 1, y: 2, z: 13 }), payload);
 });
 
-test('a sequence page gets the full 30 s on its first try, then 30 s once more', async (t) => {
+test('a sequence page gets the full 30 s on its first try, then 30 s twice more', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const asked = [];
   const outcome = await onMockClock(
@@ -593,9 +648,9 @@ test('a sequence page gets the full 30 s on its first try, then 30 s once more',
       }).getSequencePhotos('9', { page: 1, itemsPerPage: 250 }),
     { until: 120_000 },
   );
-  assert.deepEqual(asked, [0, PAGE_TIMEOUT_MS]);
+  assert.deepEqual(asked, [0, PAGE_TIMEOUT_MS, 2 * PAGE_TIMEOUT_MS]);
   assert.match(String(outcome?.error?.message), /did not answer in time/);
-  assert.equal(outcome.at, 2 * PAGE_TIMEOUT_MS);
+  assert.equal(outcome.at, 3 * PAGE_TIMEOUT_MS);
 });
 
 test('an answer turned away unread (an error, a 429, a length past the cap) lets its connection go', async () => {

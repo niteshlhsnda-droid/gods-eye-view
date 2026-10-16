@@ -9,12 +9,15 @@ import {
   MASK_TIMEOUT_MS,
   NEAREST_LIMIT,
   NEAREST_SEARCH_ZOOM,
+  NEAREST_WIDE_LIMIT,
+  NEAREST_WIDE_SEARCH_ZOOM,
   PAGE_CONCURRENCY,
   PAGE_TIMEOUT_MS,
   PHOTO_API_CONCURRENCY,
   PHOTO_API_RETRIES,
   PHOTO_API_RETRY_BASE_MS,
   PHOTO_API_RETRY_MAX_MS,
+  PHOTO_API_TIMEOUT_RETRIES,
   PHOTO_API_FIRST_TIMEOUT_MS,
   PHOTO_API_TIMEOUT_MS,
   TILE_CONCURRENCY,
@@ -246,8 +249,8 @@ export function createKartaViewSource({
   }
 
   /**
-   * A photo-API call through `gate`, retrying 429s with backoff and, once, a
-   * call that timed out.
+   * A photo-API call through `gate`, retrying 429s with backoff and, up to
+   * PHOTO_API_TIMEOUT_RETRIES times, a call that timed out.
    */
   async function photoApi(
     path,
@@ -284,7 +287,7 @@ export function createKartaViewSource({
       } catch (error) {
         if (signal?.aborted) throw error;
         const timedOut = error?.timedOut === true;
-        if (timedOut && timeouts++ < 1) continue;
+        if (timedOut && timeouts++ < PHOTO_API_TIMEOUT_RETRIES) continue;
         if (error?.status !== 429 || attempt >= PHOTO_API_RETRIES) {
           if (error?.status === 429)
             throw new KartaViewSourceError(
@@ -395,15 +398,22 @@ export function createKartaViewSource({
     /**
      * Photo records around a point, nearest first; with a resolved imagery
      * `filter`, only those of its projection uploaded since its cut-off.
+     * `wide` asks once more at a wider search zoom with more rows, for
+     * when the narrow search found nothing within range.
      */
-    async nearestPhotos({ lat, lon, filter = null }, { signal } = {}) {
+    async nearestPhotos(
+      { lat, lon, filter = null },
+      { signal, wide = false } = {},
+    ) {
       const result = await photoApi(
         '/2.0/photo/',
         {
           lat: lat.toFixed(7),
           lng: lon.toFixed(7),
-          zoomLevel: String(NEAREST_SEARCH_ZOOM),
-          itemsPerPage: String(NEAREST_LIMIT),
+          zoomLevel: String(
+            wide ? NEAREST_WIDE_SEARCH_ZOOM : NEAREST_SEARCH_ZOOM,
+          ),
+          itemsPerPage: String(wide ? NEAREST_WIDE_LIMIT : NEAREST_LIMIT),
           ...photoFilterParams(filter),
         },
         { signal },

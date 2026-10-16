@@ -4,6 +4,7 @@ import {
   assignCourses,
   bearingBetween,
   cameraBearing,
+  freshestFirst,
   kartaViewPhotoUrl,
   kartaViewTimeMs,
   normalizePhoto,
@@ -281,6 +282,23 @@ test('the camera looks along the drive: each photo’s course points to the next
   assert.ok(
     Math.abs(bearingBetween({ lon: 0, lat: 0 }, { lon: 0, lat: -1 }) - 180) <
       1e-9,
+  );
+});
+
+test('freshness sorts nearest candidates by shotDate, unknown last, distance breaking ties', () => {
+  const entry = (id, capturedAt, metres) => ({
+    photo: { id, capturedAt },
+    metres,
+  });
+  assert.deepEqual(
+    freshestFirst([
+      entry('old-near', Date.UTC(2016, 0, 1), 3),
+      entry('new-far', Date.UTC(2024, 0, 1), 40),
+      entry('unknown', null, 1),
+      entry('new-near', Date.UTC(2024, 0, 1), 5),
+      entry('mid', Date.UTC(2020, 0, 1), 2),
+    ]).map(({ photo }) => photo.id),
+    ['new-near', 'new-far', 'mid', 'old-near', 'unknown'],
   );
 });
 

@@ -27,11 +27,13 @@ import {
   NO_COVERAGE_HINT,
   PICK_PREFIX,
   RATE_LIMITED_MESSAGE,
+  SEARCH_EMPTY_MESSAGE,
   SEQUENCE_PAGE_EDGE,
   SEQUENCE_PAGE_SIZE,
   TOO_HIGH_HINT,
   assignCourses,
   cameraBearing,
+  freshestFirst,
   normalizePhoto,
   passesKartaViewFilter,
   tileFilterQuery,
@@ -610,35 +612,64 @@ export function createKartaViewProvider({
         /**
          * The nearest photo within the search radius that can be shown, or
          * null. Many photos are archived (their files answer 409) or have no
-         * file at all, so the nearest few are tried in turn.
+         * file at all, so the nearest few are tried in turn. When the
+         * narrow search finds nothing within range, the search is asked
+         * once more, wider — a photo just across the narrow search cell's
+         * edge is missed otherwise — before giving up. Tile lines carry no
+         * sequence ids, so the wider try is a second photo search, never
+         * a tile lookup. An empty search on both tries is its own message,
+         * distinct from the core's "no imagery within 50 m" for photos
+         * that exist but are all too far away.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const filter = context.getFilter();
-          const records = await source.nearestPhotos(
-            { lat, lon, filter },
-            { signal },
-          );
-          const near = [];
-          let filteredOut = 0;
-          for (const record of records) {
-            const photo = remember(record);
-            if (!photo?.urls.view) continue;
-            const metres = metresBetween({ lat, lon }, photo);
-            if (metres > NEAREST_RADIUS_M) continue;
-            if (!passesKartaViewFilter(photo, filter)) filteredOut++;
-            else near.push({ photo, metres });
+          /**
+           * One search: the hit id, or why there is none — 'archived'
+           * (near photos, all gone), 'filtered' (near photos, none passes
+           * the filter), 'empty' (the search returned nothing at all) or
+           * 'out-of-range' (it returned photos, none within the radius).
+           */
+          async function attempt(wide) {
+            const records = await source.nearestPhotos(
+              { lat, lon, filter },
+              { signal, wide },
+            );
+            const near = [];
+            let filteredOut = 0;
+            for (const record of records) {
+              const photo = remember(record);
+              if (!photo?.urls.view) continue;
+              const metres = metresBetween({ lat, lon }, photo);
+              if (metres > NEAREST_RADIUS_M) continue;
+              if (!passesKartaViewFilter(photo, filter)) filteredOut++;
+              else near.push({ photo, metres });
+            }
+            near.sort((a, b) => a.metres - b.metres);
+            // Probed side by side (photo storage is not the API host).
+            const candidates = near.slice(0, NEAREST_PROBES);
+            const answers = await Promise.all(
+              candidates.map(({ photo }) => showable(photo, { signal })),
+            );
+            const showableCandidates = candidates.filter((_, i) => answers[i]);
+            if (showableCandidates.length)
+              // Freshness decides among the nearest showable photos: the
+              // newest shotDate wins, distance breaks ties.
+              return { hit: freshestFirst(showableCandidates)[0].photo.id };
+            if (near.length) return { status: 'archived' };
+            if (filteredOut) return { status: 'filtered' };
+            return { status: records.length === 0 ? 'empty' : 'out-of-range' };
           }
-          near.sort((a, b) => a.metres - b.metres);
-          // Probed side by side (photo storage is not the API host): the
-          // nearest one that answers wins.
-          const candidates = near.slice(0, NEAREST_PROBES);
-          const answers = await Promise.all(
-            candidates.map(({ photo }) => showable(photo, { signal })),
-          );
-          const hit = candidates.find((_, i) => answers[i]);
-          if (hit) return hit.photo.id;
-          if (near.length) throw new Error(ARCHIVED_MESSAGE);
-          if (filteredOut) throw new Error(FILTERED_OUT_MESSAGE);
+          const first = await attempt(false);
+          if (first.hit) return first.hit;
+          if (first.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
+          if (first.status === 'filtered')
+            throw new Error(FILTERED_OUT_MESSAGE);
+          const wide = await attempt(true);
+          if (wide.hit) return wide.hit;
+          if (wide.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
+          if (wide.status === 'filtered') throw new Error(FILTERED_OUT_MESSAGE);
+          if (first.status === 'empty' && wide.status === 'empty')
+            throw new Error(SEARCH_EMPTY_MESSAGE);
           return null;
         },
 
