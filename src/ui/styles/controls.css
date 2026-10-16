@@ -1052,6 +1052,17 @@ body.gev-drawing #cesiumContainer canvas {
   letter-spacing: 0.6px;
   color: var(--text-primary);
 }
+/* A legacy `crs` member was ignored: amber, and it stays on the row after
+   the one-line hint moves on to the next batch. */
+.geo-import-warning {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: #ffb547;
+}
 .geo-import-action {
   flex: 0 0 auto;
   display: inline-flex;

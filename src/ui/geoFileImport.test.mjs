@@ -357,6 +357,43 @@ test('stripped KML content is mentioned once, for the batch that had it', () => 
   );
 });
 
+test('a file whose CRS was ignored shows the warning on its row and in the hint', async () => {
+  const t = setup({
+    load: async (file) => ({
+      dataSource: { show: true },
+      name: file.name,
+      format: 'geojson',
+      entityCount: 1,
+      removed: 0,
+      crsIgnored: true,
+      revoke: () => {},
+    }),
+  });
+  const out = await t.tool.importFiles([file('old.geojson')]);
+  assert.equal(out[0].ok, true);
+  assert.equal(out[0].crsIgnored, true);
+  assert.equal(t.tool.list()[0].crsIgnored, true);
+  const warning = rows(t.els)[0].children.find((c) =>
+    c.classList.contains('geo-import-warning'),
+  );
+  assert.equal(
+    warning?.textContent,
+    'CRS ignored — coordinates assumed WGS 84',
+  );
+  assert.equal(
+    t.els['geo-import-hint'].textContent,
+    'Added 1 file. CRS ignored — coordinates assumed WGS 84.',
+  );
+  assert.equal(
+    summarize([{ name: 'a.geojson', ok: true, crsIgnored: false }]),
+    'Added 1 file.',
+  );
+  assert.equal(
+    summarize([{ name: 'a.geojson', ok: true, crsIgnored: true }]),
+    'Added 1 file. CRS ignored — coordinates assumed WGS 84.',
+  );
+});
+
 test('destroy removes every file and listener and the window handle', async () => {
   globalThis.window = {};
   try {

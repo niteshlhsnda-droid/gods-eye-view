@@ -1,5 +1,6 @@
 /** Session-local file controls, serial loading and application-owned navigation. */
 import {
+  CRS_IGNORED_WARNING,
   GEO_FILE_ACCEPT,
   GeoImportError,
   MAX_IMPORTED_FILES,
@@ -140,6 +141,16 @@ export function initGeoFileImport({
         // textContent, never markup: the name comes from the file system.
         name.textContent = item.name;
         name.title = `${item.name} — ${item.format.toUpperCase()}, ${item.entityCount.toLocaleString()} map object${item.entityCount === 1 ? '' : 's'}${item.ownStyles ? ', drawn with its own styles' : ''}`;
+        // A legacy `crs` member was stripped and the coordinates were read
+        // as WGS 84: the warning stays on the file's row, not just the
+        // one-line hint that the next batch overwrites.
+        let warning = null;
+        if (item.crsIgnored) {
+          warning = doc.createElement('span');
+          warning.className = 'geo-import-warning';
+          warning.textContent = CRS_IGNORED_WARNING;
+          warning.title = CRS_IGNORED_WARNING;
+        }
         const actions = [
           [
             item.visible ? 'visibility' : 'visibility_off',
@@ -164,7 +175,7 @@ export function initGeoFileImport({
           btn.append(glyph);
           return btn;
         });
-        row.append(swatch, name, ...actions);
+        row.append(swatch, name, ...(warning ? [warning] : []), ...actions);
         return row;
       }),
     );
@@ -240,7 +251,7 @@ export function initGeoFileImport({
    * Import files, one after another. Returns one outcome per file.
    * @param {Iterable<File>} files
    * @returns {Promise<Array<{name: string, ok: boolean, id?: string,
-   *   removed?: number, error?: string}>>}
+   *   removed?: number, crsIgnored?: boolean, error?: string}>>}
    */
   function importFiles(files) {
     const list = [...(files || [])];
@@ -297,6 +308,7 @@ export function initGeoFileImport({
         ownStyles: loaded.format === 'kml' || loaded.format === 'kmz',
         entityCount: loaded.entityCount,
         removed: loaded.removed || 0,
+        crsIgnored: Boolean(loaded.crsIgnored),
         color,
         visible: true,
         dataSource: loaded.dataSource,
@@ -318,6 +330,7 @@ export function initGeoFileImport({
         ok: true,
         id: item.id,
         removed: item.removed,
+        crsIgnored: item.crsIgnored,
       });
       // Fly to the first file of a batch that lands, so a drop shows its
       // result, unless something else took the camera meanwhile.
@@ -396,14 +409,17 @@ export function initGeoFileImport({
   const handle = {
     importFiles,
     list: () =>
-      imports.map(({ id, name, format, entityCount, removed, visible }) => ({
-        id,
-        name,
-        format,
-        entityCount,
-        removed,
-        visible,
-      })),
+      imports.map(
+        ({ id, name, format, entityCount, removed, crsIgnored, visible }) => ({
+          id,
+          name,
+          format,
+          entityCount,
+          removed,
+          crsIgnored,
+          visible,
+        }),
+      ),
     setVisible,
     flyTo,
     remove,
@@ -440,7 +456,8 @@ export function initGeoFileImport({
 
 /**
  * One line for the hint after an import batch.
- * @param {Array<{name: string, ok: boolean, error?: string, removed?: number}>} outcomes
+ * @param {Array<{name: string, ok: boolean, error?: string, removed?: number,
+ *   crsIgnored?: boolean}>} outcomes
  * @returns {string}
  */
 export function summarize(outcomes) {
@@ -458,5 +475,7 @@ export function summarize(outcomes) {
     0,
   );
   if (added && stripped) parts.push('Some KML content was left out.');
+  if (added && outcomes.some((o) => o.ok && o.crsIgnored))
+    parts.push(`${CRS_IGNORED_WARNING}.`);
   return parts.join(' ');
 }

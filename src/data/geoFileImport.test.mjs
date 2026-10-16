@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateRawSync } from 'node:zlib';
 import * as Cesium from 'cesium';
 import {
+  CRS_IGNORED_WARNING,
   GeoImportError,
   loadGeoFile,
   MAX_IMPORT_POSITIONS,
@@ -121,6 +122,74 @@ test('real loader grounds XYZ GeoJSON and strips loader-sensitive metadata befor
     );
     loaded.revoke();
     assert.ok(loaded.dataSource.importedBillboards.isDestroyed());
+  } finally {
+    Cesium.PinBuilder.prototype.fromColor = previous;
+  }
+});
+
+test('GeoJSON with a legacy crs member imports and reports crsIgnored', async () => {
+  const previous = Cesium.PinBuilder.prototype.fromColor;
+  Cesium.PinBuilder.prototype.fromColor = () => ({
+    toDataURL: () => 'data:image/png;base64,local',
+    tagName: 'CANVAS',
+  });
+  try {
+    const viewer = {
+      scene: {
+        frameState: { mode: Cesium.SceneMode.SCENE3D },
+        primitives: new Cesium.PrimitiveCollection(),
+        globe: { getHeight: () => 0 },
+      },
+    };
+    const withCrs = await loadGeoFile(
+      new File(
+        [
+          JSON.stringify({
+            type: 'FeatureCollection',
+            crs: {
+              type: 'name',
+              properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' },
+            },
+            features: [
+              {
+                type: 'Feature',
+                properties: { name: 'P' },
+                geometry: { type: 'Point', coordinates: [1, 2] },
+              },
+            ],
+          }),
+        ],
+        'crs.geojson',
+      ),
+      { viewer },
+    );
+    assert.equal(withCrs.crsIgnored, true);
+    assert.equal(withCrs.dataSource.importedBillboards.length, 1);
+    assert.equal(
+      CRS_IGNORED_WARNING,
+      'CRS ignored — coordinates assumed WGS 84',
+    );
+    withCrs.revoke();
+    const plain = await loadGeoFile(
+      new File(
+        [
+          JSON.stringify({
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                properties: { name: 'P' },
+                geometry: { type: 'Point', coordinates: [1, 2] },
+              },
+            ],
+          }),
+        ],
+        'plain.geojson',
+      ),
+      { viewer },
+    );
+    assert.equal(plain.crsIgnored, false);
+    plain.revoke();
   } finally {
     Cesium.PinBuilder.prototype.fromColor = previous;
   }

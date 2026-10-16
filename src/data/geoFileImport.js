@@ -5,6 +5,8 @@ import { createImportedPins } from './geoImportPins.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+/** Warning shown when a legacy GeoJSON `crs` member was ignored. */
+export const CRS_IGNORED_WARNING = 'CRS ignored — coordinates assumed WGS 84';
 /** Largest total a KMZ may inflate to — a zip bomb stops here. */
 export const MAX_KMZ_INFLATED_BYTES = 120 * 1024 * 1024;
 /** Most files on the globe at once. */
@@ -261,11 +263,15 @@ function overLimitError({ over, features }) {
 
 // The import uses WGS84 ground footprints and a short name only. Remove
 // loader-sensitive metadata before Cesium allocates properties or entity IDs.
+// Returns true when any node carried a legacy `crs` member: the import still
+// proceeds, but the caller must warn that the CRS was ignored.
 function prepareGeoJson(geojson) {
+  let crsIgnored = false;
   const stack = [geojson];
   while (stack.length) {
     const node = stack.pop();
     if (!node) continue;
+    if (typeof node === 'object' && 'crs' in node) crsIgnored = true;
     delete node.crs;
     delete node.id;
     if (node.type === 'FeatureCollection') {
@@ -285,6 +291,7 @@ function prepareGeoJson(geojson) {
       }
     }
   }
+  return crsIgnored;
 }
 
 /** Inflate raw-deflate bytes with the platform's stream, stopping at `maxBytes`. */
@@ -1233,7 +1240,8 @@ async function boundedImport(promise, signal) {
  * @param {File|Blob & {name?: string}} file
  * @param {{viewer: Cesium.Viewer, color?: string}} options `color` is a CSS color.
  * @returns {Promise<{dataSource: Cesium.DataSource, name: string,
- *   format: string, entityCount: number, removed: number, mount: Function, revoke: Function}>}
+ *   format: string, entityCount: number, removed: number,
+ *   crsIgnored: boolean, mount: Function, revoke: Function}>}
  */
 export async function loadGeoFile(
   file,
@@ -1265,6 +1273,7 @@ export async function loadGeoFile(
   const name = importDisplayName(file.name);
   let dataSource;
   let removed = 0;
+  let crsIgnored = false;
   try {
     if (format === 'geojson' || format === 'gpx') {
       let geojson;
@@ -1277,7 +1286,7 @@ export async function loadGeoFile(
       if (size.over) throw overLimitError(size);
       if (!size.positions)
         throw new GeoImportError('That file has nothing to draw.');
-      prepareGeoJson(geojson);
+      crsIgnored = prepareGeoJson(geojson);
       bytes = null;
       dataSource = await boundedImport(
         Cesium.GeoJsonDataSource.load(geojson, {
@@ -1376,6 +1385,7 @@ export async function loadGeoFile(
     format,
     entityCount,
     removed,
+    crsIgnored,
     revoke,
     mount: () => pins.mount(),
     refreshGround: (refreshSignal) =>
