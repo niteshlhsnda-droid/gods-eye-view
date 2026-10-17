@@ -61,6 +61,39 @@ export const IMAGE_CONE_MIN_SPACING_M = 3;
 /** Images asked for in a nearest-image search (radius: NEAREST_RADIUS_M). */
 export const NEAREST_LIMIT = 8;
 
+/**
+ * How much farther a 360° pano may be than the nearest flat photo and
+ * still win the nearest-image pick: twice its distance. A pano lets the
+ * viewer look around the whole junction instead of one fixed direction,
+ * so a pano a few steps away beats the flat shot at the kerb — but a pano
+ * halfway down the street does not beat the flat shot of the doorway
+ * asked about. The imagery filter still decides first: with a flat-only
+ * filter no pano is ever a candidate.
+ */
+export const NEAREST_PANO_REACH = 2;
+
+/**
+ * The nearest-image pick with a pano preference: the nearest entry wins,
+ * unless it is flat and a pano lies within `NEAREST_PANO_REACH` times its
+ * distance — then the nearest such pano wins. Entries without a finite
+ * distance are ignored (the caller keeps them as last-resort API-order
+ * hits); an empty set picks nothing.
+ * @param {Array<{isPano: boolean, metres: number}>} entries
+ */
+export function preferPano(entries) {
+  const placed = entries.filter(({ metres }) => Number.isFinite(metres));
+  if (!placed.length) return undefined;
+  const byDistance = [...placed].sort((a, b) => a.metres - b.metres);
+  const nearest = byDistance[0];
+  if (nearest.isPano) return nearest;
+  return (
+    byDistance.find(
+      (entry) =>
+        entry.isPano && entry.metres <= nearest.metres * NEAREST_PANO_REACH,
+    ) || nearest
+  );
+}
+
 /** On-globe credit: Mapillary imagery is CC BY-SA 4.0 and needs attribution. */
 export const MAPILLARY_CREDIT_HTML =
   'Street Level: imagery © <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, CC BY-SA 4.0';

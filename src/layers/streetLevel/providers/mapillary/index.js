@@ -14,6 +14,7 @@ import {
   NEAREST_LIMIT,
   NEAREST_RADIUS_M,
   PICK_PREFIX,
+  preferPano,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -186,6 +187,11 @@ export function createMapillaryProvider({ source }) {
         /**
          * Nearest image that passes the imagery filter, or null. The core
          * aborts `signal` once a newer request overtakes the lookup.
+         * Among the passing candidates with a real position, a 360° pano
+         * within twice the nearest flat photo's distance wins (see
+         * `preferPano`): it lets the viewer look around instead of staring
+         * one fixed way. Position-less records stay eligible as
+         * last-resort hits in API order, as before.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const images = await source.nearestImages(
@@ -199,9 +205,13 @@ export function createMapillaryProvider({ source }) {
             const d = metresBetween({ lon, lat }, { lon: lon2, lat: lat2 });
             return Number.isFinite(d) ? d : Infinity;
           };
-          const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
+          const ranked = images.map((record) => ({
+            record,
+            isPano: record.is_pano === true,
+            metres: metres(record),
+          }));
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const passing = ranked.filter(({ record }) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -210,7 +220,10 @@ export function createMapillaryProvider({ source }) {
               filter,
             ),
           );
-          return hit ? String(hit.id) : null;
+          const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
+          // `passing` is API order, so a last-resort hit keeps it.
+          const hit = placed.length ? preferPano(placed) : passing[0];
+          return hit ? String(hit.record.id) : null;
         },
 
         viewer,
