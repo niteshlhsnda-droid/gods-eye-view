@@ -85,6 +85,7 @@ export function createEarthquakesLayer({ source, overlayHost } = {}) {
           mag,
           place,
           time,
+          reviewStatus,
         } of rows) {
           count++;
           const baseRadius = Math.pow(2, mag) * 1000;
@@ -118,6 +119,9 @@ export function createEarthquakesLayer({ source, overlayHost } = {}) {
                 place,
                 time,
                 depth: depthKm,
+                // USGS human-review state ('automatic' | 'reviewed' | null);
+                // the overlay label reads this to mark preliminary events.
+                reviewStatus,
               },
             }),
           );
@@ -127,6 +131,7 @@ export function createEarthquakesLayer({ source, overlayHost } = {}) {
               position,
               magnitude: mag,
               accent: color.toCssColorString(),
+              reviewStatus,
             }),
           );
         }
@@ -211,6 +216,7 @@ export function createEarthquakesLayer({ source, overlayHost } = {}) {
               place: p?.place?.getValue(now),
               time: p?.time?.getValue(now),
               depth: p?.depth?.getValue(now),
+              reviewStatus: p?.reviewStatus?.getValue(now),
               lat: carto ? Cesium.Math.toDegrees(carto.latitude) : null,
               lon: carto ? Cesium.Math.toDegrees(carto.longitude) : null,
             },

@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { normalizeEarthquakeReviewStatus } from './records.js';
 export const EARTHQUAKE_OVERLAY_SOURCE_ID = 'earthquakes';
 export const EARTHQUAKE_OVERLAY_COHORT_LIMIT = 96;
 export const EARTHQUAKE_OVERLAY_COLLISION_CAPACITY = 48;
@@ -16,6 +17,23 @@ export function depthColor(depthKm) {
 }
 
 /**
+ * Human-readable review label for one earthquake's USGS review state.
+ * Automatic events are machine-located and unreviewed: their magnitude and
+ * location can still change on human review, so they are labelled
+ * PRELIMINARY, never shown as final. Reviewed events carry the plain
+ * `Reviewed` label. Null / unknown states return null — no review claim
+ * in either direction. See `docs/earthquake-review-status.md`.
+ * @param {string|null|undefined} reviewStatus Normalized review state.
+ * @returns {string|null}
+ */
+export function earthquakeReviewLabel(reviewStatus) {
+  if (reviewStatus === 'automatic')
+    return 'PRELIMINARY · automatic (unreviewed)';
+  if (reviewStatus === 'reviewed') return 'Reviewed';
+  return null;
+}
+
+/**
  * Build the source-owned presentation for one ambient magnitude label.
  * Magnitude formatting deliberately remains here instead of moving into the
  * shared renderer.
@@ -24,6 +42,7 @@ export function depthColor(depthKm) {
  * @param {Cesium.Cartesian3} input.position Ground anchor shared with the pulse.
  * @param {number} input.magnitude USGS magnitude.
  * @param {string} input.accent Source-owned depth-band color.
+ * @param {string|null} [input.reviewStatus] Normalized USGS review state.
  * @returns {object}
  */
 export function createEarthquakeOverlayEntry({
@@ -31,13 +50,18 @@ export function createEarthquakeOverlayEntry({
   position,
   magnitude,
   accent,
+  reviewStatus = null,
 }) {
   const mag = Number(magnitude);
+  const title =
+    normalizeEarthquakeReviewStatus(reviewStatus) === 'automatic'
+      ? `M${mag.toFixed(1)} · PRELIMINARY`
+      : `M${mag.toFixed(1)}`;
   return {
     id: String(id),
     position,
     variant: 'label',
-    title: `M${mag.toFixed(1)}`,
+    title,
     accent,
     priority: Math.round(mag * 1000),
     collisionGroup: 'ambient-label',
@@ -77,10 +101,11 @@ export function selectEarthquakeOverlayCohort(
  * fields are null, never NaN/undefined. Falls back to an index-based id
  * when the USGS event id is absent.
  * @param {Object|null|undefined} raw - Plain values pulled off the entity:
- *   {id, mag, place, time, depth, lat, lon}.
+ *   {id, mag, place, time, depth, lat, lon, reviewStatus}.
  * @param {number} [index=0] - Position in the snapshot (fallback id only).
  * @returns {{id: string, magnitude: number|null, depthKm: number|null,
- *   lat: number|null, lon: number|null, timeMs: number|null, place: string|null}}
+ *   lat: number|null, lon: number|null, timeMs: number|null, place: string|null,
+ *   reviewStatus: 'automatic'|'reviewed'|null}}
  */
 export function mapAnalystRecord(raw, index = 0) {
   const num = (v) => (Number.isFinite(v) ? v : null);
@@ -96,7 +121,11 @@ export function mapAnalystRecord(raw, index = 0) {
     lon: num(raw?.lon),
     timeMs: num(raw?.time), // USGS epoch ms
     place: text(raw?.place),
+    reviewStatus: normalizeEarthquakeReviewStatus(raw?.reviewStatus),
   };
 }
 
-export { normalizeEarthquakeSnapshot } from './records.js';
+export {
+  normalizeEarthquakeSnapshot,
+  normalizeEarthquakeReviewStatus,
+} from './records.js';
