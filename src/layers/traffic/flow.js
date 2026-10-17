@@ -97,7 +97,7 @@ export function createFlow({ state: layerState, services, parts, source }) {
    * cancel an in-flight flow fetch. Any failure leaves roads unmatched — the
    * dots then render in today's simulated white, never a phantom color — and is
    * recorded in `_flowError` so `getStats()` degrades honestly instead of
-   * reporting a stale "LIVE · N% cov" over simulated dots.
+   * reporting a stale "SIMULATED VEHICLES · Live flow · N% cov" over simulated dots.
    *
    * @param {Array} roads - Parsed road objects (mutated: `road.flow`).
    * @param {{south:number,west:number,north:number,east:number}} clamped - Fetch bounds.

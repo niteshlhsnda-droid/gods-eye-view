@@ -264,7 +264,7 @@ export function reduceTrafficSyncFeedback(
     // The settled flash carries NO progress number. A settled chip is 100% by
     // definition — the value never varied — and printing it beside a label
     // that already ends in a real measurement produced the self-contradicting
-    // "LIVE · TomTom flow · 0% cov  100%". Coverage is the honest number, so
+    // "SIMULATED VEHICLES · Live flow · 0% cov  100%". Coverage is the honest number, so
     // it is the only one left standing; the progress slot belongs to work in
     // flight.
     progressText: '',
@@ -426,7 +426,7 @@ export function presentLoadingFeedback(state, summary, nowMs) {
     };
     const label =
       state.operation === 'disabling' && state.terminal === 'complete'
-        ? 'LIVE DATA OFF'
+        ? 'FEEDS OFF'
         : state.terminal === 'complete' &&
             state.activeIds?.length === 1 &&
             state.activeIds[0] === 'military-installations'
@@ -460,10 +460,10 @@ export function presentLoadingFeedback(state, summary, nowMs) {
   }
   const elapsed = Math.max(0, nowMs - state.startedAt);
   const label = summary.disabling
-    ? 'TURNING OFF LIVE DATA'
+    ? 'TURNING OFF FEEDS'
     : summary.refresh
-      ? 'REFRESHING LIVE DATA'
-      : 'LOADING LIVE DATA';
+      ? 'REFRESHING FEEDS'
+      : 'LOADING FEEDS';
   const names = active
     .slice(0, 2)
     .map((record) => record.label)

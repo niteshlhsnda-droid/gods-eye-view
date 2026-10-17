@@ -220,9 +220,10 @@ export function createModel({ state: layerState, services, parts, source }) {
    * The three states a user can be in, and what each must read as:
    *  - keyless → `mode:'sim'` (the manager maps that to a FALLBACK chip) with a
    *    label that never claims live data;
-   *  - live and healthy → LIVE with real coverage;
+   *  - live flow and healthy → SIMULATED VEHICLES with live flow coverage
+   *    (the dots are simulated; only the flow speeds/colors are live data);
    *  - live but flow-down → an `error` string, so the chip degrades and says
-   *    the colors on screen are simulated. Never a stale "LIVE · N% cov".
+   *    the colors on screen are simulated. Never a stale "SIMULATED VEHICLES · Live flow · N% cov".
    *
    * @param {Object} [input]
    * @param {boolean} [input.liveMode] - `/api/tomtom/status` reported a key.
@@ -262,8 +263,8 @@ export function createModel({ state: layerState, services, parts, source }) {
         loadingLabel: fetching
           ? 'Syncing flow · Roads: TomTom'
           : coveragePct > 0
-            ? 'LIVE · Roads: TomTom · Roads without flow hidden'
-            : 'LIVE · Roads: TomTom · No flow roads in view',
+            ? 'SIMULATED VEHICLES · Live flow · Roads: TomTom · Roads without flow hidden'
+            : 'SIMULATED VEHICLES · Live flow · Roads: TomTom · No flow roads in view',
       };
     }
     if (liveMode && roadSource === 'TomTom + OpenStreetMap') {
@@ -272,7 +273,7 @@ export function createModel({ state: layerState, services, parts, source }) {
         error: null,
         loadingLabel: fetching
           ? `Syncing flow · Roads: ${roadSource}`
-          : `${coveragePct > 0 ? 'LIVE' : 'SIMULATED'} · Roads: ${roadSource} · Flow ${coveragePct}%`,
+          : `${coveragePct > 0 ? 'SIMULATED VEHICLES · Live flow' : 'SIMULATED'} · Roads: ${roadSource} · Flow ${coveragePct}%`,
       };
     }
     if (liveMode) {
@@ -282,7 +283,7 @@ export function createModel({ state: layerState, services, parts, source }) {
         loadingLabel: fetching
           ? 'Syncing flow · Roads: OpenStreetMap · Flow: TomTom · Unmatched: simulated'
           : coveragePct > 0
-            ? `LIVE · Roads: OpenStreetMap · Flow: TomTom · ${coveragePct}% cov${coveragePct < 100 ? ' · Unmatched: simulated' : ''}`
+            ? `SIMULATED VEHICLES · Live flow · Roads: OpenStreetMap · Flow: TomTom · ${coveragePct}% cov${coveragePct < 100 ? ' · Unmatched: simulated' : ''}`
             : 'SIMULATED · Roads: OpenStreetMap · Flow: TomTom (no matches)',
       };
     }

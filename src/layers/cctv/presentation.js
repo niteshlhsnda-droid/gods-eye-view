@@ -2,6 +2,21 @@ import { CCTV_AMBIENT_CARD_MAX } from '../../data/cctvLod.js';
 import { ACTIVE_FRAME_REFRESH_MS, IDLE_FRAME_REFRESH_MS } from './policy.js';
 import { headingHudToken, isHeadingEstimated } from './headingConfidence.js';
 
+/**
+ * Honest feed-mode label for a CCTV camera. Non-HLS video feeds loop their
+ * finite clip (`videoPlayback` sets `video.loop` for them), so they must
+ * never read as live: they are LOOPED CLIP. HLS is the only live stream.
+ * Image feeds are one frame at a time: SNAPSHOT.
+ * @param {string|null|undefined} feedType
+ * @returns {'LIVE STREAM'|'LOOPED CLIP'|'SNAPSHOT'}
+ */
+export function cctvFeedModeLabel(feedType) {
+  const normalized = String(feedType || '').toLowerCase();
+  if (normalized === 'hls') return 'LIVE STREAM';
+  if (normalized === 'mp4' || normalized === 'webm') return 'LOOPED CLIP';
+  return 'SNAPSHOT';
+}
+
 export function createPresentation({
   state: layerState,
   services,
@@ -11,7 +26,8 @@ export function createPresentation({
   /**
    * Builds a single-line summary string for the active camera, including city,
    * heading, FOV, coverage area, overlap count, projection mode, alignment
-   * confidence, source type, and view context.
+   * confidence, source type, feed mode (LIVE STREAM / LOOPED CLIP / SNAPSHOT),
+   * and view context.
    * @returns {string} Summary text separated by mid-dots.
    */
 
@@ -48,6 +64,7 @@ export function createPresentation({
       health?.sourceKind
         ? `SRC ${String(health.sourceKind).toUpperCase()}`
         : `SRC ${String(active.camera.feedType || 'image').toUpperCase()}`,
+      cctvFeedModeLabel(active.camera.feedType),
       `${viewBand.toUpperCase()} CONTEXT`,
     ]
       .filter(Boolean)
@@ -91,6 +108,10 @@ export function createPresentation({
       mountHeightM: camera.mountHeightM,
       active: isActive,
       feedType: camera.feedType,
+      // Honest feed-mode label: LOOPED CLIP for looping finite video, LIVE
+      // STREAM for HLS only, SNAPSHOT for image feeds. Never "LIVE" for a
+      // looping clip.
+      feedMode: cctvFeedModeLabel(camera.feedType),
       isVideo:
         parts.model.isVideoFeedType(camera.feedType) &&
         record.projection?.mode !== 'image',

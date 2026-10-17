@@ -1055,6 +1055,51 @@ test('restore waits for every queued layer transition before rethrowing a failur
   await mgr.destroyAll();
 });
 
+test('restore loads layers progressively: the next batch starts only after the previous settles', async () => {
+  const mgr = new DataLayerManager({});
+  const a = makeSlowLayer('a', { updateInterval: 0 });
+  const b = makeSlowLayer('b', { updateInterval: 0 });
+  const c = makeSlowLayer('c', { updateInterval: 0 });
+  let releaseA;
+  const aGate = new Promise((resolve) => {
+    releaseA = resolve;
+  });
+  a.module.enable = async () => {
+    a.calls.enable++;
+    await aGate;
+  };
+  mgr.register(a.module);
+  mgr.register(b.module);
+  mgr.register(c.module);
+
+  let settled = false;
+  const restoring = mgr
+    .restoreEnabledLayerIds(new Set(['a', 'b', 'c']), {
+      origin: 'context-restore',
+      restoreBatchSize: 2,
+    })
+    .finally(() => {
+      settled = true;
+    });
+  // Let batch 1 (a, b) start: a blocks on its gate, b settles.
+  for (let i = 0; i < 10 && b.calls.enable === 0; i++) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  assert.equal(a.calls.enable, 1, 'batch 1 starts');
+  assert.equal(b.calls.enable, 1, 'batch 1 runs concurrently within the batch');
+  assert.equal(c.calls.enable, 0, 'batch 2 must not start before batch 1 settles');
+  assert.equal(settled, false);
+
+  releaseA();
+  await restoring;
+  assert.equal(c.calls.enable, 1, 'batch 2 starts once batch 1 settles');
+  assert.deepEqual(
+    [...mgr.getEnabledLayerIds()].sort(),
+    ['a', 'b', 'c'],
+  );
+  await mgr.destroyAll();
+});
+
 test('restore forwards caller cancellation to every visibility intent', async () => {
   const mgr = new DataLayerManager({});
   const layer = makeSlowLayer('flights', { updateInterval: 0 });

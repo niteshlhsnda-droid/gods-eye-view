@@ -60,3 +60,28 @@ is the only path, and it must be original code.
   else.
 - No fabricated trust signals: a badge, label, or panel must reflect a
   computed value (feed state, latency stats, digest) — never an invented one.
+
+## Audio, music & embedded players (ruling #8–#10)
+
+- **AI-assisted music (#8): the app ships NO AI-generated or AI-assisted
+  music.** If AI-assisted music is ever added, its ownership and licence
+  (tool, model, licence grant, who owns the output) must be stated
+  explicitly wherever the music is described or credited — in UI copy, in
+  `docs/`, and in `THIRD_PARTY_NOTICES.md` — before it ships. Silence is
+  not a licence statement.
+- **Radio:** the Radio layer streams third-party broadcaster stations via
+  Radio Browser. Stations remain the property of their broadcasters; the
+  app claims no ownership over them. Directory credit:
+  `RADIO_DIRECTORY_ATTRIBUTION` ("Station data by radio-browser.info").
+- **Synthesized UI sounds** (earcons, tuner static) are generated in code
+  from oscillators / filtered noise — original, no samples, no
+  third-party audio.
+- **Binaural (#9): the app has NO binaural feature.** Audio is an
+  interface technique only (UI sounds, voice, radio passthrough). No
+  health, wellness, therapeutic, focus, sleep, or performance claims may
+  appear in UI copy, docs, or marketing for any audio feature.
+- **Embedded third-party players (#10):** witness-media embeds
+  (YouTube / Facebook / X) are served by their providers under the
+  providers' terms. The app NEVER promises ad-free playback for embedded
+  players — provider players may show provider ads. Do not add "no ads"
+  / "ad-free" copy for any embedded player.

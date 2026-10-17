@@ -25,7 +25,7 @@ export default {
     resetGlobe: 'Reset camera and return to full globe view',
   },
   loading: {
-    liveData: 'LOADING LIVE DATA',
+    liveData: 'LOADING FEEDS',
   },
   share: {
     title: 'Share this scene',
@@ -50,8 +50,8 @@ export default {
       body: 'Type a city, landmark or coordinates to fly the globe there instantly.',
     },
     layers: {
-      title: 'Live data layers',
-      body: 'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer is live data, not decoration.',
+      title: 'Data layers',
+      body: 'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated or archival data — check its label.',
     },
     share: {
       title: 'Share a scene',

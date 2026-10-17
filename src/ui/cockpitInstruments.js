@@ -132,7 +132,7 @@ export function updateHud(
         ? 'SURFACE FALLBACK'
         : info.stale
           ? 'STALE FEED'
-          : 'LIVE TRACK';
+          : 'TRACKING';
     this.aircraftMeta.textContent = `${info.layerId === 'military' ? 'MILITARY' : 'COMMERCIAL'} · ${feedState} · COURSE ALIGNED`;
   }
   this.updateRoute(info);

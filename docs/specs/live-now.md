@@ -8,9 +8,10 @@
 
 ## 1. What it is
 
-A single "Live Now" entry point on the globe that answers: **what is happening on Earth right now?**
-On load (or one tap), the user gets a ranked carousel of live events — cyclones, quakes, fires,
-breaking news clusters, air-traffic anomalies, satellite events — each with a card; tapping a card
+A single "Live Now" entry point on the globe that answers: **what happened on Earth recently?**
+On load (or one tap), the user gets a ranked carousel of recent events — cyclones, quakes, fires,
+breaking news clusters, air-traffic anomalies, satellite events — each with a card stamped with its
+snapshot time; tapping a card
 flies the camera to the event; a "Play today's tour" button auto-generates a Director Mode cinematic
 tour through the top events.
 

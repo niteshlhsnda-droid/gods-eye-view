@@ -743,7 +743,7 @@ test('the Display selector, voice schema and final stylesheet expose Cyber', () 
   assert.match(cyberStyles, /#search-toggle::before/);
   assert.match(cyberStyles, /VISUAL MATRIX  \/\/  03/);
   assert.match(cyberStyles, /body\.cockpit-mode #cockpit-hud/);
-  assert.match(cyberStyles, /TARGET SCANNING  \/\/  LIVE VECTOR/);
+  assert.match(cyberStyles, /TARGET SCANNING  \/\/  TRACKED VECTOR/);
   assert.match(
     cyberStyles,
     /body\.cockpit-mode #global-loading-status \{[\s\S]*?top: 60px;[\s\S]*?z-index: 146;/,

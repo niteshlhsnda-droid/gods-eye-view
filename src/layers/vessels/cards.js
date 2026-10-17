@@ -163,9 +163,9 @@ export function createCards({
   }
 
   function formatPositionTime(record) {
-    if (!record.lastPositionUtc) return 'POS: LIVE';
+    if (!record.lastPositionUtc) return 'POS: UNKNOWN';
     const date = new Date(record.lastPositionUtc);
-    if (Number.isNaN(date.getTime())) return 'POS: LIVE';
+    if (Number.isNaN(date.getTime())) return 'POS: UNKNOWN';
     return `POS: ${date.toISOString().slice(11, 19)}Z`;
   }
   return {

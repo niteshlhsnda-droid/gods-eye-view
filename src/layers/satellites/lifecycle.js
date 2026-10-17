@@ -51,7 +51,7 @@ export function createLifecycle({
 
       parts.interaction._installClickHandler(viewer);
 
-      // Pre-render listener for real-time position updates
+      // Pre-render listener for propagated position updates
       // (fleet propagation + tracked per-frame dot + orbit ring GMST rotation)
       layerState._preRenderListener = viewer.scene.preRender.addEventListener(
         parts.rendering._preRenderTick,

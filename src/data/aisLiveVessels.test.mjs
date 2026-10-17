@@ -1450,7 +1450,7 @@ test('buildSelectedVesselCard: destination line + STALE marker; placeholders for
   assert.deepEqual(card.details, [
     'TANKER · --KT · --°',
     '→ ROTTERDAM',
-    'MMSI 353136000 · POS: LIVE · STALE',
+    'MMSI 353136000 · POS: UNKNOWN · STALE',
   ]);
 });
 

@@ -32,7 +32,7 @@ export const COCKPIT_GROUND_WAIT_TIMEOUT_MS = 5000;
 export const COCKPIT_BRIEF_ROTATE_MS = 9000;
 
 export const COCKPIT_BRIEF_CYCLE_OFF_HELP =
-  'Cycle briefing pages automatically every 9 seconds (Signals → News → Local). Pauses while you hover or focus the panel. Live signal data refreshes continuously either way.';
+  'Cycle briefing pages automatically every 9 seconds (Signals → News → Local). Pauses while you hover or focus the panel. Signal data refreshes continuously either way.';
 
 export const COCKPIT_BRIEF_CYCLE_ON_HELP =
   'Stop automatic page cycling. Previous, Next, and the SIG/NEWS/LOCAL tabs stay available.';
@@ -44,7 +44,7 @@ export const COCKPIT_REGIONAL_REFRESH_DISTANCE_M = 25_000;
 export const COCKPIT_BRIEF_PAGES = [
   {
     id: 'signals',
-    kicker: 'LIVE SIGNALS',
+    kicker: 'SIGNALS',
     subtitle: 'OBSERVED / MAPPED PINGS',
     source: 'SOURCE-BACKED EVENTS · NO SYNTHETIC NEWS',
   },

@@ -2,10 +2,12 @@
 
 ## What it is
 
-Live Now is the one-tap answer to *"what is happening on Earth right now?"*
-Open the globe, tap **Live Now**, and you get a ranked carousel of live
+Live Now is the one-tap answer to *"what happened on Earth recently?"*
+Open the globe, tap **Live Now**, and you get a ranked carousel of recent
 events: cyclones, earthquakes, wildfires, breaking news clusters, air-traffic
-anomalies, maritime alerts, space events, and severe weather.
+anomalies, maritime alerts, space events, and severe weather. Each card is a
+snapshot stamped with its update time — the panel refreshes every 10 minutes,
+so it is never a live feed.
 
 Tap any card and the camera **flies there** in under two seconds. Tap
 **Play today's tour** and the globe plays a short cinematic tour through the

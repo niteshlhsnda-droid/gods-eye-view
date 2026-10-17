@@ -2,8 +2,10 @@ import * as Cesium from 'cesium';
 import { satelliteClassColor } from '../../data/satelliteClass.js';
 
 /**
- * Satellite Orbits — Real-time positions via CelesTrak TLE + SGP4 propagation.
+ * Satellite Orbits — Propagated positions from CelesTrak TLEs (SGP4).
  *
+ * Positions are predictions propagated from the latest element set (up to
+ * 72 h old, see TLE_MAX_AGE_MS), not live observations of the satellites.
  * Loads six CelesTrak groups (~840 sats): stations, visual, GPS, GLONASS,
  * Galileo, and the geosynchronous belt. Optional dense mode (setParams
  * catalog:'dense') adds the Starlink shell as points-only extras.

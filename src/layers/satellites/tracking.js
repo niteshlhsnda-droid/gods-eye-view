@@ -208,7 +208,7 @@ export function createTracking({ state: layerState, services, parts, source }) {
 
   /**
    * Describe the tracked satellite for the shared context slot the voice tools
-   * read. Values come from the live per-frame propagation, not a selection-time
+   * read. Values come from the propagated per-frame SGP4 sample, not a selection-time
    * snapshot, so a long follow never narrates a position the satellite has left.
    * @param {number} noradId Catalog identity.
    * @param {{latitude: number, longitude: number, altitude: number}|null} [position]
