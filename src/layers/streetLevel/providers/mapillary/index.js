@@ -56,7 +56,39 @@ function createProviderState(context) {
       loading: false,
       abort: null,
     },
+    nearest: {
+      /** Graph records dropped from a nearest lookup for a claimed-but-unusable position. */
+      droppedWithoutPosition: 0,
+    },
   };
+}
+
+/**
+ * Resolve the position a nearest lookup ranks a Graph record by: the first
+ * usable of `computed_geometry`, then `geometry`. Returns `undefined` when
+ * the record claims no coordinates at all — it stays eligible as a
+ * last-resort Infinity-distance hit, as before — and `null` when a position
+ * was claimed but is unusable: non-finite, out of range, or [0, 0], a
+ * receiver with no fix, not a photo in the Gulf of Guinea. A claimed-but-bad
+ * `computed_geometry` falls back to `geometry`, so a photo with a real GPS
+ * fix is not lost to a bad computed position. Same validity rule as
+ * KartaView's `normalizePhoto` and the sequence cones'
+ * `normalizeSequenceImage`.
+ */
+export function nearestPosition(record) {
+  let claimed = false;
+  for (const key of ['computed_geometry', 'geometry']) {
+    const coordinates = record?.[key]?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length < 2) continue;
+    claimed = true;
+    const lon = Number(coordinates[0]);
+    const lat = Number(coordinates[1]);
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+    if (lon === 0 && lat === 0) continue;
+    if (Math.abs(lon) > 180 || Math.abs(lat) > 90) continue;
+    return { lon, lat };
+  }
+  return claimed ? null : undefined;
 }
 
 /**
@@ -186,6 +218,10 @@ export function createMapillaryProvider({ source }) {
         /**
          * Nearest image that passes the imagery filter, or null. The core
          * aborts `signal` once a newer request overtakes the lookup.
+         * Records whose claimed position is unusable are dropped, not
+         * ranked: a [0, 0] no-fix placeholder would otherwise measure a
+         * finite distance to Null Island and could outrank every real photo
+         * near the click. Dropped records are counted in `nearestStats`.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const images = await source.nearestImages(
@@ -193,15 +229,23 @@ export function createMapillaryProvider({ source }) {
             { signal },
           );
           // The API returns the images in the radius in no particular order.
-          const metres = (record) => {
-            const [lon2, lat2] = (record.computed_geometry || record.geometry)
-              ?.coordinates || [NaN, NaN];
-            const d = metresBetween({ lon, lat }, { lon: lon2, lat: lat2 });
-            return Number.isFinite(d) ? d : Infinity;
-          };
-          const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
+          const ranked = [];
+          for (const record of images) {
+            const position = nearestPosition(record);
+            if (position === null) {
+              state.nearest.droppedWithoutPosition++;
+              continue;
+            }
+            ranked.push({
+              record,
+              metres: position
+                ? metresBetween({ lon, lat }, position)
+                : Infinity,
+            });
+          }
+          ranked.sort((a, b) => a.metres - b.metres);
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const hit = ranked.find(({ record }) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -210,8 +254,13 @@ export function createMapillaryProvider({ source }) {
               filter,
             ),
           );
-          return hit ? String(hit.id) : null;
+          return hit ? String(hit.record.id) : null;
         },
+
+        /** Nearest-lookup skips: records dropped for a claimed-but-unusable position. */
+        nearestStats: () => ({
+          droppedWithoutPosition: state.nearest.droppedWithoutPosition,
+        }),
 
         viewer,
       };

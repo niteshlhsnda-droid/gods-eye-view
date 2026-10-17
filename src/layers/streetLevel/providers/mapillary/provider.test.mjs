@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createMapillaryProvider } from './index.js';
+import { createMapillaryProvider, nearestPosition } from './index.js';
 import { mapillaryImageUrl } from './policy.js';
 import { sequenceIdFromPick } from './coverage.js';
-import { thinImages } from './sequences.js';
+import { normalizeSequenceImage, thinImages } from './sequences.js';
 import { validateProviders } from '../../registry.js';
 import { PROVIDER_COLORS } from '../../policy.js';
 import { resolveFilter } from '../../filter.js';
@@ -120,6 +120,93 @@ test('nearestImage picks the closest image, not the first the API returned', asy
   assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'near');
 });
 
+test('nearestPosition drops a claimed-but-unusable position, keeps the rest', () => {
+  const at = (geometry, computed_geometry) => ({
+    geometry,
+    computed_geometry,
+  });
+  const point = (lon, lat) => ({ type: 'Point', coordinates: [lon, lat] });
+  // No fix: [0, 0] is a missing position, not a photo in the Gulf of Guinea.
+  assert.equal(nearestPosition(at(point(0, 0))), null);
+  assert.equal(nearestPosition(at(undefined, point(0, 0))), null);
+  // One zero is a real meridian/equator crossing; both zero is not.
+  assert.deepEqual(nearestPosition(at(point(0, 51.5))), { lon: 0, lat: 51.5 });
+  assert.deepEqual(nearestPosition(at(point(-0.12, 0))), {
+    lon: -0.12,
+    lat: 0,
+  });
+  // Out-of-range and non-numeric coordinates cannot stand on the globe.
+  assert.equal(nearestPosition(at(point(200, 0))), null);
+  assert.equal(nearestPosition(at(point(0, 91))), null);
+  assert.equal(nearestPosition(at(point('abc', 0))), null);
+  assert.equal(nearestPosition(at(point(NaN, 0))), null);
+  assert.equal(nearestPosition(at(point(Infinity, 0))), null);
+  // Boundary values still stand.
+  assert.deepEqual(nearestPosition(at(point(180, 90))), { lon: 180, lat: 90 });
+  assert.deepEqual(nearestPosition(at(point(-180, -90))), {
+    lon: -180,
+    lat: -90,
+  });
+  // No coordinates claimed at all: still eligible as a last resort.
+  assert.equal(nearestPosition({}), undefined);
+  assert.equal(nearestPosition({ geometry: {} }), undefined);
+  // A bad computed position falls back to the real GPS fix, not a drop.
+  assert.deepEqual(nearestPosition(at(point(2.0001, 1), point(0, 0))), {
+    lon: 2.0001,
+    lat: 1,
+  });
+  // A usable computed position wins over the raw fix.
+  assert.deepEqual(nearestPosition(at(point(2.5, 1.5), point(2.0001, 1))), {
+    lon: 2.0001,
+    lat: 1,
+  });
+});
+
+test('nearestImage never opens a no-fix placeholder, however close it measures', async () => {
+  const at = (id, lon, lat) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    geometry: { type: 'Point', coordinates: [lon, lat] },
+  });
+  // Clicked ~150 m from Null Island: the [0, 0] record would measure the
+  // shortest distance of all, but it is a receiver with no fix.
+  const source = fakeSource({
+    nearest: [
+      at('no-fix', 0, 0),
+      at('real', 0.01, 0.01), // ~1.5 km away
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 0.001, lon: 0.001 }), 'real');
+  assert.deepEqual(instance.nearestStats(), { droppedWithoutPosition: 1 });
+});
+
+test('nearestImage counts dropped records and keeps position-less ones eligible', async () => {
+  const point = (lon, lat) => ({ type: 'Point', coordinates: [lon, lat] });
+  const source = fakeSource({
+    nearest: [
+      { id: 'no-fix', is_pano: false, captured_at: 10, geometry: point(0, 0) },
+      {
+        id: 'out-of-range',
+        is_pano: false,
+        captured_at: 10,
+        geometry: point(200, 0),
+      },
+      { id: 'no-coords', is_pano: false, captured_at: 10 },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.deepEqual(instance.nearestStats(), { droppedWithoutPosition: 0 });
+  // Nothing real to rank: the position-less record is still openable, and
+  // only the two claimed-but-bad records count as dropped.
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'no-coords');
+  assert.deepEqual(instance.nearestStats(), { droppedWithoutPosition: 2 });
+  // The count accumulates across lookups.
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'no-coords');
+  assert.deepEqual(instance.nearestStats(), { droppedWithoutPosition: 4 });
+});
+
 test('a "since N days" window follows the clock in a long-open tab', async (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 9, 1) });
   const day = 86_400_000;
@@ -165,6 +252,23 @@ test('nearestImage measures the short way round the date line', async () => {
     }),
   }).create(fakeContext());
   assert.equal(await west.nearestImage({ lat: 0, lon: -179.9999 }), 'across');
+});
+
+test('sequence cones drop no-fix placeholders instead of drawing them at Null Island', () => {
+  const at = (id, coordinates) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    compass_angle: 0,
+    geometry: { type: 'Point', coordinates },
+  });
+  assert.equal(normalizeSequenceImage(at('no-fix', [0, 0])), null);
+  assert.equal(normalizeSequenceImage(at('out-of-range', [200, 0])), null);
+  assert.equal(normalizeSequenceImage(at('non-finite', [NaN, 0])), null);
+  assert.equal(normalizeSequenceImage({ id: 'no-coords' }), null);
+  // One zero is a real meridian/equator crossing; both zero is not.
+  assert.equal(normalizeSequenceImage(at('greenwich', [0, 51.5])).lon, 0);
+  assert.equal(normalizeSequenceImage(at('equator', [-0.12, 0])).lat, 0);
 });
 
 test('cone thinning across the date line drops images metres apart', () => {

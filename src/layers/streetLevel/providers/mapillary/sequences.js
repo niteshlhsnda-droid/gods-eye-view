@@ -16,14 +16,26 @@ const SPRITE_ID = 'street-level:mapillary-cones';
 /** How many recently viewed sequences keep their image list in memory. */
 const SEQUENCE_CACHE_SIZE = 40;
 
-/** Normalize a graph image record into the shape the cones use. */
+/** Normalize a graph image record into the shape the cones use, or null
+ * without a usable position: non-finite, out-of-range, or [0, 0], a
+ * receiver with no fix, not a photo in the Gulf of Guinea. Same validity
+ * rule as the nearest lookup's `nearestPosition` and KartaView's
+ * `normalizePhoto`. Without it a no-fix record draws a cone at Null
+ * Island. Sequence images fetch `geometry` only (see
+ * SEQUENCE_IMAGE_FIELDS), so there is no `computed_geometry` fallback
+ * here. */
 export function normalizeSequenceImage(record) {
   const coordinates = record?.geometry?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lon = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  if (lon === 0 && lat === 0) return null;
+  if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null;
   return {
     id: String(record.id),
-    lon: Number(coordinates[0]),
-    lat: Number(coordinates[1]),
+    lon,
+    lat,
     compassAngle: Number(record.compass_angle) || 0,
     capturedAt: Number(record.captured_at) || 0,
     isPano: record.is_pano === true,
