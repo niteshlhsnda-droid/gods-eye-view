@@ -8,8 +8,10 @@ import {
   gnssProvenance,
   pruneGnssObservations,
 } from './records.js';
+import { createSpoofFeedTracker } from './spoofFeed.js';
 export * from './records.js';
 export { createAdsbGnssSource } from './source.js';
+export { createSpoofFeedTracker };
 
 /**
  * GroundPrimitive allowPicking:false suppresses ids but still submits stencil
@@ -69,6 +71,9 @@ export function createGnssIntegrityLayer({
   now = () => Date.now(),
   monotonicNow = () => performance.now(),
   windowMs = GNSS_WINDOW_MS,
+  // Spoof-movement signals (Cycle 2 module) run over each fresh snapshot,
+  // stats-only: they never change the cell layer's primary state.
+  spoofSignals = true,
 } = {}) {
   if (typeof source?.getSnapshot !== 'function')
     throw new TypeError('GNSS integrity layer requires a snapshot source');
@@ -94,6 +99,8 @@ export function createGnssIntegrityLayer({
   let _failureCount = 0;
   const _observations = new Map();
   const provenance = gnssProvenance({ windowMs });
+  const _spoofFeed = createSpoofFeedTracker({ enabled: spoofSignals });
+  let _spoofSummary = _spoofFeed.summary();
 
   const queryKey = (anchor) =>
     anchor
@@ -305,6 +312,13 @@ export function createGnssIntegrityLayer({
           windowMs,
           observedAt: at - snapshot.ageMs,
         });
+        // Spoof-movement signals over the same fresh snapshot, dated by
+        // the snapshot's observation time. Stats-only: findings never
+        // change the cells, the primary state, or the feed state.
+        _spoofSummary = _spoofFeed.analyze(snapshot.rows, {
+          observedAt: at - snapshot.ageMs,
+          nowMs: at,
+        });
         _cells = binGnssCells(_observations);
         render();
         _stale = snapshot.stale === true;
@@ -353,6 +367,8 @@ export function createGnssIntegrityLayer({
       _observations.clear();
       _cells = [];
       _signature = null;
+      _spoofFeed.reset();
+      _spoofSummary = _spoofFeed.summary();
       if (_primitives) {
         viewer.scene.groundPrimitives.remove(_primitives);
         _primitives = null;
@@ -412,6 +428,10 @@ export function createGnssIntegrityLayer({
         stale: _stale,
         provenance,
         coverage: _coverage,
+        // Movement facts (teleport / stale-position / spoof-cluster) over
+        // each fresh snapshot. Secondary, unvalidated interpretation
+        // (`suspected-gnss-spoofing`); never the primary state.
+        spoofSignals: _spoofSummary,
         // Load-bearing: without an explicit boolean, layerFeedState reads the
         // adsb.lol source name as a flights fallback (src/data/feedState.js).
         fallback: false,

@@ -72,6 +72,7 @@ test('normalization keeps airborne decoded ADS-B v1/v2 quality with current posi
       nic: 8,
       nacp: 10,
       gpsLost: false,
+      seenPosS: 1.2,
       degraded: false,
     },
     {
@@ -81,15 +82,20 @@ test('normalization keeps airborne decoded ADS-B v1/v2 quality with current posi
       nic: 8,
       nacp: 10,
       gpsLost: false,
+      seenPosS: 1.2,
       degraded: false,
     },
-    ...['b00001', 'b00002'].map((hex) => ({
+    ...[
+      ['b00001', 0],
+      ['b00002', 60],
+    ].map(([hex, seenPosS]) => ({
       hex,
       lat: 50.1,
       lon: 19.9,
       nic: 8,
       nacp: 10,
       gpsLost: false,
+      seenPosS,
       degraded: false,
     })),
   ]);
@@ -115,6 +121,19 @@ test('low NIC, low NACp or a readsb GPS-loss flag each mark an aircraft degraded
       ['a00004', false, false],
     ],
   );
+});
+
+test('gps-lost rows carry no position age: their position is the last-good fix', () => {
+  const rows = normalizeGnssAircraft({
+    ac: [
+      aircraft({ hex: 'a00003', gpsOkBefore: 1790690000.1, seen_pos: 3 }),
+      aircraft({ hex: 'a00005', seen_pos: 3 }),
+    ],
+  });
+  assert.equal(rows[0].gpsLost, true);
+  assert.equal(rows[0].seenPosS, null);
+  assert.equal(rows[1].gpsLost, false);
+  assert.equal(rows[1].seenPosS, 3);
 });
 
 test('cell keys are stable half-degree bins, clamped at the poles and antimeridian', () => {
