@@ -41,7 +41,6 @@ test('the complete Realtime tool payload pins the manifest-generated layer relea
     // Aircraft emergency adds the squawk/emergency/broadcast fields and the
     // broadcast-caveat wording.
     '9398815a573ab29ecc3ce527f6e1a2ad883804e7696e0444aebb11f973700d4b',
-
   );
 });
 
