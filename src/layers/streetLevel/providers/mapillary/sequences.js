@@ -16,14 +16,25 @@ const SPRITE_ID = 'street-level:mapillary-cones';
 /** How many recently viewed sequences keep their image list in memory. */
 const SEQUENCE_CACHE_SIZE = 40;
 
-/** Normalize a graph image record into the shape the cones use. */
+/**
+ * Normalize a graph image record into the shape the cones use. A record
+ * without a usable position is dropped, not drawn: a [0, 0] geometry is a
+ * receiver with no fix, not a photo in the Gulf of Guinea (the upstream
+ * KartaView provider drops the same pair in `normalizePhoto`), and an
+ * out-of-range or non-numeric coordinate cannot stand on the globe.
+ */
 export function normalizeSequenceImage(record) {
   const coordinates = record?.geometry?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lon = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  if (lon === 0 && lat === 0) return null;
+  if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null;
   return {
     id: String(record.id),
-    lon: Number(coordinates[0]),
-    lat: Number(coordinates[1]),
+    lon,
+    lat,
     compassAngle: Number(record.compass_angle) || 0,
     capturedAt: Number(record.captured_at) || 0,
     isPano: record.is_pano === true,

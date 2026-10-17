@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as Cesium from 'cesium';
 import { MESH_CELL_DEG } from '../../meshSampler.js';
-import { createSequences } from './sequences.js';
+import { createSequences, normalizeSequenceImage } from './sequences.js';
 
 // The cone glyphs draw on a canvas; Node has none, so any drawing is a no-op.
 const noop = () => {};
@@ -322,4 +322,23 @@ test('cones behind the globe are hidden, and show again from the other side', as
   assert.equal(far.show, true);
   sequences.clearSelection();
   assert.equal(preRender.size, 0, 'the cull listener is gone');
+});
+
+test('sequence images without a usable position are dropped, never drawn', () => {
+  const base = { id: 'img-1', captured_at: 1_700_000_000_000 };
+  const at = (coordinates) => ({ ...base, geometry: { coordinates } });
+  // No fix: [0, 0] is a missing position, not a photo in the Gulf of Guinea.
+  assert.equal(normalizeSequenceImage(at([0, 0])), null);
+  // One zero is a real meridian/equator crossing; both zero is not.
+  assert.notEqual(normalizeSequenceImage(at([0, 51.5])), null);
+  assert.notEqual(normalizeSequenceImage(at([-0.12, 0])), null);
+  // Out-of-range and non-numeric coordinates cannot stand on the globe.
+  assert.equal(normalizeSequenceImage(at([200, 0])), null);
+  assert.equal(normalizeSequenceImage(at([0, 91])), null);
+  assert.equal(normalizeSequenceImage(at(['abc', 0])), null);
+  assert.equal(normalizeSequenceImage(at([NaN, 0])), null);
+  assert.equal(normalizeSequenceImage(at([Infinity, 0])), null);
+  // Boundary values still stand.
+  assert.notEqual(normalizeSequenceImage(at([180, 90])), null);
+  assert.notEqual(normalizeSequenceImage(at([-180, -90])), null);
 });
