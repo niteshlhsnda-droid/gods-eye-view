@@ -38,6 +38,20 @@ const AIRCRAFT_FIELDS = {
 
 const layers = [
   {
+    id: 'gnss-integrity',
+    aliases: [
+      'gnss integrity',
+      'navigation integrity',
+      'low navigation accuracy',
+      'gnss interference',
+      'gps interference',
+      'gps jamming',
+      'gnss',
+    ],
+    context: false,
+    noQuery: 'navigation-integrity cells; no countable analyst records',
+  },
+  {
     id: 'flights',
     track: true,
     aliases: ['planes', 'aircraft', 'air traffic'],
