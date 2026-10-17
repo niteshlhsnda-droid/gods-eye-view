@@ -1,4 +1,5 @@
 import { createCoverage, sequenceIdFromPick } from './coverage.js';
+import { pickFacingImage } from './facing.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -185,9 +186,12 @@ export function createMapillaryProvider({ source }) {
 
         /**
          * Nearest image that passes the imagery filter, or null. The core
-         * aborts `signal` once a newer request overtakes the lookup.
+         * aborts `signal` once a newer request overtakes the lookup. With a
+         * `heading` (degrees clockwise from north) the pick prefers a shot
+         * facing that way when one is close by; without one it is the
+         * nearest passing shot, as before.
          */
-        async nearestImage({ lat, lon }, { signal } = {}) {
+        async nearestImage({ lat, lon }, { signal, heading } = {}) {
           const images = await source.nearestImages(
             { lat, lon, radius: NEAREST_RADIUS_M, limit: NEAREST_LIMIT },
             { signal },
@@ -201,7 +205,7 @@ export function createMapillaryProvider({ source }) {
           };
           const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const passing = byDistance.filter((record) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -210,6 +214,7 @@ export function createMapillaryProvider({ source }) {
               filter,
             ),
           );
+          const hit = pickFacingImage(passing, { lat, lon, heading });
           return hit ? String(hit.id) : null;
         },
 

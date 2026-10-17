@@ -167,6 +167,58 @@ test('nearestImage measures the short way round the date line', async () => {
   assert.equal(await west.nearestImage({ lat: 0, lon: -179.9999 }), 'across');
 });
 
+test('nearestImage with a heading prefers a facing shot a few metres farther', async () => {
+  const at = (id, lon, compassAngle) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    compass_angle: compassAngle,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('near-away', 2.00005, 270), // ~5 m east, looking west
+      at('far-facing', 2.0001, 90), // ~11 m east, looking east
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(
+    await instance.nearestImage({ lat: 1, lon: 2 }, { heading: 90 }),
+    'far-facing',
+  );
+  assert.equal(
+    await instance.nearestImage({ lat: 1, lon: 2 }, { heading: 270 }),
+    'near-away',
+  );
+  // No heading: the nearest shot wins, as before.
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'near-away');
+});
+
+test('nearestImage with a heading ignores shots without a usable compass', async () => {
+  const source = fakeSource({
+    nearest: [
+      {
+        id: 'no-compass',
+        is_pano: false,
+        captured_at: 10,
+        geometry: { type: 'Point', coordinates: [2.0001, 1] },
+      },
+      {
+        id: 'near-facing',
+        is_pano: false,
+        captured_at: 10,
+        compass_angle: 90,
+        geometry: { type: 'Point', coordinates: [2.00005, 1] },
+      },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(
+    await instance.nearestImage({ lat: 1, lon: 2 }, { heading: 90 }),
+    'near-facing',
+  );
+});
+
 test('cone thinning across the date line drops images metres apart', () => {
   const image = (id, lon) => ({ id, lon, lat: 0 });
   // A sequence driving east over ±180° with images ~1 m apart, then ~11 m on.

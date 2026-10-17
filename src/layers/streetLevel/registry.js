@@ -51,7 +51,7 @@ export function filtersOf(provider) {
  * @property {(sequenceId: string) => Promise<void>} [selectSequence]
  * @property {() => void} [clearSequence]
  * @property {() => {selectedId: string|null, images: number, loading: boolean}} [sequenceStats]
- * @property {(point: {lat: number, lon: number}, options?: {signal?: AbortSignal}) => Promise<string|null>} nearestImage   An aborted lookup gives up (it may reject with an AbortError).
+ * @property {(point: {lat: number, lon: number}, options?: {signal?: AbortSignal, heading?: number}) => Promise<string|null>} nearestImage   An aborted lookup gives up (it may reject with an AbortError). `heading` (degrees clockwise from north) lets a provider prefer a shot facing that way when one is close by; providers without a facing pick ignore it.
  * @property {ViewerAdapter} viewer
  *
  * @typedef {object} GroundCaster
