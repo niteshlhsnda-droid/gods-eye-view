@@ -12,8 +12,10 @@ import {
   MAPILLARY_PROVIDER_ID,
   MAPILLARY_SOURCE_METHODS,
   NEAREST_LIMIT,
+  NEAREST_QUALITY_REACH,
   NEAREST_RADIUS_M,
   PICK_PREFIX,
+  isLowQuality,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -186,6 +188,12 @@ export function createMapillaryProvider({ source }) {
         /**
          * Nearest image that passes the imagery filter, or null. The core
          * aborts `signal` once a newer request overtakes the lookup.
+         * A bottom-quartile-quality nearest image is passed over for the
+         * nearest decent one within twice its distance — a blurry shot a
+         * few metres away should not beat a sharp one just past it — but
+         * quality never overrides the filter, never sends the viewer
+         * across the radius, and never loses the hit when every candidate
+         * is low-quality or unscored.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const images = await source.nearestImages(
@@ -201,7 +209,7 @@ export function createMapillaryProvider({ source }) {
           };
           const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const passing = byDistance.filter((record) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -210,7 +218,19 @@ export function createMapillaryProvider({ source }) {
               filter,
             ),
           );
-          return hit ? String(hit.id) : null;
+          const nearest = passing[0];
+          if (!nearest) return null;
+          // The nearest decent candidate, if the nearest is low-quality.
+          const decent = isLowQuality(nearest.quality_score)
+            ? passing.find((record) => !isLowQuality(record.quality_score))
+            : undefined;
+          if (
+            decent &&
+            decent !== nearest &&
+            metres(decent) <= NEAREST_QUALITY_REACH * metres(nearest)
+          )
+            return String(decent.id);
+          return String(nearest.id);
         },
 
         viewer,

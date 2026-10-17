@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createMapillaryProvider } from './index.js';
-import { mapillaryImageUrl } from './policy.js';
+import { isLowQuality, mapillaryImageUrl } from './policy.js';
 import { sequenceIdFromPick } from './coverage.js';
 import { thinImages } from './sequences.js';
 import { validateProviders } from '../../registry.js';
@@ -118,6 +118,131 @@ test('nearestImage picks the closest image, not the first the API returned', asy
   });
   const instance = createMapillaryProvider({ source }).create(fakeContext());
   assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'near');
+});
+
+test('isLowQuality flags only finite scores below the floor, never a missing one', () => {
+  assert.equal(isLowQuality(0), true);
+  assert.equal(isLowQuality(0.24), true);
+  assert.equal(isLowQuality('0.1'), true, 'a numeric string still scores');
+  assert.equal(isLowQuality(0.25), false, 'the floor itself is decent');
+  assert.equal(isLowQuality(0.9), false);
+  assert.equal(isLowQuality(1), false);
+  for (const missing of [null, undefined, '', NaN, 'not a score'])
+    assert.equal(
+      isLowQuality(missing),
+      false,
+      `${String(missing)} is unscored`,
+    );
+});
+
+test('nearestImage passes over a bottom-quartile photo for a sharp one nearby', async () => {
+  const at = (id, lon, quality_score) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    quality_score,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('blurry-near', 2.00005, 0.1), // ~5 m east, bottom quartile
+      at('sharp-nearby', 2.00009, 0.9), // ~10 m east, within twice the distance
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'sharp-nearby');
+});
+
+test('nearestImage keeps a blurry nearest photo when the sharp one is far away', async () => {
+  const at = (id, lon, quality_score) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    quality_score,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('blurry-near', 2.00005, 0.1), // ~5 m east
+      at('sharp-far', 2.0004, 0.9), // ~45 m east, past twice the distance
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'blurry-near');
+});
+
+test('nearestImage falls back to the nearest photo when all are low-quality', async () => {
+  const at = (id, lon, quality_score) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    quality_score,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [at('blurry-near', 2.00005, 0.1), at('blurry-far', 2.0004, 0.2)],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'blurry-near');
+});
+
+test('nearestImage never penalises an unscored photo for lacking a score', async () => {
+  const at = (id, lon, quality_score) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    quality_score,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  // An unscored nearest photo wins outright: it is not low-quality.
+  const unscoredNear = fakeSource({
+    nearest: [
+      at('unscored-near', 2.00005, undefined),
+      at('sharp-far', 2.0004, 0.9),
+    ],
+  });
+  const first = createMapillaryProvider({ source: unscoredNear }).create(
+    fakeContext(),
+  );
+  assert.equal(await first.nearestImage({ lat: 1, lon: 2 }), 'unscored-near');
+  // An unscored photo rescues a blurry nearest one, like a scored decent one.
+  const unscoredRescue = fakeSource({
+    nearest: [
+      at('blurry-near', 2.00005, 0.1),
+      at('unscored-nearby', 2.00009, undefined),
+    ],
+  });
+  const second = createMapillaryProvider({ source: unscoredRescue }).create(
+    fakeContext(),
+  );
+  assert.equal(
+    await second.nearestImage({ lat: 1, lon: 2 }),
+    'unscored-nearby',
+  );
+});
+
+test('nearestImage quality never overrides the imagery filter', async () => {
+  const at = (id, lon, quality_score, is_pano) => ({
+    id,
+    is_pano,
+    captured_at: 10,
+    quality_score,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('blurry-pano', 2.00005, 0.1, true),
+      at('sharp-flat', 2.00009, 0.9, false),
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(
+    fakeContext({ pano: 'pano', sinceMs: null }),
+  );
+  assert.equal(
+    await instance.nearestImage({ lat: 1, lon: 2 }),
+    'blurry-pano',
+    'the only passing photo wins, however blurry',
+  );
 });
 
 test('a "since N days" window follows the clock in a long-open tab', async (t) => {
