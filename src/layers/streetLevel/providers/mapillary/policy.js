@@ -61,6 +61,21 @@ export const IMAGE_CONE_MIN_SPACING_M = 3;
 /** Images asked for in a nearest-image search (radius: NEAREST_RADIUS_M). */
 export const NEAREST_LIMIT = 8;
 
+/**
+ * Nearest showable candidates, freshest shot first: the newest `capturedAt`
+ * wins, an unknown capture date sorts last, distance breaks ties. The
+ * candidate set is already bounded to the 50 m radius, so freshness decides
+ * among genuinely near photos, never a far one over a near one — a 2024
+ * streetscape 40 m away beats a 2015 one 3 m away, and the SINCE filter
+ * still narrows the set first. Same rule as KartaView's `freshestFirst`.
+ * @param {Array<{capturedAt: number, metres: number}>} entries
+ */
+export function freshestFirst(entries) {
+  return [...entries].sort(
+    (a, b) => (b.capturedAt || 0) - (a.capturedAt || 0) || a.metres - b.metres,
+  );
+}
+
 /** On-globe credit: Mapillary imagery is CC BY-SA 4.0 and needs attribution. */
 export const MAPILLARY_CREDIT_HTML =
   'Street Level: imagery © <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, CC BY-SA 4.0';

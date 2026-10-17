@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createMapillaryProvider } from './index.js';
-import { mapillaryImageUrl } from './policy.js';
+import { freshestFirst, mapillaryImageUrl } from './policy.js';
 import { sequenceIdFromPick } from './coverage.js';
 import { thinImages } from './sequences.js';
 import { validateProviders } from '../../registry.js';
@@ -165,6 +165,103 @@ test('nearestImage measures the short way round the date line', async () => {
     }),
   }).create(fakeContext());
   assert.equal(await west.nearestImage({ lat: 0, lon: -179.9999 }), 'across');
+});
+
+test('nearestImage prefers the freshest shot within the radius over a closer stale one', async () => {
+  const at = (id, lon, captured_at) => ({
+    id,
+    is_pano: false,
+    captured_at,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('stale-near', 2.00005, 1_400_000_000_000), // ~5 m east, 2014
+      at('fresh-far', 2.0004, 1_750_000_000_000), // ~45 m east, 2025
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'fresh-far');
+});
+
+test('nearestImage sorts an undated shot last and breaks freshness ties by distance', async () => {
+  const at = (id, lon, captured_at) => ({
+    id,
+    is_pano: false,
+    captured_at,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('undated-near', 2.00005, undefined), // ~5 m east, unknown date
+      at('dated-far', 2.0004, 1_750_000_000_000), // ~45 m east, 2025
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'dated-far');
+  // Same date: the closer one wins again.
+  const tied = fakeSource({
+    nearest: [
+      at('tied-far', 2.0004, 1_750_000_000_000),
+      at('tied-near', 2.00005, 1_750_000_000_000),
+    ],
+  });
+  const tiedInstance = createMapillaryProvider({ source: tied }).create(
+    fakeContext(),
+  );
+  assert.equal(
+    await tiedInstance.nearestImage({ lat: 1, lon: 2 }),
+    'tied-near',
+  );
+});
+
+test('nearestImage freshness never overrides the imagery filter', async () => {
+  const at = (id, lon, captured_at, is_pano) => ({
+    id,
+    is_pano,
+    captured_at,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  const source = fakeSource({
+    nearest: [
+      at('fresh-flat', 2.00005, 1_750_000_000_000, false),
+      at('older-pano', 2.0004, 1_400_000_000_000, true),
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(
+    fakeContext({ pano: 'pano', sinceMs: null }),
+  );
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'older-pano');
+});
+
+test('nearestImage still opens a positioned shot over a position-less fresher one', async () => {
+  const source = fakeSource({
+    nearest: [
+      { id: 'no-position', is_pano: false, captured_at: 1_750_000_000_000 },
+      {
+        id: 'positioned',
+        is_pano: false,
+        captured_at: 1_400_000_000_000,
+        geometry: { type: 'Point', coordinates: [2.00005, 1] },
+      },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'positioned');
+});
+
+test('freshestFirst sorts by capture date, unknown last, distance on ties', () => {
+  const entries = [
+    { capturedAt: 0, metres: 1 },
+    { capturedAt: 20, metres: 40 },
+    { capturedAt: 20, metres: 5 },
+    { capturedAt: 10, metres: 1 },
+  ];
+  assert.deepEqual(
+    freshestFirst(entries).map(({ metres }) => metres),
+    [5, 40, 1, 1],
+  );
+  assert.equal(entries[0].metres, 1, 'the input order is untouched');
 });
 
 test('cone thinning across the date line drops images metres apart', () => {

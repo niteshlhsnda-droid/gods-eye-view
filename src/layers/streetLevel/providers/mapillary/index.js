@@ -14,6 +14,7 @@ import {
   NEAREST_LIMIT,
   NEAREST_RADIUS_M,
   PICK_PREFIX,
+  freshestFirst,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -186,6 +187,11 @@ export function createMapillaryProvider({ source }) {
         /**
          * Nearest image that passes the imagery filter, or null. The core
          * aborts `signal` once a newer request overtakes the lookup.
+         * Among the passing candidates with a real position, the freshest
+         * shot wins (see `freshestFirst`): the set is already bounded to
+         * the 50 m radius, so a current streetscape beats a decade-old one
+         * a few metres closer. Position-less records stay eligible as
+         * last-resort hits in API order, as before.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const images = await source.nearestImages(
@@ -199,18 +205,25 @@ export function createMapillaryProvider({ source }) {
             const d = metresBetween({ lon, lat }, { lon: lon2, lat: lat2 });
             return Number.isFinite(d) ? d : Infinity;
           };
-          const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
+          const ranked = images.map((record) => ({
+            record,
+            capturedAt: Number(record.captured_at) || 0,
+            metres: metres(record),
+          }));
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const passing = ranked.filter(({ record, capturedAt }) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
-                capturedAt: Number(record.captured_at) || 0,
+                capturedAt,
               },
               filter,
             ),
           );
-          return hit ? String(hit.id) : null;
+          const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
+          // `ranked` is API order, so a last-resort hit keeps it.
+          const hit = placed.length ? freshestFirst(placed)[0] : passing[0];
+          return hit ? String(hit.record.id) : null;
         },
 
         viewer,
