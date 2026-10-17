@@ -3,6 +3,7 @@ import test from 'node:test';
 import * as Cesium from 'cesium';
 import { MESH_CELL_DEG } from '../../meshSampler.js';
 import { createSequences } from './sequences.js';
+import { normalizeCompassAngle, normalizeSequenceImage } from './sequences.js';
 
 // The cone glyphs draw on a canvas; Node has none, so any drawing is a no-op.
 const noop = () => {};
@@ -322,4 +323,48 @@ test('cones behind the globe are hidden, and show again from the other side', as
   assert.equal(far.show, true);
   sequences.clearSelection();
   assert.equal(preRender.size, 0, 'the cull listener is gone');
+});
+
+test('compass angles wrap to [0, 360) and unknown stays null, never north', () => {
+  assert.equal(normalizeCompassAngle(90), 90);
+  assert.equal(normalizeCompassAngle(370), 10);
+  assert.equal(normalizeCompassAngle(-10), 350);
+  assert.equal(normalizeCompassAngle(360), 0);
+  assert.equal(normalizeCompassAngle(0), 0);
+  for (const unknown of [null, undefined, '', '  ', NaN, Infinity])
+    assert.equal(normalizeCompassAngle(unknown), null);
+});
+
+test('sequence images prefer the device compass and fall back to the computed heading', () => {
+  const base = {
+    id: 'img-1',
+    geometry: { coordinates: [-121.49, 38.58] },
+    captured_at: 1_700_000_000_000,
+  };
+  assert.equal(
+    normalizeSequenceImage({ ...base, compass_angle: 90 }).compassAngle,
+    90,
+  );
+  // No device compass: Mapillary's computed heading orients the cone.
+  assert.equal(
+    normalizeSequenceImage({ ...base, computed_compass_angle: 200 })
+      .compassAngle,
+    200,
+  );
+  // An empty device compass is missing, not north: the computed one wins.
+  assert.equal(
+    normalizeSequenceImage({
+      ...base,
+      compass_angle: '',
+      computed_compass_angle: 200,
+    }).compassAngle,
+    200,
+  );
+  // Neither: unknown, not north.
+  assert.equal(normalizeSequenceImage({ ...base }).compassAngle, null);
+  // An out-of-range device compass is wrapped, not passed through.
+  assert.equal(
+    normalizeSequenceImage({ ...base, compass_angle: 370 }).compassAngle,
+    10,
+  );
 });
