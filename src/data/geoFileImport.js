@@ -2,6 +2,11 @@
 import * as Cesium from 'cesium';
 import { createImportImageBudget } from './geoImportImages.js';
 import { createImportedPins } from './geoImportPins.js';
+import {
+  GeoJsonLinesError,
+  isGeoJsonLinesText,
+  parseGeoJsonLines,
+} from './geoJsonLinesImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -20,7 +25,8 @@ export const MAX_KML_LINKS = 2_000;
 /** Longest plain-text name kept from a file's features. */
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
-export const GEO_FILE_ACCEPT = '.geojson,.json,.kml,.kmz,.gpx';
+export const GEO_FILE_ACCEPT =
+  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.kml,.kmz,.gpx';
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -75,11 +81,13 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'kml'|'kmz'|'gpx'|null}
+ * @returns {'geojson'|'geojsonl'|'kml'|'kmz'|'gpx'|null}
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
   if (ext === 'geojson') return 'geojson';
+  if (ext === 'geojsonl' || ext === 'jsonl' || ext === 'ndjson')
+    return 'geojsonl';
   if (ext === 'kml' || ext === 'kmz' || ext === 'gpx') return ext;
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
@@ -93,7 +101,30 @@ export function detectGeoFileFormat(name, head) {
     .decode(head.subarray(0, 1024))
     .replace(/^﻿/, '')
     .trimStart();
-  if (text.startsWith('{')) return 'geojson';
+  if (text.startsWith('{')) {
+    // A GeoJSONL head has at least two non-blank lines whose first parses
+    // as a GeoJSON object. A pretty-printed GeoJSON file fails it because
+    // its first line (`{`) is not complete JSON; a single one-line GeoJSON
+    // object fails it for having only one line. A first line longer than
+    // the detection head also falls through to GeoJSON — the loader still
+    // routes the full text by content.
+    const lines = text.split(/\r\n|\r|\n/).filter((line) => line.trim());
+    if (lines.length >= 2) {
+      try {
+        const first = JSON.parse(lines[0]);
+        if (
+          first &&
+          typeof first === 'object' &&
+          !Array.isArray(first) &&
+          GEOJSON_TYPES.has(first.type)
+        )
+          return 'geojsonl';
+      } catch {
+        // Not a complete JSON object on the first line: plain GeoJSON.
+      }
+    }
+    return 'geojson';
+  }
   if (text.startsWith('<')) {
     if (/<kml[\s>]/i.test(text)) return 'kml';
     if (/<gpx[\s>]/i.test(text)) return 'gpx';
@@ -133,6 +164,33 @@ export function parseGeoJsonText(text) {
   if (value.type === 'FeatureCollection' && !Array.isArray(value.features))
     throw new GeoImportError('That FeatureCollection has no features list.');
   return value;
+}
+
+/**
+ * Parse JSON text as GeoJSON or GeoJSONL, routed by the document's own
+ * shape. A `.json` GeoJSONL file, or a GeoJSONL file whose first line is
+ * longer than the detection head, still loads; a GeoJSONL refusal is
+ * rethrown as GeoImportError carrying the parser's line-numbered reason
+ * instead of a generic failure.
+ * @param {string} text
+ * @returns {object}
+ */
+function parseJsonGeoText(text) {
+  if (isGeoJsonLinesText(text)) {
+    try {
+      return parseGeoJsonLines(text, {
+        maxFeatures: MAX_IMPORT_ENTITIES,
+        maxPositions: MAX_IMPORT_POSITIONS,
+      });
+    } catch (error) {
+      if (error instanceof GeoJsonLinesError)
+        throw new GeoImportError(error.message);
+      throw error;
+    }
+  }
+  // Not GeoJSONL: the GeoJSON parser owns the verdict, including the
+  // mismatch refusal for a file that holds neither format.
+  return parseGeoJsonText(text);
 }
 
 /**
@@ -1261,7 +1319,7 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, KML, KMZ and GPX files can be imported.',
+      'Only GeoJSON, GeoJSONL, KML, KMZ and GPX files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1275,12 +1333,12 @@ export async function loadGeoFile(
   let removed = 0;
   let crsIgnored = false;
   try {
-    if (format === 'geojson' || format === 'gpx') {
+    if (format === 'geojson' || format === 'geojsonl' || format === 'gpx') {
       let geojson;
       if (format === 'gpx') {
         geojson = gpxToGeoJson(parseXml(decodeXml(bytes), 'GPX'));
       } else {
-        geojson = parseGeoJsonText(new TextDecoder().decode(bytes));
+        geojson = parseJsonGeoText(new TextDecoder().decode(bytes));
       }
       const size = countGeoJsonGeometry(geojson);
       if (size.over) throw overLimitError(size);

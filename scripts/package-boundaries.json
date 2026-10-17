@@ -1644,6 +1644,7 @@
       "src/data/geoFileImport.js",
       "src/data/geoImportImages.js",
       "src/data/geoImportPins.js",
+      "src/data/geoJsonLinesImport.js",
       "src/data/geoid.js",
       "src/data/groundFloor.js",
       "src/data/groundSnap.js",
