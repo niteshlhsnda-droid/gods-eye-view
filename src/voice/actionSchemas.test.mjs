@@ -38,7 +38,10 @@ test('the complete Realtime tool payload pins the manifest-generated layer relea
     // requested radius and center authority in descriptions only.
     // Street Level adds its toggle enum values and generated alias hint.
     // GNSS Integrity adds its layer enum value and alias hint.
-    'dc9d53583f68118c0c069c2e61cc9effb11e2b7725121e9041e15dfc7950209b',
+    // Aircraft emergency adds the squawk/emergency/broadcast fields and the
+    // broadcast-caveat wording.
+    '9398815a573ab29ecc3ce527f6e1a2ad883804e7696e0444aebb11f973700d4b',
+
   );
 });
 

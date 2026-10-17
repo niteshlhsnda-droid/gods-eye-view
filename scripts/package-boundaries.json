@@ -844,6 +844,7 @@
     "exports": ["./sources/live"],
     "modules": [
       "src/sources/live/aircraft.js",
+      "src/data/aircraftEmergency.js",
       "src/sources/live/contract.js",
       "src/sources/live/index.js",
       "src/sources/live/standalone.js",
@@ -858,6 +859,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -903,6 +905,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -1590,6 +1593,7 @@
       "src/cyberSonarScene.js",
       "src/data/adminBoundaries.js",
       "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -2431,6 +2435,7 @@
       "src/cyberSonar.js",
       "src/data/adminBoundaries.js",
       "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -2986,7 +2991,8 @@
       "src/sources/overpassFeatures.js",
       "src/sources/featureSource.js",
       "src/sources/capability.js",
-      "src/data/cameraArrival.js"
+      "src/data/cameraArrival.js",
+      "src/data/cameraFraming.js"
     ],
     "external": [
       "cesium",
@@ -3082,7 +3088,8 @@
       "src/layers/flights/recordPolicy.js",
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
-      "src/data/aircraftClass.js"
+      "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js"
     ],
     "external": []
   },
@@ -3103,7 +3110,8 @@
       "src/layers/military/recordPolicy.js",
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
-      "src/data/aircraftClass.js"
+      "src/data/aircraftClass.js",
+      "src/data/aircraftEmergency.js"
     ],
     "external": []
   },
@@ -3705,6 +3713,7 @@
       "src/sources/live/standalone.js",
       "src/sources/live/contract.js",
       "src/sources/live/aircraft.js",
+      "src/data/aircraftEmergency.js",
       "src/sources/live/vessels.js",
       "src/tools/places.js",
       "src/tools/catalog.js",

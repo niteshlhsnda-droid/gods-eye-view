@@ -675,10 +675,13 @@ test('the voice TOOL SCHEMA matches the pinned contract — the mission mapping 
   // list descriptions; the missions still ride existing tools.
   // Street Level adds toggle enum values and the generated alias hint.
   // GNSS Integrity adds its layer enum value and alias hint.
-  assert.equal(block.length, 29888, 'serialized tool schema length drifted');
+  // Aircraft emergency adds the squawk/emergency/broadcast fields and the
+  // broadcast-caveat wording.
+  assert.equal(block.length, 30511, 'serialized tool schema length drifted');
   assert.equal(
     crypto.createHash('sha256').update(block).digest('hex'),
-    '44e1190518701c38dea1e40095c62cefc184938b2a1e0f85f1ed64e6f3d7b9e7',
+    '62d5df9cedf413403e4fd0a7cbe94bb2cd13736c3d8fedc84bcccd63ad253eb6',
+
     'the first-run missions must ride EXISTING tools: no schema edit, no cache bust',
   );
   const instructions = fs.readFileSync(new URL('../server/providers/openai/instructions.js', import.meta.url), 'utf8');

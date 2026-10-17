@@ -34,6 +34,12 @@ const AIRCRAFT_FIELDS = {
   aircraftClass: ['t'],
   military: ['f'],
   onGround: ['f'],
+  squawk: ['t'],
+  emergency: ['f'],
+  emergencyKind: ['t'],
+  emergencySource: ['t'],
+  emergencyBroadcast: ['t'],
+  lastContactAtMs: ['ms'],
 };
 
 const layers = [
