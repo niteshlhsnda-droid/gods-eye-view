@@ -122,7 +122,7 @@ export const DATA_CREDITS = [
   {
     key: 'aisstream',
     html:
-      'Live vessels (AIS): ' +
+      'Vessels (AIS): ' +
       '<a href="https://aisstream.io" target="_blank" rel="noopener">AISStream.io</a>',
   },
   {
