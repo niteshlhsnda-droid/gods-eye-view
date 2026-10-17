@@ -80,3 +80,21 @@ test('malformed quakes are skipped, not fatal', () => {
   );
   assert.equal(events.length, 1);
 });
+
+test('out-of-range coordinates are skipped, not fatal', () => {
+  // geoMath throws on out-of-range coords; the range-check in validQuake
+  // must keep those records from ever reaching it.
+  const events = detectQuakeSwarms(
+    [
+      ...swarmEvents(6),
+      { id: 'bad-lat', mag: 5, timeMs: NOW, lat: 91, lon: 0 },
+      { id: 'bad-lon', mag: 5, timeMs: NOW, lat: 0, lon: 181 },
+      { id: 'bad-neg', mag: 5, timeMs: NOW, lat: -91, lon: -181 },
+    ],
+    { now: NOW },
+  );
+  assert.equal(events.length, 1);
+  assert.ok(!events[0].ref.memberIds.includes('bad-lat'));
+  assert.ok(!events[0].ref.memberIds.includes('bad-lon'));
+  assert.ok(!events[0].ref.memberIds.includes('bad-neg'));
+});
