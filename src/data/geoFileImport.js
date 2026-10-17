@@ -2,6 +2,7 @@
 import * as Cesium from 'cesium';
 import { createImportImageBudget } from './geoImportImages.js';
 import { createImportedPins } from './geoImportPins.js';
+import { TopoJsonImportError, topoJsonToGeoJson } from './topoJsonImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -20,7 +21,7 @@ export const MAX_KML_LINKS = 2_000;
 /** Longest plain-text name kept from a file's features. */
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
-export const GEO_FILE_ACCEPT = '.geojson,.json,.kml,.kmz,.gpx';
+export const GEO_FILE_ACCEPT = '.geojson,.json,.topojson,.kml,.kmz,.gpx';
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -75,11 +76,12 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'kml'|'kmz'|'gpx'|null}
+ * @returns {'geojson'|'topojson'|'kml'|'kmz'|'gpx'|null}
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
   if (ext === 'geojson') return 'geojson';
+  if (ext === 'topojson') return 'topojson';
   if (ext === 'kml' || ext === 'kmz' || ext === 'gpx') return ext;
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
@@ -93,7 +95,12 @@ export function detectGeoFileFormat(name, head) {
     .decode(head.subarray(0, 1024))
     .replace(/^﻿/, '')
     .trimStart();
-  if (text.startsWith('{')) return 'geojson';
+  if (text.startsWith('{')) {
+    // Anchored: only a document that opens with a Topology type is
+    // TopoJSON — a GeoJSON properties bag that merely mentions one is not.
+    if (/^\{\s*"type"\s*:\s*"Topology"/.test(text)) return 'topojson';
+    return 'geojson';
+  }
   if (text.startsWith('<')) {
     if (/<kml[\s>]/i.test(text)) return 'kml';
     if (/<gpx[\s>]/i.test(text)) return 'gpx';
@@ -133,6 +140,41 @@ export function parseGeoJsonText(text) {
   if (value.type === 'FeatureCollection' && !Array.isArray(value.features))
     throw new GeoImportError('That FeatureCollection has no features list.');
   return value;
+}
+
+/**
+ * Parse JSON text as GeoJSON or TopoJSON, routed by the document's own
+ * `type`. A `.json` Topology whose `type` sat beyond the 1024-byte
+ * detection head, or a mislabelled extension, still loads; a Topology
+ * with a TopoJSON defect is refused with the parser's specific reason
+ * (dangling arc, unclosed ring) rather than a generic "not GeoJSON".
+ * A TopoJSON refusal is rethrown as GeoImportError carrying the
+ * parser's reason instead of a generic failure.
+ * @param {string} text
+ * @returns {object}
+ */
+function parseJsonGeoText(text) {
+  let value;
+  try {
+    value = JSON.parse(String(text).replace(/^﻿/, ''));
+  } catch {
+    throw new GeoImportError('That file is not valid JSON.');
+  }
+  if (value && typeof value === 'object' && value.type === 'Topology') {
+    try {
+      return topoJsonToGeoJson(value, {
+        maxFeatures: MAX_IMPORT_ENTITIES,
+        maxPositions: MAX_IMPORT_POSITIONS,
+      });
+    } catch (error) {
+      if (error instanceof TopoJsonImportError)
+        throw new GeoImportError(error.message);
+      throw error;
+    }
+  }
+  // Not a Topology: the GeoJSON parser owns the verdict, including the
+  // mismatch refusal for a file that holds neither format.
+  return parseGeoJsonText(text);
 }
 
 /**
@@ -1261,7 +1303,7 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, KML, KMZ and GPX files can be imported.',
+      'Only GeoJSON, TopoJSON, KML, KMZ and GPX files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1275,12 +1317,12 @@ export async function loadGeoFile(
   let removed = 0;
   let crsIgnored = false;
   try {
-    if (format === 'geojson' || format === 'gpx') {
+    if (format === 'geojson' || format === 'topojson' || format === 'gpx') {
       let geojson;
       if (format === 'gpx') {
         geojson = gpxToGeoJson(parseXml(decodeXml(bytes), 'GPX'));
       } else {
-        geojson = parseGeoJsonText(new TextDecoder().decode(bytes));
+        geojson = parseJsonGeoText(new TextDecoder().decode(bytes));
       }
       const size = countGeoJsonGeometry(geojson);
       if (size.over) throw overLimitError(size);

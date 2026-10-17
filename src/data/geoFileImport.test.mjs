@@ -195,6 +195,99 @@ test('GeoJSON with a legacy crs member imports and reports crsIgnored', async ()
   }
 });
 
+test('TopoJSON loads through the same GeoJSON path, by extension or by content', async () => {
+  const previous = Cesium.PinBuilder.prototype.fromColor;
+  Cesium.PinBuilder.prototype.fromColor = () => ({
+    toDataURL: () => 'data:image/png;base64,local',
+    tagName: 'CANVAS',
+  });
+  try {
+    const viewer = {
+      scene: {
+        frameState: { mode: Cesium.SceneMode.SCENE3D },
+        primitives: new Cesium.PrimitiveCollection(),
+        globe: { getHeight: () => 0 },
+      },
+    };
+    const topology = {
+      type: 'Topology',
+      arcs: [
+        [
+          [0, 0],
+          [10, 0],
+        ],
+        [
+          [10, 0],
+          [10, 10],
+        ],
+        [
+          [10, 10],
+          [0, 10],
+          [0, 0],
+        ],
+      ],
+      objects: {
+        square: { type: 'Polygon', arcs: [[0, 1, 2]] },
+        marker: { type: 'Point', coordinates: [5, 5] },
+      },
+    };
+    const byExtension = await loadGeoFile(
+      new File([JSON.stringify(topology)], 'counties.topojson'),
+      { viewer },
+    );
+    assert.equal(byExtension.format, 'topojson');
+    assert.equal(byExtension.crsIgnored, false);
+    assert.equal(byExtension.entityCount, 2);
+    assert.equal(byExtension.dataSource.importedBillboards.length, 1);
+    byExtension.revoke();
+    // A .json Topology whose type sits past the detection head still loads:
+    // the loader routes JSON by the document's own type.
+    const padded = {
+      comment: 'x'.repeat(2000),
+      ...topology,
+    };
+    const byContent = await loadGeoFile(
+      new File([JSON.stringify(padded)], 'counties.json'),
+      { viewer },
+    );
+    assert.equal(byContent.format, 'geojson');
+    assert.equal(byContent.entityCount, 2);
+    byContent.revoke();
+    await assert.rejects(
+      loadGeoFile(
+        new File(
+          [
+            JSON.stringify({
+              type: 'Topology',
+              arcs: [
+                [
+                  [0, 0],
+                  [1, 1],
+                ],
+              ],
+              objects: { bad: { type: 'LineString', arcs: [9] } },
+            }),
+          ],
+          'bad.topojson',
+        ),
+        { viewer },
+      ),
+      (error) =>
+        error instanceof GeoImportError &&
+        /arc that does not exist/.test(error.message),
+    );
+    await assert.rejects(
+      loadGeoFile(new File(['{"type":"Foo"}'], 'neither.topojson'), {
+        viewer,
+      }),
+      (error) =>
+        error instanceof GeoImportError && /not GeoJSON/.test(error.message),
+    );
+  } finally {
+    Cesium.PinBuilder.prototype.fromColor = previous;
+  }
+});
+
 test('real loader refuses empty files and malformed nested geometry before allocating entities', async () => {
   for (const object of [
     { type: 'Feature', geometry: null },
@@ -443,6 +536,29 @@ test('format comes from the extension, then from the first bytes', () => {
   assert.equal(detectGeoFileFormat('farm.kmz'), 'kmz');
   assert.equal(detectGeoFileFormat('parcels.geojson'), 'geojson');
   assert.equal(detectGeoFileFormat('parcels.json'), 'geojson');
+  assert.equal(detectGeoFileFormat('counties.topojson'), 'topojson');
+  assert.equal(
+    detectGeoFileFormat('counties.json', bytes('{"type":"Topology"}')),
+    'topojson',
+  );
+  assert.equal(
+    detectGeoFileFormat(
+      'counties.json',
+      bytes(`{"comment":"${'x'.repeat(2000)}","type":"Topology"}`),
+    ),
+    'geojson',
+    'a Topology type past the detection head sniffs as GeoJSON; the loader still routes it by content',
+  );
+  assert.equal(
+    detectGeoFileFormat(
+      'export',
+      bytes(
+        '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"kind":"Topology"},"geometry":null}]}',
+      ),
+    ),
+    'geojson',
+    'a GeoJSON properties bag that merely mentions Topology stays GeoJSON',
+  );
   assert.equal(
     detectGeoFileFormat('export', bytes('﻿  {"type":"Feature"}')),
     'geojson',
