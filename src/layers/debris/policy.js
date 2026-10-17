@@ -19,8 +19,10 @@ export const DEBRIS_GROUPS = [
 
 export const DEBRIS_GROUP_PATHS = new Set(DEBRIS_GROUPS.map((g) => g.path));
 
-export const DEBRIS_TLE_MAX_AGE_MS = 72 * 3600_000;
-// debris TLEs go stale like any other catalog set; see src/sources/tle.js.
+// Debris TLEs go stale like any other catalog set. Canonical value lives in
+// src/sources/tle.js — re-exported here under the debris name so existing
+// importers are unchanged.
+export { TLE_MAX_AGE_MS as DEBRIS_TLE_MAX_AGE_MS } from '../../sources/tle.js';
 
 export const DEBRIS_PROPAGATE_MS = 1000;
 // re-propagate the whole field every 1s (SGP4, matches satellites cadence).

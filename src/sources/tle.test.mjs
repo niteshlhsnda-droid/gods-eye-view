@@ -6,7 +6,10 @@ import {
   tleEpochMs,
   tleAgeMs,
   tleIsStale,
+  TLE_MAX_AGE_MS,
 } from './tle.js';
+import { TLE_MAX_AGE_MS as SATELLITE_TLE_MAX_AGE_MS } from '../layers/satellites/policy.js';
+import { DEBRIS_TLE_MAX_AGE_MS } from '../layers/debris/policy.js';
 
 // ISS TLE epoch: 2024 day 123.45678901 (columns 19-32 of line 1).
 const LINE1 =
@@ -56,5 +59,17 @@ describe('tleAgeMs / tleIsStale', () => {
     const old = tleEpochMs(LINE1) + 73 * 3600_000;
     assert.equal(tleIsStale(LINE1, { nowMs: old }), true);
     assert.equal(tleIsStale('garbage', { nowMs: Date.now() }), true);
+  });
+
+  it('treats future-dated epochs as stale, not fresh', () => {
+    const beforeEpoch = tleEpochMs(LINE1) - 3600_000;
+    assert.equal(tleAgeMs(LINE1, beforeEpoch) < 0, true);
+    assert.equal(tleIsStale(LINE1, { nowMs: beforeEpoch }), true);
+  });
+
+  it('uses one canonical 72 h threshold across all layers', () => {
+    assert.equal(TLE_MAX_AGE_MS, 72 * 3600_000);
+    assert.equal(SATELLITE_TLE_MAX_AGE_MS, TLE_MAX_AGE_MS);
+    assert.equal(DEBRIS_TLE_MAX_AGE_MS, TLE_MAX_AGE_MS);
   });
 });
