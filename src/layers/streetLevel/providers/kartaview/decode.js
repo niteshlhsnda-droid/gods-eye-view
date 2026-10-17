@@ -10,6 +10,16 @@ export const MAX_LINE_POINTS = 5_000;
  * (`{lines: [{track: [{lat, lng}]}]}`), as [lon, lat] point lists. Lines
  * carry no sequence, date or projection: a filter thins them through a mask
  * (see `maskedSegments`).
+ *
+ * A track point is dropped when its position is unusable: non-finite,
+ * out of range, or [0, 0], a receiver with no fix, not a drive in the Gulf
+ * of Guinea. Same validity rule as the photo path's `normalizePhoto` and
+ * the Mapillary guards. Without it a no-fix point draws a coverage line
+ * to Null Island — and, unlike Mapillary's vector tiles, whose local
+ * coordinates are bounded by the tile, these JSON track points are raw
+ * server data with no such bound. One zero is still a real
+ * meridian/equator crossing. A dropped mid-track point joins its
+ * neighbours with a chord, as a dropped non-finite point already did.
  * @param {object} payload
  * @returns {Array<Array<[number, number]>>}
  */
@@ -25,6 +35,8 @@ export function tileSegments(payload) {
       const lon = Number(point?.lng);
       const lat = Number(point?.lat);
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
+      if (lon === 0 && lat === 0) continue;
+      if (Math.abs(lon) > 180 || Math.abs(lat) > 90) continue;
       const last = points[points.length - 1];
       if (last && last[0] === lon && last[1] === lat) continue;
       points.push([lon, lat]);

@@ -41,12 +41,13 @@ test('segments that meet end to start chain into one line', () => {
 });
 
 test('a junction continues one way only, and every segment is drawn exactly once', () => {
+  // (0, 0) is a dropped no-fix point, not a junction: the junction sits at (1, 1).
   const { sequences } = decodeCoverageTile(
     {
       lines: [
-        { track: [at(0, 0), at(1, 0)] },
-        { track: [at(1, 0), at(2, 0)] },
-        { track: [at(1, 0), at(1, 1)] },
+        { track: [at(0, 1), at(1, 1)] },
+        { track: [at(1, 1), at(2, 1)] },
+        { track: [at(1, 1), at(1, 2)] },
         // A loop back to its own start must end, not spin.
         { track: [at(9, 9), at(9, 8)] },
         { track: [at(9, 8), at(9, 9)] },
@@ -80,6 +81,51 @@ test('bad points, repeats and one-point tracks are skipped; an empty tile has no
   assert.deepEqual(decodeCoverageTile({ lines: [] }, TILE).sequences, []);
 });
 
+test('a [0, 0] or out-of-range track point is dropped, never drawn to Null Island', () => {
+  const { sequences } = decodeCoverageTile(
+    {
+      lines: [
+        // A no-fix point mid-track joins its neighbours with a chord.
+        { track: [at(1, 1), at(0, 0), at(2, 1)] },
+        // A track of only no-fix points draws nothing.
+        { track: [at(0, 0), at(0, 0)] },
+        // Out-of-range longitudes / latitudes are dropped the same way.
+        { track: [at(181, 1), at(1, 2), at(-181, 1), at(2, 2)] },
+        { track: [at(1, 91), at(3, 3), at(4, 3), at(1, -91)] },
+        // One zero is a real meridian / equator crossing, not a missing fix.
+        { track: [at(0, 5), at(0, 6)] },
+        { track: [at(5, 0), at(6, 0)] },
+      ],
+    },
+    TILE,
+  );
+  assert.deepEqual(
+    sequences.map((s) => s.parts[0]),
+    [
+      [
+        [1, 1],
+        [2, 1],
+      ],
+      [
+        [1, 2],
+        [2, 2],
+      ],
+      [
+        [3, 3],
+        [4, 3],
+      ],
+      [
+        [0, 5],
+        [0, 6],
+      ],
+      [
+        [5, 0],
+        [6, 0],
+      ],
+    ],
+  );
+});
+
 test('a tile that is not a line list fails, so it is asked for again rather than kept empty', () => {
   for (const payload of [
     null,
@@ -96,9 +142,9 @@ test('a tile that is not a line list fails, so it is asked for again rather than
 test('a tile whose segments all share one point decodes in linear time', () => {
   // [P, Q_i, P]: every chain step looks at the same start point's list.
   // 60k: the old quadratic chaining took over a second; capped and linear
-  // decoding takes tens of milliseconds.
+  // decoding takes tens of milliseconds. P is (0, 1): (0, 0) is dropped.
   const lines = Array.from({ length: 60_000 }, (_, i) => ({
-    track: [at(0, 0), at(1 + i * 1e-6, 1), at(0, 0)],
+    track: [at(0, 1), at(1 + i * 1e-6, 2), at(0, 1)],
   }));
   const started = performance.now();
   const { sequences } = decodeCoverageTile({ lines }, TILE);
@@ -117,8 +163,9 @@ test('a tile whose segments all share one point decodes in linear time', () => {
 });
 
 test('a tile is capped in segments and in points per line', () => {
+  // Real longitudes: points past ±180 / a [0, 0] point are dropped, not counted.
   const lines = Array.from({ length: MAX_TILE_SEGMENTS + 500 }, (_, i) => ({
-    track: [at(i, 0), at(i + 1, 0)],
+    track: [at(1 + i * 1e-5, 1), at(1 + (i + 1) * 1e-5, 1)],
   }));
   const { sequences } = decodeCoverageTile({ lines }, TILE);
   const points = sequences.reduce((sum, s) => sum + s.parts[0].length, 0);
