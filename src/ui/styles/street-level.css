@@ -500,6 +500,18 @@ button.sl-status:focus-visible {
   white-space: nowrap;
 }
 
+.sl-image-stale {
+  color: #ffb300;
+  border: 1px solid #ffb300;
+  border-radius: 3px;
+  padding: 1px 5px;
+  letter-spacing: 0.1em;
+}
+
+.sl-image-stale[hidden] {
+  display: none;
+}
+
 .sl-image-link {
   color: var(--sl-green);
   text-decoration: none;

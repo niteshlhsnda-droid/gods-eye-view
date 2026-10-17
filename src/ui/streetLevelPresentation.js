@@ -57,6 +57,57 @@ function formatDate(ms, precision = 'day') {
   }
 }
 
+/** A capture older than this reads STALE on the photo card. */
+export const STALE_AFTER_DAYS = 730;
+const STALE_AFTER_MS = STALE_AFTER_DAYS * DAY_MS;
+/** What the photo card shows when no capture date exists. */
+export const UNKNOWN_CAPTURE_LABEL = 'Unknown date';
+
+/**
+ * Epoch ms for a capture date, or NaN when there is none. Providers hand
+ * over epoch numbers, but a stray string (an ISO date, a numeric epoch)
+ * must never become a bogus rendered date, so strings parse strictly.
+ */
+function captureDateMs(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return NaN;
+    if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
+    return Date.parse(text);
+  }
+  return NaN;
+}
+
+/**
+ * What the photo card says about a capture date: the formatted date (or
+ * 'Unknown date'), and whether it is stale. Missing, invalid, pre-1990
+ * (street-level photography did not exist) and future dates are all
+ * unknown — a future date never renders, and its age is never negative.
+ * @param {number|string|Date|null|undefined} value
+ * @param {'day'|'month'} [precision]
+ * @param {number} [now] Clock for the age; defaults to Date.now().
+ * @returns {{known: boolean, label: string, stale: boolean}}
+ */
+export function describeCaptureDate(
+  value,
+  precision = 'day',
+  now = Date.now(),
+) {
+  const unknown = { known: false, label: UNKNOWN_CAPTURE_LABEL, stale: false };
+  const at = captureDateMs(value);
+  const moment = Number.isFinite(now) ? now : Date.now();
+  if (!Number.isFinite(at) || at <= 0 || at > moment) return unknown;
+  const formatted = formatDate(at, precision);
+  if (!formatted || Number(formatted.slice(0, 4)) < 1990) return unknown;
+  return {
+    known: true,
+    label: formatted,
+    stale: moment - at > STALE_AFTER_MS,
+  };
+}
+
 /**
  * What the key-gated layer needs: each switched-on provider's key, and the
  * switched-off ones that would draw with a key already set.
@@ -122,14 +173,18 @@ function presentProviders(state) {
   });
 }
 
-function presentViewer(state) {
+function presentViewer(state, now = Date.now()) {
   const { street } = state;
+  const capture = describeCaptureDate(
+    street.capturedAt,
+    street.capturedAtPrecision,
+    now,
+  );
   const right = [];
   if (street.isPano) right.push('360°');
   if (Number.isFinite(street.bearing))
     right.push(`${Math.round(street.bearing)}°`);
-  if (street.capturedAt)
-    right.push(formatDate(street.capturedAt, street.capturedAtPrecision));
+  right.push(capture.label);
   const left = [];
   if (street.title) left.push(street.title);
   if (street.creator) left.push(`Image by ${street.creator}`);
@@ -140,6 +195,8 @@ function presentViewer(state) {
     renderModes: street.renderModes !== false,
     captionLeft: left.join(' · '),
     captionRight: right.join(' · '),
+    /** True when the open photo's capture is older than 2 years. */
+    captureStale: capture.stale,
     link: street.externalUrl || null,
     linkLabel: street.providerLabel ? `${street.providerLabel} ↗` : '',
     follow: {
@@ -226,7 +283,7 @@ export function presentStreetLevelPanel(state, { now = Date.now() } = {}) {
     since: presentSince(filter.sinceDays, now),
     sinceNote: state.sinceNote || null,
     legend: state.legend || [],
-    viewer: presentViewer(state),
+    viewer: presentViewer(state, now),
     meta: presentMeta(state),
     nearest: presentNearest(state),
     wantsOpen: state.street.open === true,

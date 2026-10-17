@@ -83,6 +83,7 @@ export class StreetLevelControls {
       viewer: byId('sl-viewer'),
       imageBy: byId('sl-image-by'),
       imageWhen: byId('sl-image-when'),
+      imageStale: byId('sl-image-stale'),
       imageLink: byId('sl-image-link'),
       coverageMeta: byId('sl-coverage-meta'),
       panoButtons: all('[data-sl-pano]'),
@@ -606,6 +607,8 @@ export class StreetLevelControls {
     if (!viewer.open) return;
     setProp(el.imageBy, 'textContent', viewer.captionLeft);
     setProp(el.imageWhen, 'textContent', viewer.captionRight);
+    setProp(el.imageStale, 'textContent', viewer.captureStale ? 'STALE' : '');
+    setProp(el.imageStale, 'hidden', !viewer.captureStale);
     if (el.imageLink) {
       setProp(el.imageLink, 'hidden', !viewer.link);
       if (viewer.link) setAttr(el.imageLink, 'href', viewer.link);
