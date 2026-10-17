@@ -22,6 +22,7 @@ import {
   kmzImageType,
   kmzMainDocument,
   parseGeoJsonText,
+  parseGpxText,
   readZipEntries,
   resolveKmzPath,
 } from './geoFileImport.js';
@@ -824,29 +825,38 @@ test('blocked icon sources fall back to local pins without changing intentional 
   assert.equal(packed.childNodes[0].textContent, 'blob:local-image');
 });
 
-const trkpt = (lat, lon, time) =>
-  xmlEl('trkpt', { lat, lon }, time ? [xmlEl('time', {}, time)] : []);
+const trkpt = (lat, lon, time, ele) =>
+  xmlEl('trkpt', { lat, lon }, [
+    ...(time ? [xmlEl('time', {}, time)] : []),
+    ...(ele !== undefined ? [xmlEl('ele', {}, String(ele))] : []),
+  ]);
 
-test('GPX keeps each track segment as its own line, names as text, no times', () => {
+test('GPX keeps each track segment as its own line and preserves name, time and elevation', () => {
   const doc = xmlDoc(
     xmlEl('gpx', {}, [
-      xmlEl('wpt', { lat: 37.77, lon: -122.49 }, [xmlEl('name', {}, 'Camp')]),
-      xmlEl('wpt', { lat: 99, lon: 0 }), // out of range: skipped
+      xmlEl('wpt', { lat: 37.77, lon: -122.49 }, [
+        xmlEl('name', {}, 'Camp'),
+        xmlEl('ele', {}, '12.5'),
+        xmlEl('time', {}, '2024-05-01T09:00:00Z'),
+      ]),
       xmlEl('rte', {}, [
         xmlEl('name', {}, 'Route'),
-        xmlEl('rtept', { lat: 1, lon: 2 }),
+        xmlEl('rtept', { lat: 1, lon: 2 }, [
+          xmlEl('ele', {}, '10'),
+          xmlEl('time', {}, '2024-05-01T10:00:00Z'),
+        ]),
         xmlEl('rtept', { lat: 3, lon: 4 }),
       ]),
       xmlEl('trk', {}, [
         xmlEl('name', {}, 'Morning walk'),
         xmlEl('trkseg', {}, [
-          trkpt(10, 20, '2024-05-01T10:00:00Z'),
+          trkpt(10, 20, '2024-05-01T10:00:00Z', 100),
           trkpt(10.1, 20.1, '2024-05-01T10:01:00Z'),
         ]),
         // A pause in the recording: a new segment, not a straight jump.
         xmlEl('trkseg', {}, [
-          trkpt(11, 21, '2024-05-01T11:00:00Z'),
-          trkpt(11.1, 21.1, '2024-05-01T11:01:00Z'),
+          trkpt(11, 21, '2024-05-01T11:00:00Z', 200),
+          trkpt(11.1, 21.1, '2024-05-01T11:01:00Z', 210),
           trkpt(11.2, 21.2, '2024-05-01T11:02:00Z'),
         ]),
         xmlEl('trkseg', {}, [trkpt(12, 22)]), // one point: not a line
@@ -862,6 +872,16 @@ test('GPX keeps each track segment as its own line, names as text, no times', ()
       ['Morning walk', 'MultiLineString'],
     ],
   );
+  assert.deepEqual(fc.features[0].properties, {
+    name: 'Camp',
+    time: '2024-05-01T09:00:00Z',
+    ele: 12.5,
+  });
+  assert.deepEqual(fc.features[1].properties, {
+    name: 'Route',
+    times: ['2024-05-01T10:00:00Z', null],
+    elevations: [10, null],
+  });
   assert.deepEqual(fc.features[2].geometry.coordinates, [
     [
       [20, 10],
@@ -873,8 +893,112 @@ test('GPX keeps each track segment as its own line, names as text, no times', ()
       [21.2, 11.2],
     ],
   ]);
-  assert.doesNotMatch(JSON.stringify(fc), /2024|time/);
+  assert.deepEqual(fc.features[2].properties, {
+    name: 'Morning walk',
+    times: [
+      ['2024-05-01T10:00:00Z', '2024-05-01T10:01:00Z'],
+      ['2024-05-01T11:00:00Z', '2024-05-01T11:01:00Z', '2024-05-01T11:02:00Z'],
+    ],
+    elevations: [
+      [100, null],
+      [200, 210, null],
+    ],
+  });
   assert.throws(() => gpxToGeoJson(xmlDoc(xmlEl('kml'))), GeoImportError);
+});
+
+test('GPX features without name, time or elevation carry no empty properties', () => {
+  const doc = xmlDoc(
+    xmlEl('gpx', {}, [
+      xmlEl('wpt', { lat: 1, lon: 2 }),
+      xmlEl('rte', {}, [
+        xmlEl('rtept', { lat: 1, lon: 2 }),
+        xmlEl('rtept', { lat: 3, lon: 4 }),
+      ]),
+      xmlEl('trk', {}, [xmlEl('trkseg', {}, [trkpt(5, 6), trkpt(5.1, 6.1)])]),
+    ]),
+  );
+  assert.deepEqual(
+    gpxToGeoJson(doc).features.map((f) => f.properties),
+    [{}, {}, {}],
+  );
+});
+
+test('GPX refuses out-of-range coordinates and elevations', () => {
+  const bad = [
+    xmlEl('wpt', { lat: 91, lon: 0 }),
+    xmlEl('wpt', { lat: -91, lon: 0 }),
+    xmlEl('wpt', { lat: 0, lon: 181 }),
+    xmlEl('wpt', { lat: 'abc', lon: 0 }),
+    xmlEl('wpt', { lat: 0, lon: 0 }, [xmlEl('ele', {}, '1000001')]),
+    xmlEl('wpt', { lat: 0, lon: 0 }, [xmlEl('ele', {}, 'high')]),
+  ];
+  for (const el of bad)
+    assert.throws(
+      () => gpxToGeoJson(xmlDoc(xmlEl('gpx', {}, [el]))),
+      (error) =>
+        error instanceof GeoImportError &&
+        /invalid (coordinates|elevation)/.test(error.message),
+    );
+  // A bad point anywhere refuses the file, even after good points.
+  assert.throws(
+    () =>
+      gpxToGeoJson(
+        xmlDoc(
+          xmlEl('gpx', {}, [
+            xmlEl('wpt', { lat: 1, lon: 2 }),
+            xmlEl('trk', {}, [
+              xmlEl('trkseg', {}, [trkpt(1, 2), trkpt(95, 2)]),
+            ]),
+          ]),
+        ),
+      ),
+    /invalid coordinates/,
+  );
+});
+
+test('GPX extensions never leak into properties', () => {
+  const doc = xmlDoc(
+    xmlEl('gpx', {}, [
+      xmlEl('wpt', { lat: 1, lon: 2 }, [
+        xmlEl('name', {}, 'Real'),
+        xmlEl('extensions', {}, [
+          xmlEl('name', {}, 'Fake'),
+          xmlEl('ele', {}, '999'),
+          xmlEl('time', {}, '1999-01-01T00:00:00Z'),
+        ]),
+      ]),
+      xmlEl('trk', {}, [
+        xmlEl('name', {}, 'Track'),
+        xmlEl('extensions', {}, [xmlEl('time', {}, '1999-01-01T00:00:00Z')]),
+        xmlEl('trkseg', {}, [trkpt(1, 2), trkpt(1.1, 2.1)]),
+      ]),
+    ]),
+  );
+  const fc = gpxToGeoJson(doc);
+  assert.deepEqual(fc.features[0].properties, { name: 'Real' });
+  assert.deepEqual(fc.features[1].properties, { name: 'Track' });
+});
+
+test('malformed GPX XML is refused', () => {
+  const previous = globalThis.DOMParser;
+  globalThis.DOMParser = class {
+    parseFromString() {
+      return {
+        getElementsByTagName: (name) => (name === 'parsererror' ? [{}] : []),
+      };
+    }
+  };
+  try {
+    assert.throws(
+      () => parseGpxText('<gpx><wpt'),
+      (error) =>
+        error instanceof GeoImportError && /not valid XML/.test(error.message),
+    );
+  } finally {
+    if (previous === undefined) delete globalThis.DOMParser;
+    else globalThis.DOMParser = previous;
+  }
 });
 
 test('GPX past the point limit is refused while reading, before Cesium', () => {

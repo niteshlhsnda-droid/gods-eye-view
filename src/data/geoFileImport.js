@@ -835,9 +835,16 @@ function checkKmlPosition(tuple) {
 /**
  * Read a parsed GPX document into GeoJSON: waypoints become points, each
  * route a line and each track one MultiLineString with a line per `<trkseg>`
- * (segment breaks are gaps in the recording and stay gaps). Only names are
- * kept, and no times, so a dated track draws without a clock. Throws
- * `GeoImportError` past the size limits.
+ * (segment breaks are gaps in the recording and stay gaps). Name, time and
+ * elevation are preserved in feature properties where present: scalars on a
+ * waypoint, per-point `times`/`elevations` arrays (aligned with the
+ * coordinates, null where that point has none) on routes and tracks.
+ * `<extensions>` content is never read. A point whose `lat`/`lon` attribute
+ * is missing or blank is skipped; a present-but-unparseable or out-of-range
+ * latitude, longitude or elevation refuses the whole file. Times stay plain
+ * text in properties: they never become a clock, so a dated track still
+ * draws without moving the shared clock. Throws `GeoImportError` past the
+ * size limits.
  * @param {Document} doc
  * @returns {object} A FeatureCollection.
  */
@@ -853,6 +860,21 @@ export function gpxToGeoJson(
     throw new GeoImportError('That GPX file has no <gpx> document.');
   const features = [];
   let positions = 0;
+  const pointTime = (el) => {
+    const text = childText(el, 'time');
+    return text ? text : undefined;
+  };
+  const pointEle = (el) => {
+    const text = childText(el, 'ele');
+    if (!text) return undefined;
+    const ele = Number(text);
+    if (!Number.isFinite(ele) || Math.abs(ele) > 1_000_000)
+      throw new GeoImportError('That GPX file has invalid elevation.');
+    return ele;
+  };
+  // One wpt/rtept/trkpt element: null when it has no usable position (a
+  // missing or blank lat/lon), otherwise its coordinates plus the
+  // time/elevation recorded on that point, if any.
   const point = (el) => {
     const rawLat = el.getAttribute('lat');
     const rawLon = el.getAttribute('lon');
@@ -866,7 +888,7 @@ export function gpxToGeoJson(
       Math.abs(lat) > 90 ||
       Math.abs(lon) > 180
     )
-      return null;
+      throw new GeoImportError('That GPX file has invalid coordinates.');
     positions += 1;
     if (positions > maxPositions)
       throw overLimitError({
@@ -874,51 +896,92 @@ export function gpxToGeoJson(
         features: features.length,
         positions,
       });
-    return [lon, lat];
+    return { at: [lon, lat], time: pointTime(el), ele: pointEle(el) };
   };
-  const add = (name, geometry) => {
+  const add = (properties, geometry) => {
     if (features.length >= maxFeatures)
       throw overLimitError({
         over: 'features',
         features: features.length + 1,
         positions,
       });
-    features.push({
-      type: 'Feature',
-      properties: name ? { name } : {},
-      geometry,
-    });
+    features.push({ type: 'Feature', properties, geometry });
+  };
+  const pointProperties = (el, { time, ele }) => {
+    const properties = {};
+    const name = childText(el, 'name');
+    if (name) properties.name = name;
+    if (time !== undefined) properties.time = time;
+    if (ele !== undefined) properties.ele = ele;
+    return properties;
+  };
+  // Properties for a line feature: the name plus, when any kept point
+  // carries one, per-point times/elevations aligned with the coordinates —
+  // flat for a route's LineString, one array per segment for a track's
+  // MultiLineString.
+  const lineProperties = (el, segments, nested) => {
+    const properties = {};
+    const name = childText(el, 'name');
+    if (name) properties.name = name;
+    for (const [key, prop] of [
+      ['time', 'times'],
+      ['ele', 'elevations'],
+    ]) {
+      if (!segments.some((seg) => seg.some((p) => p[key] !== undefined)))
+        continue;
+      const series = segments.map((seg) => seg.map((p) => p[key] ?? null));
+      properties[prop] = nested ? series : series[0];
+    }
+    return properties;
   };
   for (const wpt of childrenNamed(root, 'wpt')) {
-    const at = point(wpt);
-    if (at) add(childText(wpt, 'name'), { type: 'Point', coordinates: at });
+    const read = point(wpt);
+    if (read)
+      add(pointProperties(wpt, read), {
+        type: 'Point',
+        coordinates: read.at,
+      });
   }
   for (const rte of childrenNamed(root, 'rte')) {
-    const line = [];
+    const points = [];
     for (const pt of childrenNamed(rte, 'rtept')) {
-      const at = point(pt);
-      if (at) line.push(at);
+      const read = point(pt);
+      if (read) points.push(read);
     }
-    if (line.length >= 2)
-      add(childText(rte, 'name'), { type: 'LineString', coordinates: line });
+    if (points.length >= 2)
+      add(lineProperties(rte, [points], false), {
+        type: 'LineString',
+        coordinates: points.map((p) => p.at),
+      });
   }
   for (const trk of childrenNamed(root, 'trk')) {
-    const lines = [];
+    const segments = [];
     for (const seg of childrenNamed(trk, 'trkseg')) {
-      const line = [];
+      const points = [];
       for (const pt of childrenNamed(seg, 'trkpt')) {
-        const at = point(pt);
-        if (at) line.push(at);
+        const read = point(pt);
+        if (read) points.push(read);
       }
-      if (line.length >= 2) lines.push(line);
+      if (points.length >= 2) segments.push(points);
     }
-    if (lines.length)
-      add(childText(trk, 'name'), {
+    if (segments.length)
+      add(lineProperties(trk, segments, true), {
         type: 'MultiLineString',
-        coordinates: lines,
+        coordinates: segments.map((seg) => seg.map((p) => p.at)),
       });
   }
   return { type: 'FeatureCollection', features };
+}
+
+/**
+ * Parse GPX text into GeoJSON. Malformed XML is refused with
+ * `GeoImportError`, the same verdict `loadGeoFile` gives the file.
+ * @param {string} text
+ * @param {{maxFeatures?: number, maxPositions?: number}} [limits]
+ * @returns {object} A FeatureCollection.
+ */
+export function parseGpxText(text, limits) {
+  return gpxToGeoJson(parseXml(text, 'GPX'), limits);
 }
 
 /** A feature name as short plain text (no control characters), or undefined. */
@@ -1278,7 +1341,7 @@ export async function loadGeoFile(
     if (format === 'geojson' || format === 'gpx') {
       let geojson;
       if (format === 'gpx') {
-        geojson = gpxToGeoJson(parseXml(decodeXml(bytes), 'GPX'));
+        geojson = parseGpxText(decodeXml(bytes));
       } else {
         geojson = parseGeoJsonText(new TextDecoder().decode(bytes));
       }
