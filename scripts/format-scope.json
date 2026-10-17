@@ -990,5 +990,7 @@
   "scripts/write-build-metadata.mjs",
   "src/tooling/validateLiveNow.test.mjs",
   "src/tooling/writeBuildMetadata.test.mjs",
-  "tests/post-deploy-smoke.spec.mjs"
+  "tests/post-deploy-smoke.spec.mjs",
+  "scripts/scoreboard-test-hygiene.mjs",
+  "src/tooling/testHygiene.test.mjs"
 ]
