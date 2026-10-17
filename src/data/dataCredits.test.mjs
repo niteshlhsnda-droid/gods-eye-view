@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DATA_CREDITS } from './dataCredits.js';
+import { BASEMAP_VINTAGE_DISCLOSURE } from './basemapVintage.js';
 
 test('every credit carries a unique key and some markup to render', () => {
   const keys = DATA_CREDITS.map((entry) => entry.key);
@@ -94,6 +95,16 @@ test('inline OSM attribution persists until its last display owner leaves', asyn
   assert.equal(hideOsmCredit(viewer, 'datacenters'), false);
   showOsmCredit(viewer, 'alpr');
   assert.equal(visible.size, 1, 'reenabling restores the short credit');
+});
+
+test('base-map vintage disclosure is registered verbatim, once', () => {
+  const credit = DATA_CREDITS.find((entry) => entry.key === 'basemap-vintage');
+  assert.ok(
+    credit,
+    'the undated base map must disclose vintage-unknown in the Data attribution popover',
+  );
+  // Verbatim: the helper owns the wording; a paraphrase here would drift.
+  assert.equal(credit.html, BASEMAP_VINTAGE_DISCLOSURE);
 });
 
 test('tile attribution follows source changes and viewers have independent ownership', async () => {
