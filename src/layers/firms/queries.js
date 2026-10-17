@@ -1,4 +1,8 @@
 import { fireDetectionKey } from '../../data/firmsLabels.js';
+import {
+  newestObservedAt,
+  observedFreshnessLabel,
+} from '../../data/observedFreshness.js';
 import { REFRESH_INTERVAL_MS } from './policy.js';
 
 export function createQueries({
@@ -53,8 +57,10 @@ export function createQueries({
      * Layer stats for the data panel. Degraded feed states surface through
      * `error` (established qa-failstate pattern: a dead feed must never look
      * like a healthy empty layer) with a matching human `loadingLabel`:
-     * 'CONTINUOUS · updated Xm ago' fresh, 'STALE · cached Xh' when the proxy
-     * served past-TTL cache, 'KEY REQUIRED' keyless.
+     * 'CONTINUOUS · observed Xm ago' fresh (the age is the newest
+     * detection's acquisition time, not the fetch time — a refetch of the
+     * same detections must not reset it to "just now"), 'STALE · cached Xh'
+     * when the proxy served past-TTL cache, 'KEY REQUIRED' keyless.
      */
     getStats() {
       const now = Date.now();
@@ -73,7 +79,14 @@ export function createQueries({
       } else if (layerState._error) {
         loadingLabel = layerState._error;
       } else if (layerState._lastUpdate) {
-        loadingLabel = `CONTINUOUS · updated ${components.model.formatAgoMinutes(now - layerState._lastUpdate)}`;
+        // `_lastUpdate` is the proxy's fetch/cache time (`fetchedAt`), not
+        // the detections' age. Headline the newest acquisition time so a
+        // refetch of hours-old detections still reads hours old.
+        loadingLabel = `CONTINUOUS · ${observedFreshnessLabel({
+          observedAt: newestObservedAt(layerState._fires, (fire) => fire.acqMs),
+          fetchedAt: layerState._lastUpdate,
+          now,
+        })}`;
       }
       return {
         count: layerState._count,

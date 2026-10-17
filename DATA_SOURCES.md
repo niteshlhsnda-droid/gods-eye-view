@@ -198,6 +198,9 @@ FIRMS active fires are **fetched live at runtime** (CC0 / U.S. public domain dat
 Suomi-NPP) and MODIS NRT (Terra + Aqua), clamped to the trailing 24 h, cached 30 min to respect the shared MAP_KEY
 transaction quota. Requires a free `FIRMS_MAP_KEY`
 (https://firms.modaps.eosdis.nasa.gov/api/map_key/); the layer is empty without it.
+The panel's freshness age is the newest detection's acquisition time
+(`acq_date`/`acq_time`), not the fetch time — a refetch of the same detections
+does not reset it (see `docs/observed-vs-fetched-freshness.md`).
 The former bundled 2026-05-25 snapshot was removed 2026-07-16.
 
 ### Natural Earth physical regions (`natural_earth/`)
