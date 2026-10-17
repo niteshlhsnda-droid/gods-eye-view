@@ -37,7 +37,7 @@ export function withUtmTags(url, source) {
  */
 export function defaultShareText({ sceneLabel = '' } = {}) {
   const where = sceneLabel ? ` — ${sceneLabel}` : '';
-  return `Look at this on God's Eye View${where} 🌍 Real-time Earth intelligence.`;
+  return `Look at this on God's Eye View${where} 🌍 Earth intelligence from live, snapshot and simulated feeds.`;
 }
 
 /**

@@ -2160,7 +2160,7 @@
 }
 
 :root[data-ui-theme='cyber'] body.cockpit-mode .cockpit-roll-arc::before {
-  content: 'TARGET SCANNING  //  LIVE VECTOR';
+  content: 'TARGET SCANNING  //  TRACKED VECTOR';
   position: absolute;
   top: -30px;
   left: 50%;

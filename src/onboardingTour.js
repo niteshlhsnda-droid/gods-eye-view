@@ -39,10 +39,10 @@ export function buildTourSteps(t = translate) {
     {
       id: 'layers',
       selector: '#control-panel',
-      title: tr('tour.layers.title', 'Live data layers'),
+      title: tr('tour.layers.title', 'Data layers'),
       description: tr(
         'tour.layers.body',
-        'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer is live data, not decoration.',
+        'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated or archival data — check its label.',
       ),
     },
     {

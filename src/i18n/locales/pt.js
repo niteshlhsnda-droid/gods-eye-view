@@ -25,7 +25,7 @@ export default {
     resetGlobe: 'Redefinir a câmera e voltar ao globo completo',
   },
   loading: {
-    liveData: 'CARREGANDO DADOS AO VIVO',
+    liveData: 'CARREGANDO FEEDS',
   },
   share: {
     title: 'Compartilhar esta cena',
@@ -50,8 +50,8 @@ export default {
       body: 'Digite uma cidade, um ponto turístico ou coordenadas para voar até lá na hora.',
     },
     layers: {
-      title: 'Camadas de dados ao vivo',
-      body: 'Ative aviões, navios, satélites, terremotos, CCTV e mais. Cada camada são dados ao vivo, não decoração.',
+      title: 'Camadas de dados',
+      body: 'Ative aviões, navios, satélites, terremotos, CCTV e mais. Cada camada mostra dados ao vivo, instantâneos, simulados ou de arquivo — veja o rótulo dela.',
     },
     share: {
       title: 'Compartilhe uma cena',

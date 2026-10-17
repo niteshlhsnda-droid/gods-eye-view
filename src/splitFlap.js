@@ -1,7 +1,7 @@
 /**
  * Split-flap (departure-board) text animation for the status chips.
  *
- * When a chip's label changes — "LOADING LIVE DATA" → "LOAD COMPLETE",
+ * When a chip's label changes — "LOADING FEEDS" → "LOAD COMPLETE",
  * "loading frames" → "camera grid ready" — the characters flip over
  * mechanically, left to right, like a Solari board at a ferry terminal.
  *
@@ -119,7 +119,7 @@ function nowMs() {
  * Unchanged characters do not animate — a real split-flap cell that already
  * shows the right glyph simply does not move, which is both authentic and
  * free. The stagger is rebased on the FIRST changed column so a label whose
- * head is stable ("LOAD COMPLETE" keeps "LOAD" from "LOADING LIVE DATA")
+ * head is stable ("LOAD COMPLETE" keeps "LOAD" from "LOADING FEEDS")
  * starts flipping immediately instead of idling through untouched columns.
  *
  * Pure — no DOM, no clock. This is the unit-tested core.

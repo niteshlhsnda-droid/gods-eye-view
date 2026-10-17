@@ -36,7 +36,11 @@ export const RADIO_BROWSER_CATEGORY_TAGS = Object.freeze([
 /** Catalog instance token the static direct fetch reports to the ingestion. */
 export const RADIO_BROWSER_CATALOG_INSTANCE = 'radio-browser-direct';
 
-/** Credit line shown in the radio UI (Radio Browser usage policy). */
+/** Credit line shown in the radio UI (Radio Browser usage policy).
+ *
+ * The stations themselves are third-party broadcaster streams, not this
+ * project's content: the app claims no ownership over them (license
+ * policy, ruling #8). */
 export const RADIO_DIRECTORY_ATTRIBUTION = 'Station data by radio-browser.info';
 
 export const HORIZON_TICK_MS = 250;

@@ -71,6 +71,8 @@ export function ln(locale, key, vars) {
 export const LIVE_NOW_CHROME_KEYS = Object.freeze([
   'panel.title',
   'panel.subtitle',
+  'panel.snapshotAge',
+  'panel.snapshotNow',
   'panel.playTour',
   'panel.empty',
   'panel.sourcesStale',

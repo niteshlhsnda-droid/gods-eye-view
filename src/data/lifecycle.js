@@ -1652,6 +1652,17 @@ export class LayerLifecycle {
    * @param {AbortSignal|null} [options.signal] Caller cancellation authority.
    * @returns {Promise<void>} Resolves after every registered layer settles.
    */
+  /**
+   * Restore the enabled/disabled state of every registered layer to match
+   * `enabledLayerIds`.
+   *
+   * Progressive loading: layers restore in batches of `restoreBatchSize`
+   * (default 3), one batch settling before the next starts, instead of
+   * firing every layer's enable at once. A restore of a dozen stored layers
+   * used to burst a dozen simultaneous feed fetches on startup; batching
+   * keeps the burst bounded while the final state — and the failure
+   * reporting — stay exactly the same.
+   */
   async restoreEnabledLayerIds(
     enabledLayerIds,
     {
@@ -1659,6 +1670,7 @@ export class LayerLifecycle {
       excludeLayerIds = [],
       notificationToken = null,
       signal = null,
+      restoreBatchSize = 3,
     } = {},
   ) {
     const target = new Set(enabledLayerIds || []);
@@ -1676,46 +1688,54 @@ export class LayerLifecycle {
       ...(notificationToken ? { notificationToken } : {}),
       ...(signal ? { signal } : {}),
     };
-    const handles = layerIds.map((layerId) =>
-      this._setEnabledWithIntent(
-        layerId,
-        target.has(layerId),
-        transitionOptions,
-      ),
-    );
-    const results = await Promise.allSettled(
-      handles.map((handle, index) =>
-        this._waitForAuthoritativeVisibilityIntent(
-          layerIds[index],
-          handle.intentEpoch,
+    const batchSize =
+      Number.isInteger(restoreBatchSize) && restoreBatchSize > 0
+        ? restoreBatchSize
+        : 3;
+    const failedLayerIds = [];
+    let firstError = null;
+    for (let start = 0; start < layerIds.length; start += batchSize) {
+      const batch = layerIds.slice(start, start + batchSize);
+      const handles = batch.map((layerId) =>
+        this._setEnabledWithIntent(
+          layerId,
+          target.has(layerId),
+          transitionOptions,
         ),
-      ),
-    );
-    const failedLayerIds = results.flatMap((result, index) => {
-      if (result.status === 'rejected') return [layerIds[index]];
-      const outcome = result.value;
-      const layerId = layerIds[index];
-      const state = this.getLayerLifecycleState(layerId);
-      const desiredState = target.has(layerId);
-      const failed =
-        !outcome ||
-        outcome.error ||
-        !state ||
-        state.enabled !== desiredState ||
-        state.lifecycleState !== (desiredState ? 'enabled' : 'disabled') ||
-        state.uncertain ||
-        this.layers.get(layerId)?.latestQueuedAbsoluteIntent;
-      return failed ? [layerId] : [];
-    });
+      );
+      const results = await Promise.allSettled(
+        handles.map((handle, index) =>
+          this._waitForAuthoritativeVisibilityIntent(
+            batch[index],
+            handle.intentEpoch,
+          ),
+        ),
+      );
+      results.forEach((result, index) => {
+        const layerId = batch[index];
+        const state = this.getLayerLifecycleState(layerId);
+        const desiredState = target.has(layerId);
+        const failed =
+          result.status === 'rejected' ||
+          !result.value ||
+          result.value?.error ||
+          !state ||
+          state.enabled !== desiredState ||
+          state.lifecycleState !== (desiredState ? 'enabled' : 'disabled') ||
+          state.uncertain ||
+          this.layers.get(layerId)?.latestQueuedAbsoluteIntent;
+        if (!failed) return;
+        failedLayerIds.push(layerId);
+        if (!firstError) {
+          firstError =
+            result.status === 'rejected'
+              ? result.reason
+              : new Error(`Failed to restore layer "${layerId}" visibility`);
+        }
+      });
+    }
     if (failedLayerIds.length === 0) return;
-    const failedIndex = layerIds.indexOf(failedLayerIds[0]);
-    const failed = results[failedIndex];
-    const error =
-      failed.status === 'rejected'
-        ? failed.reason
-        : new Error(
-            `Failed to restore layer "${layerIds[failedIndex]}" visibility`,
-          );
+    const error = firstError || new Error('Failed to restore layer visibility');
     error.failedLayerIds = [
       ...new Set([
         ...(Array.isArray(error.failedLayerIds) ? error.failedLayerIds : []),

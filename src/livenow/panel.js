@@ -13,7 +13,10 @@
  * renders `panel.allFeedsStale`; when no payload could be fetched at all,
  * it renders `panel.unavailable` instead of loading forever. Whenever the
  * payload carries `feedHealth.feeds`, a per-feed status list (label, state,
- * age / last success) renders at the foot of the sheet.
+ * age / last success) renders at the foot of the sheet. The subtitle is the
+ * snapshot's own timestamp (`panel.snapshotAge` / `panel.snapshotNow`) —
+ * the payload refreshes every 10 minutes, so the panel never claims the
+ * events are happening "right now".
  *
  * All DOM is built from injected `documentRef` (default: the real
  * document); styles are injected once as a `<style>` tag so the module is
@@ -225,9 +228,21 @@ export function createLiveNowPanel({
 
     const head = el(documentRef, 'div', 'ln-sheet-head');
     const titleWrap = el(documentRef, 'div', '');
+    // The panel is a snapshot, not a live feed: the payload refreshes every
+    // 10 minutes, so the subtitle carries the snapshot's own timestamp.
+    const snapshotMinutes =
+      payload && payload.generatedAt != null
+        ? minutesSinceGenerated(payload, nowMs())
+        : null;
+    const subtitle =
+      snapshotMinutes == null
+        ? ln(loc, 'panel.subtitle')
+        : snapshotMinutes < 1
+          ? ln(loc, 'panel.snapshotNow')
+          : ln(loc, 'panel.snapshotAge', { m: snapshotMinutes });
     titleWrap.append(
       el(documentRef, 'h2', 'ln-sheet-title', ln(loc, 'panel.title')),
-      el(documentRef, 'p', 'ln-sheet-sub', ln(loc, 'panel.subtitle')),
+      el(documentRef, 'p', 'ln-sheet-sub', subtitle),
     );
     head.append(titleWrap);
 

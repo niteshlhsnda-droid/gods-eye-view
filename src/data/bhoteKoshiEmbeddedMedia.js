@@ -1,5 +1,12 @@
 import * as Cesium from 'cesium';
 
+/**
+ * Embedded witness-media players (YouTube / Facebook / X).
+ *
+ * The players are served by their providers under the providers' terms.
+ * This app NEVER promises ad-free playback for embedded players —
+ * provider players may show provider ads (license policy, ruling #10).
+ */
 const YOUTUBE_HOSTS = new Set([
   'youtube.com',
   'www.youtube.com',

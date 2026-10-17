@@ -102,10 +102,10 @@ after substitution — never let a long place name push a card over).
 ## space
 
 - title1: {event} — launch window over {place}
-- title2: Live now: {event} from {place}
+- title2: Underway: {event} from {place}
 - title3: Unconfirmed schedule change for {event} — checking
-- summary1: {event} is scheduled at {place}, {time}. Live tracking active.
-- summary2: A {event} is underway from {place} ({time}). Follow the trajectory live.
+- summary1: {event} is scheduled at {place}, {time}. Tracking starts at launch.
+- summary2: A {event} is underway from {place} ({time}). Follow the trajectory as tracking updates arrive.
 - summary3: Reports of a schedule change for {event} ({time}) are unconfirmed. Awaiting official word.
 
 ## weather

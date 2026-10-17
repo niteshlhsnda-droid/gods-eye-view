@@ -294,12 +294,12 @@ test('status names the drawn road source for each mode', async () => {
   assert.equal(
     present({ liveMode: true, coveragePct: 100, roadSource: 'TomTom' })
       .loadingLabel,
-    'LIVE · Roads: TomTom · Roads without flow hidden',
+    'SIMULATED VEHICLES · Live flow · Roads: TomTom · Roads without flow hidden',
   );
   assert.equal(
     present({ liveMode: true, coveragePct: 0, roadSource: 'TomTom' })
       .loadingLabel,
-    'LIVE · Roads: TomTom · No flow roads in view',
+    'SIMULATED VEHICLES · Live flow · Roads: TomTom · No flow roads in view',
   );
   assert.equal(
     present({
@@ -307,11 +307,11 @@ test('status names the drawn road source for each mode', async () => {
       coveragePct: 81,
       roadSource: 'TomTom + OpenStreetMap',
     }).loadingLabel,
-    'LIVE · Roads: TomTom + OpenStreetMap · Flow 81%',
+    'SIMULATED VEHICLES · Live flow · Roads: TomTom + OpenStreetMap · Flow 81%',
   );
   assert.match(
     present({ liveMode: true, coveragePct: 74 }).loadingLabel,
-    /^LIVE · Roads: OpenStreetMap · Flow: TomTom · 74% cov/,
+    /^SIMULATED VEHICLES · Live flow · Roads: OpenStreetMap · Flow: TomTom · 74% cov/,
   );
 });
 

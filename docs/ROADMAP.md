@@ -50,7 +50,7 @@ build all five:
 
 | Pillar | Meaning | Example features |
 |---|---|---|
-| **LIVE** | The planet, right now | Live Now view (in build), satellite pass alerts, disaster auto-tracking |
+| **LIVE** | The planet, recent snapshot | Live Now view (in build), satellite pass alerts, disaster auto-tracking |
 | **DEEP** | Time + context | Time-machine slider, famous-people layer, price-prediction panel with uncertainty |
 | **CINEMATIC** | Stories, not dashboards | Director Mode tours, "A day on Earth" auto-video, embeddable event widget |
 | **OPEN** | Platform, not app | Public API, self-hosting docs, contributor ladder, upstream PRs |

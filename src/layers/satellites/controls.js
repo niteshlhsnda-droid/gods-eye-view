@@ -97,7 +97,7 @@ export function createControls({ state: layerState, services, parts, source }) {
     source: 'CelesTrak',
 
     updateInterval: 0,
-    // We use preRender for real-time updates, not interval polling
+    // We use preRender for propagated updates, not interval polling
     refreshInterval: 5 * 60 * 1000,
 
     getDetectableObjects(options = {}) {

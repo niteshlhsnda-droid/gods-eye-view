@@ -126,7 +126,7 @@ export class ShellFeedback {
       return;
     }
     this._globalLoadingStatus.dataset.state = presentation.state;
-    // Split-flap the LABEL only ("LOADING LIVE DATA" -> "LOAD COMPLETE").
+    // Split-flap the LABEL only ("LOADING FEEDS" -> "LOAD COMPLETE").
     // setSplitFlapText is a no-op when the text is unchanged, which matters
     // here: this runs on every 60 ms and 500 ms tick. The detail line is the
     // live layer roster inside an ellipsised, width-capped span — flapping a

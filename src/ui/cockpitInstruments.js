@@ -133,7 +133,7 @@ export function updateHud(
         ? 'SURFACE FALLBACK'
         : info.stale
           ? 'STALE FEED'
-          : 'LIVE TRACK';
+          : 'TRACKING';
     const fleet = info.layerId === 'military' ? 'MILITARY' : 'COMMERCIAL';
     const emergency = formatCockpitEmergency(info.emergency);
     this.aircraftMeta.textContent = emergency

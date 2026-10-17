@@ -105,6 +105,49 @@ test('toolbar click opens the sheet and renders cards + stale badge', async () =
   panel.stop();
 });
 
+test('subtitle labels the panel as a snapshot with the payload timestamp', async () => {
+  const { doc, button, panel } = fixture();
+  panel.start();
+  await tick();
+  button.fire('click');
+  await tick();
+  await tick();
+  const text = sheetText(doc);
+  assert.ok(
+    text.includes('Snapshot · updated 5 min ago'),
+    'snapshot age rendered from generatedAt',
+  );
+  assert.ok(
+    !text.includes('right now'),
+    'no right-now claim in the open sheet',
+  );
+  panel.stop();
+});
+
+test('subtitle uses the just-now snapshot line for a fresh payload', async () => {
+  const { doc, button, panel } = fixture({
+    fetchData: async () => ({
+      payload: {
+        ...payload([event('a')]),
+        generatedAt: '2026-10-13T15:00:00.000Z',
+      },
+      fresh: true,
+      fromCache: false,
+    }),
+  });
+  panel.start();
+  await tick();
+  button.fire('click');
+  await tick();
+  await tick();
+  const text = sheetText(doc);
+  assert.ok(
+    text.includes('Snapshot · updated just now'),
+    'just-now snapshot line rendered for a fresh payload',
+  );
+  panel.stop();
+});
+
 test('Escape closes the sheet and returns focus to the button', async () => {
   const { doc, button, panel } = fixture();
   panel.start();

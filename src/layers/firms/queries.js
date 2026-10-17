@@ -44,7 +44,7 @@ export function createQueries({
     // one place that owns what each key is called.
     requiresKeyId: 'firms',
 
-    // Live layer: the manager calls update() every 10 minutes while enabled,
+    // Near-real-time layer: the manager calls update() every 10 minutes while enabled,
     // which refetches through the /api/firms proxy (the proxy's 30 min TTL —
     // not this interval — is what protects the upstream FIRMS quota).
     updateInterval: REFRESH_INTERVAL_MS,
@@ -53,7 +53,7 @@ export function createQueries({
      * Layer stats for the data panel. Degraded feed states surface through
      * `error` (established qa-failstate pattern: a dead feed must never look
      * like a healthy empty layer) with a matching human `loadingLabel`:
-     * 'LIVE · updated Xm ago' fresh, 'STALE · cached Xh' when the proxy
+     * 'CONTINUOUS · updated Xm ago' fresh, 'STALE · cached Xh' when the proxy
      * served past-TTL cache, 'KEY REQUIRED' keyless.
      */
     getStats() {
@@ -73,7 +73,7 @@ export function createQueries({
       } else if (layerState._error) {
         loadingLabel = layerState._error;
       } else if (layerState._lastUpdate) {
-        loadingLabel = `LIVE · updated ${components.model.formatAgoMinutes(now - layerState._lastUpdate)}`;
+        loadingLabel = `CONTINUOUS · updated ${components.model.formatAgoMinutes(now - layerState._lastUpdate)}`;
       }
       return {
         count: layerState._count,

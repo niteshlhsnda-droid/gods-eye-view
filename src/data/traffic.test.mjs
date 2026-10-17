@@ -71,12 +71,12 @@ test('simulating because the status probe failed reads differently from keyless 
   assert.equal(probeDown.loadingLabel, 'SIMULATED — traffic service unreachable');
 });
 
-test('a healthy keyed layer reports live flow with its real coverage', () => {
+test('a healthy keyed layer reports simulated vehicles with live flow and its real coverage', () => {
   const idle = trafficFeedPresentation({ liveMode: true, coveragePct: 87 });
   assert.deepEqual(idle, {
     mode: 'live',
     error: null,
-    loadingLabel: 'LIVE · Roads: OpenStreetMap · Flow: TomTom · 87% cov · Unmatched: simulated',
+    loadingLabel: 'SIMULATED VEHICLES · Live flow · Roads: OpenStreetMap · Flow: TomTom · 87% cov · Unmatched: simulated',
   });
   assert.equal(
     trafficFeedPresentation({ liveMode: true, fetching: true }).loadingLabel,

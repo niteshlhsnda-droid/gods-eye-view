@@ -171,7 +171,7 @@ export function createApplicationCatalog({
           id: 'local-firms',
           name: 'FIRMS Active Fires',
           icon: '▲',
-          source: 'NASA FIRMS · LIVE',
+          source: 'NASA FIRMS · CONTINUOUS',
           feed: sources.firms,
         }),
       ],
