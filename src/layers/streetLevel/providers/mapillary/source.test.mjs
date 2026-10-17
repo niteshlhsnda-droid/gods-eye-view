@@ -62,6 +62,11 @@ test('graph lookups call graph.mapillary.com with the client token and requested
   assert.equal(url.searchParams.get('access_token'), 'MLY|1|abc');
   assert.equal(url.searchParams.get('sequence_ids'), 'seq-1');
   assert.match(url.searchParams.get('fields'), /geometry/);
+  assert.match(
+    url.searchParams.get('fields'),
+    /computed_geometry/,
+    'sequence images fetch the refined position for the cone fallback',
+  );
 
   const nearest = await source.nearestImages({
     lat: 38.5,

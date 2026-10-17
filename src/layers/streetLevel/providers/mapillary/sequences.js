@@ -16,14 +16,38 @@ const SPRITE_ID = 'street-level:mapillary-cones';
 /** How many recently viewed sequences keep their image list in memory. */
 const SEQUENCE_CACHE_SIZE = 40;
 
-/** Normalize a graph image record into the shape the cones use. */
+/**
+ * Normalize a graph image record into the shape the cones use, or null
+ * without a usable position. The position is the first usable of
+ * `computed_geometry`, then `geometry` — the same rule the nearest lookup
+ * ranks by, so a sequence image whose raw GPS fix is missing or unusable
+ * still draws its cone at the SfM-refined position, and a bad computed
+ * position falls back to the real GPS fix instead of losing the photo.
+ * Usable means finite coordinates, in range, and not [0, 0], a receiver
+ * with no fix, not a photo in the Gulf of Guinea. One zero is still a
+ * real meridian/equator crossing.
+ */
 export function normalizeSequenceImage(record) {
-  const coordinates = record?.geometry?.coordinates;
-  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  let lon = NaN;
+  let lat = NaN;
+  for (const key of ['computed_geometry', 'geometry']) {
+    const coordinates = record?.[key]?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length < 2) continue;
+    const candidateLon = Number(coordinates[0]);
+    const candidateLat = Number(coordinates[1]);
+    if (!Number.isFinite(candidateLon) || !Number.isFinite(candidateLat))
+      continue;
+    if (candidateLon === 0 && candidateLat === 0) continue;
+    if (Math.abs(candidateLon) > 180 || Math.abs(candidateLat) > 90) continue;
+    lon = candidateLon;
+    lat = candidateLat;
+    break;
+  }
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
   return {
     id: String(record.id),
-    lon: Number(coordinates[0]),
-    lat: Number(coordinates[1]),
+    lon,
+    lat,
     compassAngle: Number(record.compass_angle) || 0,
     capturedAt: Number(record.captured_at) || 0,
     isPano: record.is_pano === true,

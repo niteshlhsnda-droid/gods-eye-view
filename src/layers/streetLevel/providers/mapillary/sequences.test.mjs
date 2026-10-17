@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as Cesium from 'cesium';
 import { MESH_CELL_DEG } from '../../meshSampler.js';
-import { createSequences } from './sequences.js';
+import { createSequences, normalizeSequenceImage } from './sequences.js';
 
 // The cone glyphs draw on a canvas; Node has none, so any drawing is a no-op.
 const noop = () => {};
@@ -322,4 +322,75 @@ test('cones behind the globe are hidden, and show again from the other side', as
   assert.equal(far.show, true);
   sequences.clearSelection();
   assert.equal(preRender.size, 0, 'the cull listener is gone');
+});
+
+test('a sequence image stands at its computed position when the GPS fix is missing', () => {
+  const image = normalizeSequenceImage({
+    id: 'computed-only',
+    computed_geometry: { coordinates: [-121.49, 38.58] },
+    compass_angle: 90,
+    captured_at: 1_700_000_000_000,
+  });
+  assert.deepEqual([image.lon, image.lat], [-121.49, 38.58]);
+});
+
+test('the computed position wins when both positions are usable', () => {
+  const image = normalizeSequenceImage({
+    id: 'both',
+    geometry: { coordinates: [-121.5, 38.6] },
+    computed_geometry: { coordinates: [-121.49, 38.58] },
+    compass_angle: 90,
+    captured_at: 1_700_000_000_000,
+  });
+  assert.deepEqual(
+    [image.lon, image.lat],
+    [-121.49, 38.58],
+    'the SfM-refined position, not the raw fix',
+  );
+});
+
+test('a bad computed position falls back to the real GPS fix', () => {
+  const image = normalizeSequenceImage({
+    id: 'bad-computed',
+    geometry: { coordinates: [-121.49, 38.58] },
+    computed_geometry: { coordinates: [0, 0] },
+    compass_angle: 90,
+    captured_at: 1_700_000_000_000,
+  });
+  assert.deepEqual(
+    [image.lon, image.lat],
+    [-121.49, 38.58],
+    'a [0, 0] no-fix computed position does not lose the photo',
+  );
+});
+
+test('a sequence image with no usable position draws no cone', () => {
+  assert.equal(
+    normalizeSequenceImage({
+      id: 'no-fix',
+      geometry: { coordinates: [0, 0] },
+      computed_geometry: { coordinates: [200, 100] },
+    }),
+    null,
+  );
+  assert.equal(
+    normalizeSequenceImage({ id: 'no-geometry' }),
+    null,
+    'neither geometry nor computed_geometry',
+  );
+});
+
+test('a computed-only sequence image draws its cone', async () => {
+  const { source, sequences, drawn } = setup();
+  sequences.select('A');
+  source.last('A').resolve([
+    {
+      id: 'A-computed',
+      computed_geometry: { coordinates: [-121.49, 38.58] },
+      compass_angle: 90,
+      captured_at: 1_700_000_000_000,
+    },
+  ]);
+  await settle();
+  assert.deepEqual(drawn(), ['A-computed']);
 });
