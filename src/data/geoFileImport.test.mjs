@@ -266,10 +266,9 @@ test('GeoJSONL loads through the same GeoJSON path, by extension or by content',
     assert.equal(byPaddedContent.entityCount, 2);
     byPaddedContent.revoke();
     // A single-line GeoJSON object in a .geojsonl file still loads.
-    const single = await loadGeoFile(
-      new File([point(3, 3)], 'one.geojsonl'),
-      { viewer },
-    );
+    const single = await loadGeoFile(new File([point(3, 3)], 'one.geojsonl'), {
+      viewer,
+    });
     assert.equal(single.format, 'geojsonl');
     assert.equal(single.entityCount, 1);
     single.revoke();

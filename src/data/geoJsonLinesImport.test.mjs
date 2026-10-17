@@ -24,9 +24,7 @@ test('two Feature lines become one FeatureCollection', () => {
 });
 
 test('a bare geometry line is wrapped in a Feature', () => {
-  const result = parseGeoJsonLines(
-    '{"type":"Point","coordinates":[10,20]}',
-  );
+  const result = parseGeoJsonLines('{"type":"Point","coordinates":[10,20]}');
   assert.equal(result.features.length, 1);
   assert.equal(result.features[0].type, 'Feature');
   assert.deepEqual(result.features[0].properties, {});
@@ -146,10 +144,7 @@ test('out-of-range coordinates report the line', () => {
       error.message === 'line 2: invalid coordinates.',
   );
   assert.throws(
-    () =>
-      parseGeoJsonLines(
-        '{"type":"Point","coordinates":[0,-91]}',
-      ),
+    () => parseGeoJsonLines('{"type":"Point","coordinates":[0,-91]}'),
     (error) =>
       error instanceof GeoJsonLinesError &&
       error.message === 'line 1: invalid coordinates.',
@@ -190,8 +185,7 @@ test('a FeatureCollection without a features list is rejected', () => {
     () => parseGeoJsonLines('{"type":"FeatureCollection"}'),
     (error) =>
       error instanceof GeoJsonLinesError &&
-      error.message ===
-        'line 1: that FeatureCollection has no features list.',
+      error.message === 'line 1: that FeatureCollection has no features list.',
   );
 });
 
