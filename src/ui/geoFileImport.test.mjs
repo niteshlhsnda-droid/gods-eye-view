@@ -229,7 +229,7 @@ test('the Import button opens the picker and a pick imports each file', async ()
   assert.equal(t.els['geo-import-input'].clicks, 1);
   assert.equal(
     t.els['geo-import-input'].accept,
-    '.geojson,.json,.kml,.kmz,.gpx',
+    '.geojson,.json,.kml,.kmz,.gpx,.osm',
   );
   const out = await t.tool.importFiles([file('a.geojson'), file('b.kml')]);
   assert.deepEqual(

@@ -1,7 +1,16 @@
 /** Session-local geodata loading with bounded geometry and local-only file references. */
 import * as Cesium from 'cesium';
+import {
+  MAX_IMPORT_ALTITUDE,
+  MAX_IMPORT_ENTITIES,
+  MAX_IMPORT_POSITIONS,
+} from './geoImportLimits.js';
 import { createImportImageBudget } from './geoImportImages.js';
 import { createImportedPins } from './geoImportPins.js';
+import {
+  OsmGeoImportError,
+  parseOsmToFeatureCollection,
+} from './osmGeoImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -12,15 +21,17 @@ export const MAX_KMZ_INFLATED_BYTES = 120 * 1024 * 1024;
 /** Most files on the globe at once. */
 export const MAX_IMPORTED_FILES = 12;
 /** Most entities one file may create before it is refused. */
-export const MAX_IMPORT_ENTITIES = 20_000;
+export { MAX_IMPORT_ENTITIES };
 /** Most vertices (points of every line, ring and marker) in one file. */
-export const MAX_IMPORT_POSITIONS = 250_000;
+export { MAX_IMPORT_POSITIONS };
+/** Largest accepted altitude, in metres. */
+export { MAX_IMPORT_ALTITUDE };
 /** Most normalized style definitions and local image links in one KML/KMZ. */
 export const MAX_KML_LINKS = 2_000;
 /** Longest plain-text name kept from a file's features. */
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
-export const GEO_FILE_ACCEPT = '.geojson,.json,.kml,.kmz,.gpx';
+export const GEO_FILE_ACCEPT = '.geojson,.json,.kml,.kmz,.gpx,.osm';
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -75,12 +86,13 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'kml'|'kmz'|'gpx'|null}
+ * @returns {'geojson'|'kml'|'kmz'|'gpx'|'osm'|null}
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
   if (ext === 'geojson') return 'geojson';
-  if (ext === 'kml' || ext === 'kmz' || ext === 'gpx') return ext;
+  if (ext === 'kml' || ext === 'kmz' || ext === 'gpx' || ext === 'osm')
+    return ext;
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
     head[0] === 0x50 &&
@@ -97,6 +109,7 @@ export function detectGeoFileFormat(name, head) {
   if (text.startsWith('<')) {
     if (/<kml[\s>]/i.test(text)) return 'kml';
     if (/<gpx[\s>]/i.test(text)) return 'gpx';
+    if (/<osm[\s>]/i.test(text)) return 'osm';
   }
   return ext === 'json' ? 'geojson' : null;
 }
@@ -226,7 +239,7 @@ export function countGeoJsonGeometry(
             !c.every(Number.isFinite) ||
             Math.abs(c[0]) > 180 ||
             Math.abs(c[1]) > 90 ||
-            (c.length === 3 && Math.abs(c[2]) > 1_000_000)
+            (c.length === 3 && Math.abs(c[2]) > MAX_IMPORT_ALTITUDE)
           )
             throw new GeoImportError('That GeoJSON has invalid coordinates.');
           positions += 1;
@@ -765,7 +778,7 @@ export function countKmlGeometry(
       const limit = ['north', 'south'].includes(name)
         ? 90
         : name === 'altitude'
-          ? 1_000_000
+          ? MAX_IMPORT_ALTITUDE
           : 360;
       if (
         !el.textContent.trim() ||
@@ -827,7 +840,7 @@ function checkKmlPosition(tuple) {
     !numbers.every(Number.isFinite) ||
     Math.abs(numbers[0]) > 180 ||
     Math.abs(numbers[1]) > 90 ||
-    (numbers.length === 3 && Math.abs(numbers[2]) > 1_000_000)
+    (numbers.length === 3 && Math.abs(numbers[2]) > MAX_IMPORT_ALTITUDE)
   )
     throw new GeoImportError('That KML has invalid coordinates.');
 }
@@ -1261,7 +1274,7 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, KML, KMZ and GPX files can be imported.',
+      'Only GeoJSON, KML, KMZ, GPX and OSM files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1275,9 +1288,13 @@ export async function loadGeoFile(
   let removed = 0;
   let crsIgnored = false;
   try {
-    if (format === 'geojson' || format === 'gpx') {
+    if (format === 'osm' || format === 'geojson' || format === 'gpx') {
       let geojson;
-      if (format === 'gpx') {
+      if (format === 'osm') {
+        geojson = parseOsmToFeatureCollection(
+          parseXml(decodeXml(bytes), 'OSM'),
+        );
+      } else if (format === 'gpx') {
         geojson = gpxToGeoJson(parseXml(decodeXml(bytes), 'GPX'));
       } else {
         geojson = parseGeoJsonText(new TextDecoder().decode(bytes));
@@ -1332,6 +1349,11 @@ export async function loadGeoFile(
   } catch (error) {
     revoke();
     if (error instanceof GeoImportError) throw error;
+    // An OSM refusal already names the reason (dangling reference,
+    // unclosed multipolygon ring); carry that wording instead of the
+    // generic "could not be read".
+    if (error instanceof OsmGeoImportError)
+      throw new GeoImportError(error.message);
     throw new GeoImportError(
       `That ${format.toUpperCase()} file could not be read.`,
     );
