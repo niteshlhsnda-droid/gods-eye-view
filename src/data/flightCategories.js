@@ -92,25 +92,29 @@ export const FLIGHT_CATEGORY_INFO = Object.freeze({
     code: 'VFR',
     name: 'Visual Flight Rules',
     color: 'green',
-    guidance: 'Visual flying conditions. Still check wind, storms, and terrain.',
+    guidance:
+      'Visual flying conditions. Still check wind, storms, and terrain.',
   }),
   MVFR: Object.freeze({
     code: 'MVFR',
     name: 'Marginal Visual Flight Rules',
     color: 'blue',
-    guidance: 'Marginal visual conditions. Legal for VFR but with slim margins; many accidents happen in MVFR.',
+    guidance:
+      'Marginal visual conditions. Legal for VFR but with slim margins; many accidents happen in MVFR.',
   }),
   IFR: Object.freeze({
     code: 'IFR',
     name: 'Instrument Flight Rules',
     color: 'red',
-    guidance: 'Instrument conditions. Visual flight is not safe or legal for VFR-only pilots.',
+    guidance:
+      'Instrument conditions. Visual flight is not safe or legal for VFR-only pilots.',
   }),
   LIFR: Object.freeze({
     code: 'LIFR',
     name: 'Low Instrument Flight Rules',
     color: 'magenta',
-    guidance: 'Very low instrument conditions, near the limits of standard instrument approaches.',
+    guidance:
+      'Very low instrument conditions, near the limits of standard instrument approaches.',
   }),
   VLIFR: Object.freeze({
     code: 'VLIFR',
@@ -122,7 +126,11 @@ export const FLIGHT_CATEGORY_INFO = Object.freeze({
 });
 
 /** Cloud-cover codes that define a ceiling (broken, overcast, vertical visibility). */
-export const FLIGHT_CATEGORY_CEILING_COVERAGES = Object.freeze(['BKN', 'OVC', 'VV']);
+export const FLIGHT_CATEGORY_CEILING_COVERAGES = Object.freeze([
+  'BKN',
+  'OVC',
+  'VV',
+]);
 
 /** Cloud-cover codes that never define a ceiling (few, scattered, clear, no significant cloud, no cloud detected). */
 export const FLIGHT_CATEGORY_NON_CEILING_COVERAGES = Object.freeze([
@@ -136,7 +144,9 @@ export const FLIGHT_CATEGORY_NON_CEILING_COVERAGES = Object.freeze([
 
 function assertNonNegativeFinite(name, value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${name} must be a finite number, got ${String(value)}`);
+    throw new TypeError(
+      `${name} must be a finite number, got ${String(value)}`,
+    );
   }
   if (value < 0) {
     throw new RangeError(`${name} must be >= 0, got ${value}`);
@@ -144,7 +154,13 @@ function assertNonNegativeFinite(name, value) {
 }
 
 function assertFlightCategory(code) {
-  if (code !== 'VFR' && code !== 'MVFR' && code !== 'IFR' && code !== 'LIFR' && code !== 'VLIFR') {
+  if (
+    code !== 'VFR' &&
+    code !== 'MVFR' &&
+    code !== 'IFR' &&
+    code !== 'LIFR' &&
+    code !== 'VLIFR'
+  ) {
     throw new TypeError(`unknown flight category: ${String(code)}`);
   }
 }
@@ -222,7 +238,10 @@ export function flightCategory(input) {
     throw new TypeError('flightCategory input must be an object');
   }
   const { ceilingFt = null, visibilitySm } = input;
-  return worseFlightCategory(ceilingCategory(ceilingFt), visibilityCategory(visibilitySm));
+  return worseFlightCategory(
+    ceilingCategory(ceilingFt),
+    visibilityCategory(visibilitySm),
+  );
 }
 
 /**
@@ -244,7 +263,10 @@ export function flightCategoryDetailed(input) {
     assertNonNegativeFinite('ceilingFt', ceilingFt);
   }
   assertNonNegativeFinite('visibilitySm', visibilitySm);
-  const ceilingIsVlifr = ceilingFt !== null && ceilingFt !== undefined && ceilingFt < VLIFR_CEILING_FT;
+  const ceilingIsVlifr =
+    ceilingFt !== null &&
+    ceilingFt !== undefined &&
+    ceilingFt < VLIFR_CEILING_FT;
   const visibilityIsVlifr = visibilitySm < VLIFR_VISIBILITY_SM;
   if (ceilingIsVlifr || visibilityIsVlifr) {
     return 'VLIFR';

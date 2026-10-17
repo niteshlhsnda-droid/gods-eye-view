@@ -102,43 +102,19 @@ test('visibilityCategory honours every AIM boundary', () => {
 });
 
 test('flightCategory takes the worse of ceiling and visibility', () => {
-  assert.equal(
-    flightCategory({ ceilingFt: 5000, visibilitySm: 10 }),
-    'VFR',
-  );
-  assert.equal(
-    flightCategory({ ceilingFt: 2500, visibilitySm: 10 }),
-    'MVFR',
-  );
-  assert.equal(
-    flightCategory({ ceilingFt: 5000, visibilitySm: 2 }),
-    'IFR',
-  );
+  assert.equal(flightCategory({ ceilingFt: 5000, visibilitySm: 10 }), 'VFR');
+  assert.equal(flightCategory({ ceilingFt: 2500, visibilitySm: 10 }), 'MVFR');
+  assert.equal(flightCategory({ ceilingFt: 5000, visibilitySm: 2 }), 'IFR');
   // The fog case from the module docs: high ceiling, near-zero visibility.
-  assert.equal(
-    flightCategory({ ceilingFt: 5000, visibilitySm: 0.5 }),
-    'LIFR',
-  );
-  assert.equal(
-    flightCategory({ ceilingFt: 400, visibilitySm: 10 }),
-    'LIFR',
-  );
+  assert.equal(flightCategory({ ceilingFt: 5000, visibilitySm: 0.5 }), 'LIFR');
+  assert.equal(flightCategory({ ceilingFt: 400, visibilitySm: 10 }), 'LIFR');
   // No ceiling (clear / few / scattered only) counts as VFR.
   assert.equal(flightCategory({ visibilitySm: 10 }), 'VFR');
   assert.equal(flightCategory({ ceilingFt: null, visibilitySm: 2 }), 'IFR');
   // Exact AIM boundaries: 3000 ft / 5 sm is MVFR, not VFR.
-  assert.equal(
-    flightCategory({ ceilingFt: 3000, visibilitySm: 5 }),
-    'MVFR',
-  );
-  assert.equal(
-    flightCategory({ ceilingFt: 1000, visibilitySm: 3 }),
-    'MVFR',
-  );
-  assert.equal(
-    flightCategory({ ceilingFt: 500, visibilitySm: 1 }),
-    'IFR',
-  );
+  assert.equal(flightCategory({ ceilingFt: 3000, visibilitySm: 5 }), 'MVFR');
+  assert.equal(flightCategory({ ceilingFt: 1000, visibilitySm: 3 }), 'MVFR');
+  assert.equal(flightCategory({ ceilingFt: 500, visibilitySm: 1 }), 'IFR');
 });
 
 test('flightCategoryDetailed splits the worst end into VLIFR', () => {
@@ -201,10 +177,7 @@ test('ceilingFromCloudLayers takes the lowest BKN / OVC / VV layer', () => {
     ]),
     null,
   );
-  assert.equal(
-    ceilingFromCloudLayers([{ coverage: 'CLR' }]),
-    null,
-  );
+  assert.equal(ceilingFromCloudLayers([{ coverage: 'CLR' }]), null);
   assert.equal(
     ceilingFromCloudLayers([
       { coverage: 'FEW', baseFt: 800 },
@@ -219,10 +192,7 @@ test('ceilingFromCloudLayers takes the lowest BKN / OVC / VV layer', () => {
     ]),
     1500,
   );
-  assert.equal(
-    ceilingFromCloudLayers([{ coverage: 'VV', baseFt: 300 }]),
-    300,
-  );
+  assert.equal(ceilingFromCloudLayers([{ coverage: 'VV', baseFt: 300 }]), 300);
   assert.equal(
     ceilingFromCloudLayers([
       { coverage: 'SKC' },
@@ -253,14 +223,8 @@ test('invalid inputs throw TypeError or RangeError', () => {
   );
   assert.throws(() => ceilingFromCloudLayers(null), TypeError);
   assert.throws(() => ceilingFromCloudLayers([null]), TypeError);
-  assert.throws(
-    () => ceilingFromCloudLayers([{ coverage: 5 }]),
-    TypeError,
-  );
-  assert.throws(
-    () => ceilingFromCloudLayers([{ coverage: 'BKN' }]),
-    TypeError,
-  );
+  assert.throws(() => ceilingFromCloudLayers([{ coverage: 5 }]), TypeError);
+  assert.throws(() => ceilingFromCloudLayers([{ coverage: 'BKN' }]), TypeError);
   assert.throws(
     () => ceilingFromCloudLayers([{ coverage: 'XYZ', baseFt: 1000 }]),
     TypeError,
