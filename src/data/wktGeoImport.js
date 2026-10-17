@@ -15,7 +15,7 @@
  * `EMPTY`, `Z` qualifiers and the PostGIS `SRID=<n>;` EWKT prefix —
  * PostGIS docs, "OpenGIS WKB and WKT" / "PostGIS EWKB, EWKT and
  * Canonical Forms"). Upstream's importer accepts no `.wkt` and its
- * `GEO_FILE_ACCEPT` is `.geojson,.json,.kml,.kmz,.gpx`.
+ * `GEO_FILE_ACCEPT` is `.geojson,.json,.kml,.kmz,.gpx,.wkt`.
  *
  * Pure functions, no Cesium/DOM/network. Deliberate limits, in the
  * never-silently-assume posture of ruling #5:
@@ -37,20 +37,27 @@
  *   because a GeometryCollection cannot hold a null member.
  * - Files over the caps are refused, not truncated (same posture as the
  *   geo file importer's entity cap).
- * Wiring note: when the importer wires this in, it adds `.wkt` to
- * `GEO_FILE_ACCEPT`, routes `.wkt` here, and unifies `MAX_WKT_FEATURES`
- * / `MAX_WKT_POSITIONS` with its `MAX_IMPORT_ENTITIES` /
- * `MAX_IMPORT_POSITIONS` (same values) so the two caps cannot drift apart.
+ * Wiring note: the importer (`src/data/geoFileImport.js`) routes `.wkt`
+ * files here and adds `.wkt` to `GEO_FILE_ACCEPT`. The caps below are
+ * aliases of the importer's caps (`src/data/geoImportLimits.js`), so the
+ * two cannot drift apart; a WKT refusal is rethrown by the importer as
+ * a `GeoImportError` carrying this parser's message.
  */
 
-/** Most geometries one WKT input may carry (same as the importer's entity cap). */
-export const MAX_WKT_FEATURES = 20_000;
-/** Most coordinate tuples in one WKT input (same as the importer's position cap). */
-export const MAX_WKT_POSITIONS = 250_000;
+import {
+  MAX_IMPORT_ALTITUDE,
+  MAX_IMPORT_ENTITIES,
+  MAX_IMPORT_POSITIONS,
+} from './geoImportLimits.js';
+
+/** Most geometries one WKT input may carry (the importer's entity cap). */
+export const MAX_WKT_FEATURES = MAX_IMPORT_ENTITIES;
+/** Most coordinate tuples in one WKT input (the importer's position cap). */
+export const MAX_WKT_POSITIONS = MAX_IMPORT_POSITIONS;
 /** Deepest GEOMETRYCOLLECTION nesting — bounds adversarial nesting. */
 export const MAX_WKT_DEPTH = 32;
 /** Largest accepted altitude, mirroring the upstream GeoJSON bound. */
-export const MAX_WKT_ALTITUDE = 1_000_000;
+export const MAX_WKT_ALTITUDE = MAX_IMPORT_ALTITUDE;
 /** The only SRID accepted: WGS 84. */
 export const WKT_WGS84_SRID = 4326;
 
@@ -80,7 +87,7 @@ export class WktGeoImportError extends Error {
  */
 export function isWktText(text) {
   if (typeof text !== 'string') return false;
-  return /^\s*(?:SRID\s*=\s*\d+\s*;\s*)?(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\b/i.test(
+  return /^\s*(?:srid\s*=\s*\d+\s*;\s*)?(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\b/i.test(
     text.replace(/^\uFEFF/, ''),
   );
 }
@@ -157,7 +164,9 @@ class Parser {
   /** Optional `SRID=<n>;` EWKT prefix. Only 4326 is accepted. */
   readSridPrefix() {
     this.skipWhitespace();
-    const plain = /^SRID\s*=\s*(\d+)\s*;/.exec(this.text.slice(this.pos));
+    // The prefix keyword is case-insensitive (`srid=4326;` from a
+    // lowercase dump); the refusal still names the canonical `SRID=<n>`.
+    const plain = /^srid\s*=\s*(\d+)\s*;/i.exec(this.text.slice(this.pos));
     if (!plain) return;
     const srid = Number(plain[1]);
     if (srid !== WKT_WGS84_SRID) {
@@ -196,7 +205,8 @@ class Parser {
     const saved = this.pos;
     this.skipWhitespace();
     const next = this.text.slice(this.pos);
-    const anchored = /^(Z|M|ZM)(?![A-Za-z])/.exec(next);
+    // The qualifier is case-insensitive (`point z (...)`), like the type.
+    const anchored = /^(Z|M|ZM)(?![A-Za-z])/i.exec(next);
     if (!anchored) {
       this.pos = saved;
       return '';
@@ -208,7 +218,7 @@ class Parser {
       return '';
     }
     this.pos += anchored[0].length;
-    return anchored[0];
+    return anchored[0].toUpperCase();
   }
 
   /** Reject measured dimensions: GeoJSON has no measure slot. */
