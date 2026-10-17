@@ -96,6 +96,18 @@ test('inline OSM attribution persists until its last display owner leaves', asyn
   assert.equal(visible.size, 1, 'reenabling restores the short credit');
 });
 
+test('CelesTrak credit says satellite positions are SGP4 predictions', () => {
+  const credit = DATA_CREDITS.find((entry) => entry.key === 'celestrak');
+  assert.ok(credit, 'CelesTrak supplies satellite TLEs and must be credited');
+  // Satellite dots are SGP4 predictions from TLE epochs, not live
+  // observations — the in-app attribution must say so, or a reader will
+  // treat a propagated dot as a tracked one.
+  assert.match(credit.html, /SGP4 predictions/);
+  assert.match(credit.html, /not live observations/);
+  assert.match(credit.html, /accuracy degrades as the element set ages/);
+  assert.match(credit.html, /celestrak\.org/);
+});
+
 test('tile attribution follows source changes and viewers have independent ownership', async () => {
   const { showOsmCredit, hideOsmCredit } = await import('./dataCredits.js');
   const create = () => {

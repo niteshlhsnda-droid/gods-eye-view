@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as Cesium from 'cesium';
 import { twoline2satrec } from 'satellite.js';
+import { tleEpochMs } from '../sources/tle.js';
 import satellitesLayer, {
   mapAnalystRecord,
   _clearDenseCatalogStateForTest,
@@ -38,7 +39,34 @@ test('satellite analyst record: full record maps every contract field', () => {
     speedMps: 7660,
     satelliteClass: 'STATION · ISS',
     group: 'stations',
+    positionKind: 'predicted',
+    positionLabel: 'PREDICTED · TLE age unknown',
   });
+});
+
+test('satellite analyst record: TLE line1 dates the prediction by epoch age', () => {
+  const epoch = tleEpochMs(
+    '1 25544U 98067A   24123.45678901  .00016717  00000-0  30676-3 0  9993',
+  );
+  const fresh = mapAnalystRecord(
+    {
+      ...FULL_RAW,
+      tleLine1:
+        '1 25544U 98067A   24123.45678901  .00016717  00000-0  30676-3 0  9993',
+    },
+    { nowMs: epoch + 36 * 3600_000 },
+  );
+  assert.equal(fresh.positionKind, 'predicted');
+  assert.equal(fresh.positionLabel, 'PREDICTED · TLE 36 h old');
+  const stale = mapAnalystRecord(
+    {
+      ...FULL_RAW,
+      tleLine1:
+        '1 25544U 98067A   24123.45678901  .00016717  00000-0  30676-3 0  9993',
+    },
+    { nowMs: epoch + 4 * 86400_000 },
+  );
+  assert.equal(stale.positionLabel, 'PREDICTED · TLE 4 d old · STALE');
 });
 
 test('satellite analyst record: nameless row falls back to SAT-norad id', () => {
@@ -146,6 +174,10 @@ test('satellite getAnalystRecords: core rows beat dense extras under the cap', (
         Number.isFinite(row.lat) && Number.isFinite(row.lon),
         `${row.id} needs a geodetic position`,
       );
+      // Every satellite row must carry its prediction qualifier, even when
+      // the catalog entry had no element set (then the label says unknown).
+      assert.equal(row.positionKind, 'predicted');
+      assert.match(row.positionLabel, /^PREDICTED · TLE /);
       assert.deepEqual(JSON.parse(JSON.stringify(row)), row);
     }
   } finally {

@@ -122,6 +122,9 @@ export function createCatalog({ state: layerState, services, parts, source }) {
             name: entry.name,
             satrec,
             group: 'dense',
+            // Keep the element set: analyst records label the position
+            // with the TLE age it was propagated from.
+            line1: entry.line1,
           });
           const point = layerState._pointCollection.add({
             position: Cesium.Cartesian3.fromDegrees(

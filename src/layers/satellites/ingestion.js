@@ -122,6 +122,9 @@ export function createIngestion({
             name: entry.name,
             satrec,
             group: entry.group,
+            // Keep the element set: analyst records label the position
+            // with the TLE age it was propagated from.
+            line1: entry.line1,
           });
 
           // Propagate initial position

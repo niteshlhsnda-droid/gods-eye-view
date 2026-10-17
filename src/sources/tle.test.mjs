@@ -6,6 +6,8 @@ import {
   tleEpochMs,
   tleAgeMs,
   tleIsStale,
+  formatTleAge,
+  satellitePredictionLabel,
 } from './tle.js';
 
 // ISS TLE epoch: 2024 day 123.45678901 (columns 19-32 of line 1).
@@ -56,5 +58,62 @@ describe('tleAgeMs / tleIsStale', () => {
     const old = tleEpochMs(LINE1) + 73 * 3600_000;
     assert.equal(tleIsStale(LINE1, { nowMs: old }), true);
     assert.equal(tleIsStale('garbage', { nowMs: Date.now() }), true);
+  });
+});
+
+describe('formatTleAge', () => {
+  it('uses minutes below an hour, hours below two days, days above', () => {
+    assert.equal(formatTleAge(0), '0 min');
+    assert.equal(formatTleAge(30 * 60000), '30 min');
+    assert.equal(formatTleAge(90 * 60000), '1 h');
+    assert.equal(formatTleAge(47 * 3600_000), '47 h');
+    assert.equal(formatTleAge(49 * 3600_000), '2 d');
+    assert.equal(formatTleAge(4 * 86400_000), '4 d');
+  });
+});
+
+describe('satellitePredictionLabel', () => {
+  const epoch = tleEpochMs(LINE1);
+
+  it('labels a fresh prediction with the TLE age, never the fetch time', () => {
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch + 25 * 60000 }),
+      'PREDICTED · TLE 25 min old',
+    );
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch + 36 * 3600_000 }),
+      'PREDICTED · TLE 36 h old',
+    );
+  });
+
+  it('marks element sets older than 72 h STALE', () => {
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch + 72 * 3600_000 }),
+      'PREDICTED · TLE 3 d old',
+    );
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch + 73 * 3600_000 }),
+      'PREDICTED · TLE 3 d old · STALE',
+    );
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch + 4 * 86400_000 }),
+      'PREDICTED · TLE 4 d old · STALE',
+    );
+  });
+
+  it('reports unknown instead of inventing an age', () => {
+    assert.equal(
+      satellitePredictionLabel('garbage', { nowMs: epoch }),
+      'PREDICTED · TLE age unknown',
+    );
+    assert.equal(
+      satellitePredictionLabel(undefined, { nowMs: epoch }),
+      'PREDICTED · TLE age unknown',
+    );
+    // An epoch in the future cannot have an age — unknown, not negative.
+    assert.equal(
+      satellitePredictionLabel(LINE1, { nowMs: epoch - 3600_000 }),
+      'PREDICTED · TLE age unknown',
+    );
   });
 });
