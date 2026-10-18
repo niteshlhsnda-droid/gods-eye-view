@@ -1041,5 +1041,8 @@
   "src/data/sunPosition.test.mjs",
   "scripts/slowest-tests.mjs",
   "src/tooling/slowestTests.js",
-  "src/tooling/slowestTests.test.mjs"
+  "src/tooling/slowestTests.test.mjs",
+  "scripts/scoreboard-import-cycles.mjs",
+  "src/tooling/importCycles.js",
+  "src/tooling/importCycles.test.mjs"
 ]
