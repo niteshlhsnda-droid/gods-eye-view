@@ -1170,5 +1170,8 @@
   "src/data/sphericalClipMath.test.mjs",
   "src/data/aircraftIcons.test.mjs",
   "src/data/sphericalBooleanMath.js",
-  "src/data/sphericalBooleanMath.test.mjs"
+  "src/data/sphericalBooleanMath.test.mjs",
+  "scripts/scoreboard-error-swallowing.mjs",
+  "scripts/errorSwallowing.mjs",
+  "src/tooling/errorSwallowing.test.mjs"
 ]

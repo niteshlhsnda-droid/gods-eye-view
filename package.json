@@ -75,6 +75,7 @@
     "scoreboard:complexity-hotspots": "node scripts/scoreboard-complexity-hotspots.mjs",
     "scoreboard:suppressions": "node scripts/scoreboard-suppressions.mjs",
     "scoreboard:test-async-gap": "node scripts/scoreboard-test-async-gap.mjs",
+    "scoreboard:error-swallowing": "node scripts/scoreboard-error-swallowing.mjs",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
