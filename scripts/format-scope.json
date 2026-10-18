@@ -1196,5 +1196,6 @@
   "scripts/noOpPromise.mjs",
   "src/tooling/noOpPromise.js",
   "src/tooling/noOpPromise.test.mjs",
-  "src/sources/httpBody.test.mjs"
+  "src/sources/httpBody.test.mjs",
+  "src/layers/firms/queries.test.mjs"
 ]

@@ -76,6 +76,13 @@ export function createFirmsState({ services, config }) {
 
   layerState._labelCandidates = [];
 
+  /**
+   * Ambient cards actually placed by the last rebuildAmbientLabels() pass
+   * (declutter survivors, ≤ FIRMS_AMBIENT_COHORT_LIMIT). Null until the first
+   * rebuild, so the panel never claims a cohort bound before one is measured.
+   */
+  layerState._ambientCohortShown = null;
+
   layerState._labelLodDistance = 0;
 
   /** pick id string -> fire record, for the currently rendered sprites. */

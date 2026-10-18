@@ -105,6 +105,11 @@ export function createCards({
       entries.push(card);
     }
 
+    // Record the cohort the pass actually placed: the layer panel renders the
+    // canonical firmsCohortLabel text (showing N of total, truncated) from
+    // this instead of a bare count that reads as the whole fire population.
+    layerState._ambientCohortShown = ambientCount;
+
     overlayHost.setEntries(
       FIRMS_OVERLAY_SOURCE_ID,
       entries.map((entry) => {
