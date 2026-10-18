@@ -29,7 +29,7 @@ else:
 | Compliance / production uses ("uses it live" = not cached, "live product" = production deployment) | Left | Not freshness claims. |
 | Negations ("not a live strike counter") | Left | Saying what a layer does *not* provide. |
 | Dynamic age-qualified labels (`LIVE · updated Xm ago`, `STALE · cached Xh`) | Left | The allowed form: liveness plus age, with a stale flip. |
-| In-app layer display names `Live Flights` / `Live Vessels` | Left — known leftover, see below | Load-bearing strings (used in tests and in `throwIfStaticHosting` messages). Renaming them needs a coordinated rename of app + tests + docs, not a one-sided README edit that would desync docs from the app. |
+| In-app layer display names `Live Flights` / `Live Vessels` | Fixed in audit #2 — see below | Load-bearing strings (used in tests and in `throwIfStaticHosting` messages). Renamed in app + tests + docs together, not a one-sided edit. |
 
 Two wording swaps were used where "live" meant something precise rather
 than "fresh": "fetched live" → "fetched at request time" (per-request
@@ -67,11 +67,46 @@ caches and upstream latency add age on top).
 | `src/keySetupCore.mjs` | `unlocks: 'Real live traffic (keyless runs a simulation)'` → `'Real traffic flow (keyless runs a simulation)'` | The real-vs-simulated distinction is kept ("Real … flow"); "live" was the unqualified part. |
 | `src/data/dataCredits.js` | `'Live vessels (AIS): '` → `'Vessels (AIS): '` | Attribution popover is a static label; 60 s vessel refresh. |
 
+## Audit #2 — 2026-10-18: known leftovers resolved + traffic/satellite/ISS scan
+
+Scope: the leftovers audit #1 deferred, plus a fresh scan of the three
+areas most likely to still overstate staleness (traffic, satellites, ISS).
+
+### Fixed
+
+| File | Before → After | Why it was wrong |
+| --- | --- | --- |
+| `src/layers/flights/queries.js` (layer `name`) | `'Live Flights'` → `'Flights'` | Static layer name asserted liveness; flights poll every 30 s (`updateInterval: 30000`, `src/layers/flights/queries.js`). |
+| `src/layers/flights/tracking.js` (`layerName`) | `'Live Flights'` → `'Flights'` | Same label, second surface. |
+| `src/ui/layerPanel.js` (label map) | `'Live Vessels'` → `'Vessels'` | Static label; vessels refresh every 60 s (`REFRESH_MS`, `src/layers/vessels/policy.js`). Key `'ais-live-vessels'` is an identifier and was not renamed. |
+| `src/sources/live/standalone.js` (`throwIfStaticHosting`) | `'Live flights'` / `'Live vessels'` → `'Flights'` / `'Vessels'` | User-facing error noun phrase asserted liveness. |
+| `src/sources/needsDesktopServer.js` (JSDoc example) | `'Live flights'` → `'Flights'` | Doc example repeated the old label. |
+| `src/contextModePolicy.js` (JSDoc) | `Whether Live Flights is enabled.` → `Whether Flights is enabled.` | Comment repeated the old label. |
+| `src/layers/traffic/controls.js` (road-chip tooltip) | `each with its live flow` → `each with its TomTom flow` | User-facing tooltip; TomTom flow sits behind a 120 s proxy cache (`TILE_TTL_MS`, `server/providers/traffic.js`), so displayed flow can be 2+ min old. Names the provider instead of asserting liveness. |
+| Tests (12 files) + `README.md`, `docs/CURRENT-STATE.md`, `docs/data-freshness.md` | Fixtures, expectations, and table rows updated to the new names | Coordinated rename per the leftover note: app, tests, and docs together. |
+
+### Scanned, no change
+
+- **Satellites:** honest. `src/layers/satellites/policy.js:8` states positions
+  are "not live observations of the satellites" (TLE age cap
+  `TLE_MAX_AGE_MS`); `src/layers/satellites/records.js:12,48` repeats that
+  positions are SGP4 predictions, never live observations. No static label
+  asserts liveness.
+- **ISS:** no ISS-specific liveness claim in UI strings; group labels (e.g.
+  `STATION · ISS`) name the object, not its freshness.
+- **Traffic (other surfaces):** `.env.example` and `src/keySetupCore.mjs`
+  were fixed in audit #1; remaining `_liveMode` uses are a config term
+  (TomTom key present vs keyless simulation), not a user-facing freshness
+  claim.
+- **Proper names and identifiers left:** `Live Traffic NSW` (provider's own
+  name), GTFS-Realtime (spec name), `VITE_AIS_LIVE_*` (env identifiers),
+  `'ais-live-vessels'` (layer key).
+
 ## Known leftovers (not fixed here)
 
-- **In-app layer names `Live Flights` / `Live Vessels`.** They appear as
-  layer names in tests and in `throwIfStaticHosting('Live vessels')`
-  messages. A rename must land in app, tests, and docs together.
+- **In-app layer names `Live Flights` / `Live Vessels`.** RESOLVED by audit
+  #2 above: coordinated rename to `Flights` / `Vessels` landed in app,
+  tests, and docs together.
 - **`src/data/localLayers.js`** (`source: 'NASA FIRMS · CONTINUOUS'` /
   dead copy). Already flagged in `docs/data-freshness.md`: no importer
   found, belongs to a dead-code sweep, not a wording fix. Do not copy

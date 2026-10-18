@@ -45,7 +45,7 @@ test('static hosting: flight snapshot throws the honest error before any fetch',
     });
     const error = await source.getSnapshot({}).catch((e) => e);
     assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
-    assert.match(error.message, /Live flights/);
+    assert.match(error.message, /Flights/);
     assert.match(error.message, /needs the desktop server/);
     assert.equal(calls, 0);
   } finally {
@@ -114,7 +114,7 @@ test('static hosting: vessel snapshot and track throw before any fetch', async (
     ]) {
       const error = await call().catch((e) => e);
       assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
-      assert.match(error.message, /Live vessels/);
+      assert.match(error.message, /Vessels/);
     }
     assert.equal(calls, 0);
   } finally {

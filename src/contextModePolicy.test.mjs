@@ -240,8 +240,8 @@ test('a rapid re-entry snapshots the settled restore target, not partial manager
 test('Space Missions blocks unrelated layer enables before replay data can mix', () => {
   const change = { layerId: 'flights', enabled: true, origin: 'user' };
   assert.match(
-    contextLayerEnableBlockReason({ contextMode: 'space-missions', change, layerName: 'Live Flights' }),
-    /Exit the mode to enable Live Flights/,
+    contextLayerEnableBlockReason({ contextMode: 'space-missions', change, layerName: 'Flights' }),
+    /Exit the mode to enable Flights/,
   );
   assert.equal(contextLayerEnableBlockReason({
     contextMode: 'space-missions',

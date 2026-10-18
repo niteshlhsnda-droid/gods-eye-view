@@ -25,7 +25,7 @@ export const NEEDS_DESKTOP_SERVER_CODE = 'NEEDS_DESKTOP_SERVER';
 
 /**
  * Build the terminal honest-state error for a server-only feed.
- * @param {string} label Human layer noun phrase, e.g. 'Live flights'.
+ * @param {string} label Human layer noun phrase, e.g. 'Flights'.
  * @returns {Error} Coded error with `.code === NEEDS_DESKTOP_SERVER_CODE`.
  */
 export function needsDesktopServerError(label) {
@@ -52,7 +52,7 @@ export function isNeedsDesktopServerError(error) {
  * Read at request time — the static-hosting probe may resolve after module
  * load, and `isStaticHosting()` is false until it does, so desktop behavior
  * (probed or unprobed) never changes.
- * @param {string} label Human layer noun phrase, e.g. 'Live flights'.
+ * @param {string} label Human layer noun phrase, e.g. 'Flights'.
  */
 export function throwIfStaticHosting(label) {
   if (isStaticHosting()) throw needsDesktopServerError(label);

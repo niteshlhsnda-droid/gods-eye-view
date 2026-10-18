@@ -98,7 +98,7 @@ export function createTracking({
     return {
       id: icao24,
       layerId: 'flights',
-      layerName: 'Live Flights',
+      layerName: 'Flights',
       source: flightState.feed._lastSource,
       label: parts.queries._contactLabel(
         icao24,

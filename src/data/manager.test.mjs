@@ -1646,7 +1646,7 @@ test('visibility guards refuse incompatible enables before lifecycle work', asyn
   mgr.subscribe((change) => changes.push(change));
   const removeGuard = mgr.addVisibilityGuard((change) => (
     change.layerId === 'flights' && change.enabled
-      ? 'Replay isolation keeps Live Flights off'
+      ? 'Replay isolation keeps Flights off'
       : null
   ));
 
@@ -1670,7 +1670,7 @@ test('visibility guards refuse incompatible enables before lifecycle work', asyn
       enabled: true,
       origin: 'user',
       intentEpoch: 1,
-      reason: 'Replay isolation keeps Live Flights off',
+      reason: 'Replay isolation keeps Flights off',
     },
   ]);
 
@@ -2574,7 +2574,7 @@ test('periodic refresh publishes work, failure, and later manager-owned recovery
   const events = [];
   mgr.register({
     id: 'flights',
-    name: 'Live Flights',
+    name: 'Flights',
     icon: '',
     source: 'test',
     updateInterval: 30000,
@@ -2680,7 +2680,7 @@ test('disable invalidates an active periodic refresh without publishing stale se
   const events = [];
   mgr.register({
     id: 'flights',
-    name: 'Live Flights',
+    name: 'Flights',
     icon: '',
     source: 'test',
     updateInterval: 30000,
@@ -2731,7 +2731,7 @@ test('destroy settles an explicit refresh waiting behind invalidated periodic wo
   const events = [];
   mgr.register({
     id: 'flights',
-    name: 'Live Flights',
+    name: 'Flights',
     icon: '',
     source: 'test',
     updateInterval: 30000,

@@ -78,7 +78,7 @@ const PANEL_POSITIONS = new Map(
   PANEL_ORDER.map(({ id }, index) => [id, index]),
 );
 const PANEL_LABELS = {
-  'ais-live-vessels': 'Live Vessels',
+  'ais-live-vessels': 'Vessels',
   bikeshare: 'Bike Share',
   cctv: 'Cameras',
   'street-level': 'Street Level',

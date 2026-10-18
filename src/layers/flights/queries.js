@@ -284,7 +284,7 @@ export function createQueries({
 
     id: 'flights',
 
-    name: 'Live Flights',
+    name: 'Flights',
 
     icon: '✈️',
 

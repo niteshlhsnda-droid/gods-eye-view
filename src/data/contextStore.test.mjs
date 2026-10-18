@@ -34,7 +34,7 @@ function withWindow(run) {
 const flightSubject = (id, extra = {}) => ({
   id,
   layerId: 'flights',
-  layerName: 'Live Flights',
+  layerName: 'Flights',
   source: 'OpenSky Network',
   label: id.toUpperCase(),
   latitude: 30.2672,
