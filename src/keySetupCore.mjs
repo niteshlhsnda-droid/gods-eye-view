@@ -71,7 +71,7 @@ export const KEY_SETUP_KEYS = Object.freeze([
   Object.freeze({
     id: 'firms',
     title: 'NASA FIRMS',
-    unlocks: 'Live active-fire detections',
+    unlocks: 'Active-fire detections',
     getUrl: 'https://firms.modaps.eosdis.nasa.gov/api/map_key/',
     envVars: Object.freeze(['FIRMS_MAP_KEY']),
     tier: 'free',
