@@ -1048,5 +1048,7 @@
   "src/tooling/importCycles.test.mjs",
   "scripts/scoreboard-test-flaky-risk.mjs",
   "src/tooling/testFlakyRisk.js",
-  "src/tooling/testFlakyRisk.test.mjs"
+  "src/tooling/testFlakyRisk.test.mjs",
+  "src/data/windMath.js",
+  "src/data/windMath.test.mjs"
 ]
