@@ -1,10 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  GmlImportError,
-  gmlToGeoJson,
-  isGmlText,
-} from './gmlImport.js';
+import { GmlImportError, gmlToGeoJson, isGmlText } from './gmlImport.js';
 
 /* Minimal DOM surface: localName / childNodes / nodeType / textContent /
    getAttribute — the same surface the parser reads. */
@@ -13,8 +9,7 @@ function el(localName, attrs = {}, kids = []) {
     nodeType: 1,
     localName,
     childNodes: [],
-    getAttribute: (name) =>
-      name in attrs ? String(attrs[name]) : null,
+    getAttribute: (name) => (name in attrs ? String(attrs[name]) : null),
     get textContent() {
       return typeof kids === 'string'
         ? kids
@@ -55,9 +50,7 @@ test('isGmlText sniffs GML and rejects KML / GeoJSON / empty text', () => {
 });
 
 test('bare CRS84 Point reads lon,lat from pos', () => {
-  const fc = gml(
-    el('Point', {}, [el('pos', {}, '12.5 41.9')]),
-  );
+  const fc = gml(el('Point', {}, [el('pos', {}, '12.5 41.9')]));
   assert.equal(fc.features.length, 1);
   assert.deepEqual(fc.features[0].geometry, {
     type: 'Point',
@@ -92,9 +85,7 @@ test('EPSG URN forms also swap, CRS84 forms do not', () => {
 });
 
 test('LineString from posList, and srsDimension 3 drops altitude', () => {
-  const line = gml(
-    el('LineString', {}, [el('posList', {}, '0 0 10 0 10 10')]),
-  );
+  const line = gml(el('LineString', {}, [el('posList', {}, '0 0 10 0 10 10')]));
   assert.deepEqual(line.features[0].geometry, {
     type: 'LineString',
     coordinates: [
@@ -118,14 +109,10 @@ test('GML 3 Polygon with hole via exteriorRing / interiorRing', () => {
   const fc = gml(
     el('Polygon', {}, [
       el('exteriorRing', {}, [
-        el('LinearRing', {}, [
-          el('posList', {}, '0 0 10 0 10 10 0 10 0 0'),
-        ]),
+        el('LinearRing', {}, [el('posList', {}, '0 0 10 0 10 10 0 10 0 0')]),
       ]),
       el('interiorRing', {}, [
-        el('LinearRing', {}, [
-          el('posList', {}, '2 2 4 2 4 4 2 4 2 2'),
-        ]),
+        el('LinearRing', {}, [el('posList', {}, '2 2 4 2 4 4 2 4 2 2')]),
       ]),
     ]),
   );
@@ -154,9 +141,7 @@ test('GML 2 Polygon via outerBoundaryIs and coordinates', () => {
   const fc = gml(
     el('Polygon', {}, [
       el('outerBoundaryIs', {}, [
-        el('LinearRing', {}, [
-          el('coordinates', {}, '0,0 10,0 10,10 0,0'),
-        ]),
+        el('LinearRing', {}, [el('coordinates', {}, '0,0 10,0 10,10 0,0')]),
       ]),
     ]),
   );
@@ -220,8 +205,7 @@ test('MultiPoint, MultiLineString, MultiPolygon and MultiSurface', () => {
       ],
     ],
   });
-  const ring = (coords) =>
-    el('LinearRing', {}, [el('posList', {}, coords)]);
+  const ring = (coords) => el('LinearRing', {}, [el('posList', {}, coords)]);
   const polygon = (coords) =>
     el('Polygon', {}, [el('exteriorRing', {}, [ring(coords)])]);
   const multiPolygon = gml(
@@ -247,15 +231,11 @@ test('FeatureCollection members carry names; bare feature root works', () => {
       el('featureMember', {}, [
         el('roads', {}, [
           el('name', {}, '  Via  Roma '),
-          el('geometry', {}, [
-            el('Point', {}, [el('pos', {}, '12.5 41.9')]),
-          ]),
+          el('geometry', {}, [el('Point', {}, [el('pos', {}, '12.5 41.9')])]),
         ]),
       ]),
       el('featureMember', {}, [
-        el('roads', {}, [
-          el('Point', {}, [el('pos', {}, '0 0')]),
-        ]),
+        el('roads', {}, [el('Point', {}, [el('pos', {}, '0 0')])]),
       ]),
     ]),
   );
@@ -352,9 +332,7 @@ test('collection srsName is inherited unless a geometry overrides it', () => {
 test('non-WGS84 srsName refuses the whole file', () => {
   assert.throws(
     () =>
-      gml(
-        el('Point', { srsName: 'EPSG:3857' }, [el('pos', {}, '12.5 41.9')]),
-      ),
+      gml(el('Point', { srsName: 'EPSG:3857' }, [el('pos', {}, '12.5 41.9')])),
     (error) =>
       error instanceof GmlImportError &&
       /unsupported CRS "EPSG:3857"/.test(error.message),
@@ -424,7 +402,8 @@ test('degenerate geometries are refused', () => {
 test('posList count not a multiple of srsDimension is refused', () => {
   assert.throws(
     () => gml(el('LineString', {}, [el('posList', {}, '0 0 1')])),
-    (error) => error instanceof GmlImportError && /multiple/.test(error.message),
+    (error) =>
+      error instanceof GmlImportError && /multiple/.test(error.message),
   );
 });
 
@@ -437,7 +416,8 @@ test('custom coordinates separators are refused', () => {
         ]),
       ),
     (error) =>
-      error instanceof GmlImportError && /custom separators/.test(error.message),
+      error instanceof GmlImportError &&
+      /custom separators/.test(error.message),
   );
 });
 
@@ -449,21 +429,21 @@ test('unsupported geometry types are refused, not silently dropped', () => {
           el('geometry', {}, [
             el('Curve', {}, [
               el('segments', {}, [
-                el('LineStringSegment', {}, [
-                  el('posList', {}, '0 0 1 1'),
-                ]),
+                el('LineStringSegment', {}, [el('posList', {}, '0 0 1 1')]),
               ]),
             ]),
           ]),
         ]),
       ),
     (error) =>
-      error instanceof GmlImportError && /unsupported geometry/.test(error.message),
+      error instanceof GmlImportError &&
+      /unsupported geometry/.test(error.message),
   );
   assert.throws(
     () => gml(el('Surface', {}, [el('patches', {}, [])])),
     (error) =>
-      error instanceof GmlImportError && /unsupported geometry/.test(error.message),
+      error instanceof GmlImportError &&
+      /unsupported geometry/.test(error.message),
   );
 });
 
@@ -478,7 +458,8 @@ test('non-GML roots are refused', () => {
   );
   assert.throws(
     () => gmlToGeoJson(doc(el('Envelope', {}, []))),
-    (error) => error instanceof GmlImportError && /bounding box/.test(error.message),
+    (error) =>
+      error instanceof GmlImportError && /bounding box/.test(error.message),
   );
 });
 
@@ -493,14 +474,13 @@ test('feature and position caps are enforced', () => {
       gmlToGeoJson(doc(el('FeatureCollection', {}, many)), {
         maxFeatures: 2,
       }),
-    (error) => error instanceof GmlImportError && /features/.test(error.message),
+    (error) =>
+      error instanceof GmlImportError && /features/.test(error.message),
   );
   assert.throws(
     () =>
       gmlToGeoJson(
-        doc(
-          el('LineString', {}, [el('posList', {}, '0 0 1 1 2 2')]),
-        ),
+        doc(el('LineString', {}, [el('posList', {}, '0 0 1 1 2 2')])),
         { maxPositions: 2 },
       ),
     (error) => error instanceof GmlImportError && /points/.test(error.message),

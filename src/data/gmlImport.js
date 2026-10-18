@@ -207,17 +207,14 @@ function parsePos(el, order, ctx) {
     .filter(Boolean)
     .map(parseNumber);
   if (numbers.length < 2 || numbers.length > 3)
-    throw new GmlImportError(
-      'That GML <pos> must hold two or three numbers.',
-    );
+    throw new GmlImportError('That GML <pos> must hold two or three numbers.');
   return finishPosition(numbers, order, ctx);
 }
 
 function parseCoord(el, order, ctx) {
   const x = firstElementChild(el, 'X');
   const y = firstElementChild(el, 'Y');
-  if (!x || !y)
-    throw new GmlImportError('That GML <coord> needs <X> and <Y>.');
+  if (!x || !y) throw new GmlImportError('That GML <coord> needs <X> and <Y>.');
   return finishPosition(
     [parseNumber(x.textContent), parseNumber(y.textContent)],
     order,
@@ -243,11 +240,7 @@ function parseCoordinates(el, order, ctx) {
       throw new GmlImportError(
         'That GML <coordinates> tuple must hold two or three numbers.',
       );
-    return finishPosition(
-      parts.map(parseNumber),
-      order,
-      ctx,
-    );
+    return finishPosition(parts.map(parseNumber), order, ctx);
   });
 }
 
@@ -275,9 +268,7 @@ function parsePositions(el, order, ctx) {
       );
     const positions = [];
     for (let i = 0; i < numbers.length; i += dim)
-      positions.push(
-        finishPosition(numbers.slice(i, i + dim), order, ctx),
-      );
+      positions.push(finishPosition(numbers.slice(i, i + dim), order, ctx));
     return positions;
   }
   const posEls = elementChildren(el, 'pos');
@@ -449,8 +440,7 @@ function parseGeometry(el, ctx, inheritedOrder) {
 function parseFeature(el, ctx, inheritedOrder) {
   if (UNSUPPORTED_GEOMETRY_TYPES.has(el.localName))
     throw new GmlImportError(
-      `That GML file uses an unsupported geometry type ` +
-        `"${el.localName}".`,
+      `That GML file uses an unsupported geometry type ` + `"${el.localName}".`,
     );
   const own = attribute(el, 'srsName');
   const order = own == null ? inheritedOrder : classifySrs(own);
@@ -533,10 +523,7 @@ function parseCollection(el, ctx, inheritedOrder) {
  */
 export function gmlToGeoJson(
   doc,
-  {
-    maxFeatures = GML_MAX_FEATURES,
-    maxPositions = GML_MAX_POSITIONS,
-  } = {},
+  { maxFeatures = GML_MAX_FEATURES, maxPositions = GML_MAX_POSITIONS } = {},
 ) {
   const root = doc?.documentElement;
   if (!root || root.nodeType !== 1)
