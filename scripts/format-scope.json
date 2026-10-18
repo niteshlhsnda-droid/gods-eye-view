@@ -1156,5 +1156,7 @@
   "src/tooling/magicNumbers.test.mjs",
   "src/app/errors.test.mjs",
   "src/data/positionProvenance.js",
-  "src/data/positionProvenance.test.mjs"
+  "src/data/positionProvenance.test.mjs",
+  "src/data/greatCircleMath.js",
+  "src/data/greatCircleMath.test.mjs"
 ]
