@@ -1021,6 +1021,8 @@
   "tests/post-deploy-smoke.spec.mjs",
   "src/data/aircraftEmergency.js",
   "src/data/aircraftEmergency.test.mjs",
+  "src/data/shapefileImport.js",
+  "src/data/shapefileImport.test.mjs",
   "src/data/aircraftEmergencyAnalyst.test.mjs",
   "src/ui/flyToDataSource.js",
   "src/ui/flyToDataSource.test.mjs",
