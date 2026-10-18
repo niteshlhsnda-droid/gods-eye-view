@@ -157,6 +157,38 @@ export function createModel({ state: layerState, services, parts, source }) {
   }
 
   /**
+   * Human label for a normalized launch time. Launch Library 2 `net` is a
+   * No-Earlier-Than bound, NOT a scheduled liftoff instant: the vehicle may
+   * go at any point inside [window_start, window_end]. Presenting the bare
+   * NET timestamp under "LAUNCH TIME" reads as an exact liftoff moment, so
+   * the label always carries the qualifier, plus the window end when LL2
+   * supplies a real window (end strictly after the start). `launchTime`
+   * itself stays a machine-parseable ISO string — this label is display
+   * only and must never be fed back into Date.parse.
+   * @param {object} [launch] Normalized launch record (or a {launchTime,
+   *   timeKind, windowEnd} subset).
+   * @returns {string} Display label, or 'Time unavailable' with no valid time.
+   */
+  function formatLaunchTimeLabel(launch = {}) {
+    const startMs = Date.parse(launch?.launchTime ?? '');
+    if (!Number.isFinite(startMs)) return 'Time unavailable';
+    const startIso = new Date(startMs).toISOString();
+    const endMs = Date.parse(launch?.windowEnd ?? '');
+    const hasWindow = Number.isFinite(endMs) && endMs > startMs;
+    const endIso = hasWindow ? new Date(endMs).toISOString() : null;
+    if (launch?.timeKind === 'window_start') {
+      return endIso
+        ? `Window opens ${startIso} · closes ${endIso}`
+        : `Window opens ${startIso}`;
+    }
+    // Default (timeKind 'net' or unknown): LL2 supplies a No-Earlier-Than
+    // bound, never an exact liftoff instant.
+    return endIso
+      ? `NET · ${startIso} · window until ${endIso}`
+      : `NET · ${startIso}`;
+  }
+
+  /**
    * Normalize a Launch Library 2 response into records suitable for the layer.
    * Trajectory points are retained only when the upstream explicitly supplies
    * them; orbital tracks must not be reconstructed from launch metadata.
@@ -171,9 +203,33 @@ export function createModel({ state: layerState, services, parts, source }) {
     const cutoff = now.getTime() - WINDOW_DAYS * 86400000;
     return launches
       .map((launch) => {
-        const launchTime =
-          launch.net || launch.window_start || launch.pad?.location?.name;
-        const date = Date.parse(launchTime);
+        // Time source: the first PARSEABLE candidate. An unparseable `net`
+        // falls through to `window_start` instead of dropping the row.
+        // A place name is never a time: the old `pad.location.name`
+        // fallback parsed to NaN and yielded a null time anyway.
+        const timeSource = [
+          { kind: 'net', value: launch.net },
+          { kind: 'window_start', value: launch.window_start },
+        ].find(
+          ({ value }) =>
+            typeof value === 'string' && Number.isFinite(Date.parse(value)),
+        );
+        const date = timeSource ? Date.parse(timeSource.value) : NaN;
+        const launchTime = Number.isFinite(date)
+          ? new Date(date).toISOString()
+          : null;
+        const parseWindowBound = (value) => {
+          const ms = typeof value === 'string' ? Date.parse(value) : NaN;
+          return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+        };
+        const windowStart = parseWindowBound(launch.window_start);
+        const windowEnd = parseWindowBound(launch.window_end);
+        const timeKind = timeSource?.kind ?? null;
+        const launchTimeLabel = formatLaunchTimeLabel({
+          launchTime,
+          timeKind,
+          windowEnd,
+        });
         const pad = launch.pad || {};
         const location = pad.location || {};
         const coordinates = location.coordinates || '';
@@ -193,9 +249,11 @@ export function createModel({ state: layerState, services, parts, source }) {
           ),
           name: launch.name || 'Unnamed launch',
           status: launch.status?.name || 'Unknown',
-          launchTime: Number.isFinite(date)
-            ? new Date(date).toISOString()
-            : null,
+          launchTime,
+          timeKind,
+          windowStart,
+          windowEnd,
+          launchTimeLabel,
           launchSite: pad.name || location.name || 'Unknown launch site',
           lat: Number.isFinite(lat) ? lat : null,
           lon: Number.isFinite(lon) ? lon : null,
@@ -236,6 +294,7 @@ export function createModel({ state: layerState, services, parts, source }) {
     normalizeLanding,
     normalizeRecoveryStages,
     missionMarkerColor,
+    formatLaunchTimeLabel,
     normalizeRocketLaunches,
   };
 }

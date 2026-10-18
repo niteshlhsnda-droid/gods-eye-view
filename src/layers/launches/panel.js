@@ -197,7 +197,12 @@ export function createPanel({ state: layerState, services, parts, source }) {
         ? launch.launchSite
         : null,
     );
-    setMissionPanelField('[data-mission-time]', launch.launchTime);
+    setMissionPanelField(
+      '[data-mission-time]',
+      // Display label carries the NET qualifier (see docs/launch-time-net-label.md);
+      // `launchTime` stays a bare ISO string for machine consumers.
+      launch.launchTimeLabel || launch.launchTime,
+    );
     const pathPresentation = parts.policyHelpers.missionPathPresentation(
       launch,
       layerState._replayTracks.has(launch.id),

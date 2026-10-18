@@ -99,6 +99,7 @@ export function createRocketLaunchesLayer({ services, source }) {
       replayOrbitFrameSphere: parts.camera.replayOrbitFrameSphere,
       replayOrbitGlobeRange: parts.camera.replayOrbitGlobeRange,
       missionMarkerColor: parts.model.missionMarkerColor,
+      formatLaunchTimeLabel: parts.model.formatLaunchTimeLabel,
       normalizeRocketLaunches: parts.model.normalizeRocketLaunches,
       _setRocketMissionOverlayHostForTest:
         parts.testing._setRocketMissionOverlayHostForTest,
