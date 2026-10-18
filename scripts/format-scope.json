@@ -1098,5 +1098,7 @@
   "src/layers/gnss/baroGeomDrift.js",
   "src/layers/gnss/baroGeomDrift.test.mjs",
   "src/layers/streetLevel/providers/mapillary/daylight.js",
-  "src/layers/streetLevel/providers/mapillary/daylight.test.mjs"
+  "src/layers/streetLevel/providers/mapillary/daylight.test.mjs",
+  "src/data/mifImport.js",
+  "src/data/mifImport.test.mjs"
 ]
