@@ -1092,5 +1092,7 @@
   "src/data/spaceWeatherScales.test.mjs",
   "scripts/scoreboard-todo-debt.mjs",
   "scripts/todoDebtScoreboard.mjs",
-  "src/tooling/todoDebtScoreboard.test.mjs"
+  "src/tooling/todoDebtScoreboard.test.mjs",
+  "src/data/vectorMath.js",
+  "src/data/vectorMath.test.mjs"
 ]
