@@ -1885,6 +1885,7 @@
       "src/data/geoImportLimits.js",
       "src/data/geoImportPins.js",
       "src/data/geoJsonLinesImport.js",
+      "src/data/georssImport.js",
       "src/data/geoid.js",
       "src/data/gmlImport.js",
       "src/data/groundFloor.js",

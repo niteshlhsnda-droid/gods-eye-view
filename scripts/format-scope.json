@@ -1130,5 +1130,7 @@
   "src/layers/gnss/deadReckoning.js",
   "src/layers/gnss/deadReckoning.test.mjs",
   "src/layers/streetLevel/providers/kartaview/companion.js",
-  "src/layers/streetLevel/providers/kartaview/companion.test.mjs"
+  "src/layers/streetLevel/providers/kartaview/companion.test.mjs",
+  "src/data/georssImport.js",
+  "src/data/georssImport.test.mjs"
 ]
