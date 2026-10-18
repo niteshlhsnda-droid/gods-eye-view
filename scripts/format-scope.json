@@ -1175,5 +1175,7 @@
   "scripts/errorSwallowing.mjs",
   "src/tooling/errorSwallowing.test.mjs",
   "src/data/sphericalVoronoiMath.js",
-  "src/data/sphericalVoronoiMath.test.mjs"
+  "src/data/sphericalVoronoiMath.test.mjs",
+  "src/layers/streetLevel/providerAgreement.js",
+  "src/layers/streetLevel/providerAgreement.test.mjs"
 ]
