@@ -1073,4 +1073,6 @@
   "src/data/colorMath.test.mjs"
   "src/data/gmlImport.js",
   "src/data/gmlImport.test.mjs"
+  "src/data/enhancedFujita.js",
+  "src/data/enhancedFujita.test.mjs"
 ]
