@@ -7,10 +7,7 @@ import {
 import { pickFacingImage } from './facing.js';
 import { nearestPosition } from './position.js';
 export { nearestPosition } from './position.js';
-import {
-  DAYLIGHT_PREFERENCE_FACTOR,
-  captureLight,
-} from './daylight.js';
+import { DAYLIGHT_PREFERENCE_FACTOR, captureLight } from './daylight.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -370,7 +367,6 @@ export function createMapillaryProvider({ source }) {
           }
 
           return hit ? String(hit.record.id) : null;
-
         },
 
         /** Nearest-lookup skips: records dropped for a claimed-but-unusable position. */

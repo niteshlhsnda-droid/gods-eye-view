@@ -223,10 +223,7 @@ test('nearestImage never displaces a daylight or undated nearest', async () => {
   // step stays inert (an undated winner's light is 'unknown', never night).
   const undatedFirst = createMapillaryProvider({
     source: fakeSource({
-      nearest: [
-        at('undated-near', 0.00005, 0),
-        at('undated-far', 0.00009, 0),
-      ],
+      nearest: [at('undated-near', 0.00005, 0), at('undated-far', 0.00009, 0)],
     }),
   }).create(fakeContext());
   assert.equal(
