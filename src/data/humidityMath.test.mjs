@@ -25,9 +25,7 @@ test('saturationVapourPressureHpa: textbook Magnus values over water', () => {
   closeTo(saturationVapourPressureHpa(20), 23.37, 0.05);
   closeTo(saturationVapourPressureHpa(30), 42.46, 0.05);
   // Saturation pressure rises with temperature.
-  assert.ok(
-    saturationVapourPressureHpa(30) > saturationVapourPressureHpa(20),
-  );
+  assert.ok(saturationVapourPressureHpa(30) > saturationVapourPressureHpa(20));
 });
 
 test('saturationVapourPressureHpa: ice surface below freezing, rejects >0C', () => {
