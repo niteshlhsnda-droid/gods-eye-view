@@ -1184,5 +1184,7 @@
   "scripts/scoreboard-dead-params.mjs",
   "src/tooling/deadParams.test.mjs",
   "src/director/sharing/lifetime.js",
-  "src/director/sharing/lifetime.test.mjs"
+  "src/director/sharing/lifetime.test.mjs",
+  "src/data/sphericalConvexHull.js",
+  "src/data/sphericalConvexHull.test.mjs"
 ]
