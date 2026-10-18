@@ -14,6 +14,7 @@ import {
   NEAREST_LIMIT,
   NEAREST_RADIUS_M,
   PICK_PREFIX,
+  freshestFirst,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -222,6 +223,11 @@ export function createMapillaryProvider({ source }) {
          * ranked: a [0, 0] no-fix placeholder would otherwise measure a
          * finite distance to Null Island and could outrank every real photo
          * near the click. Dropped records are counted in `nearestStats`.
+         * Among the passing candidates with a real position, the freshest
+         * shot wins (see `freshestFirst`): the set is already bounded to
+         * the 50 m radius, so a current streetscape beats a decade-old one
+         * a few metres closer. Position-less records stay eligible as
+         * last-resort hits in API order, as before.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
           const images = await source.nearestImages(
@@ -229,6 +235,10 @@ export function createMapillaryProvider({ source }) {
             { signal },
           );
           // The API returns the images in the radius in no particular order.
+          // Cycle 3 position guard: a claimed-but-unusable position is
+          // dropped and counted, never ranked. Cycle 5 ranking: among the
+          // passing candidates with a real position, the freshest shot
+          // wins; position-less records stay eligible as last-resort hits.
           const ranked = [];
           for (const record of images) {
             const position = nearestPosition(record);
@@ -238,22 +248,25 @@ export function createMapillaryProvider({ source }) {
             }
             ranked.push({
               record,
+              capturedAt: Number(record.captured_at) || 0,
               metres: position
                 ? metresBetween({ lon, lat }, position)
                 : Infinity,
             });
           }
-          ranked.sort((a, b) => a.metres - b.metres);
           const filter = context.getFilter();
-          const hit = ranked.find(({ record }) =>
+          const passing = ranked.filter(({ record, capturedAt }) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
-                capturedAt: Number(record.captured_at) || 0,
+                capturedAt,
               },
               filter,
             ),
           );
+          const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
+          // `ranked` is API order, so a last-resort hit keeps it.
+          const hit = placed.length ? freshestFirst(placed)[0] : passing[0];
           return hit ? String(hit.record.id) : null;
         },
 
