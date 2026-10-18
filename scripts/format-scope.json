@@ -29,6 +29,7 @@
   "src/data/geoFileImport.test.mjs",
   "src/data/wktGeoImport.test.mjs",
   "src/data/topoJsonImport.test.mjs",
+  "src/data/geoJsonLinesImport.test.mjs",
   "src/ui/geoFileImport.test.mjs",
   "src/annotations/adminOutline.test.mjs",
   "src/annotations/regionRing.test.mjs",

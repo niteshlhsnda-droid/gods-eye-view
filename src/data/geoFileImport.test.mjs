@@ -288,6 +288,106 @@ test('TopoJSON loads through the same GeoJSON path, by extension or by content',
   }
 });
 
+test('GeoJSONL loads through the same GeoJSON path, by extension or by content', async () => {
+  const previous = Cesium.PinBuilder.prototype.fromColor;
+  Cesium.PinBuilder.prototype.fromColor = () => ({
+    toDataURL: () => 'data:image/png;base64,local',
+    tagName: 'CANVAS',
+  });
+  try {
+    const viewer = {
+      scene: {
+        frameState: { mode: Cesium.SceneMode.SCENE3D },
+        primitives: new Cesium.PrimitiveCollection(),
+        globe: { getHeight: () => 0 },
+      },
+    };
+    const point = (lon, lat) =>
+      JSON.stringify({
+        type: 'Feature',
+        properties: { name: `at ${lon},${lat}` },
+        geometry: { type: 'Point', coordinates: [lon, lat] },
+      });
+    const lines = [
+      point(0, 0),
+      JSON.stringify({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [1, 1],
+              [2, 1],
+              [2, 2],
+              [1, 2],
+              [1, 1],
+            ],
+          ],
+        },
+      }),
+    ].join('\n');
+    const byExtension = await loadGeoFile(new File([lines], 'stops.geojsonl'), {
+      viewer,
+    });
+    assert.equal(byExtension.format, 'geojsonl');
+    assert.equal(byExtension.crsIgnored, false);
+    assert.equal(byExtension.entityCount, 2);
+    assert.equal(byExtension.dataSource.importedBillboards.length, 1);
+    byExtension.revoke();
+    // A .json file holding GeoJSONL loads by content — and its format
+    // label is GeoJSONL, because the content sniff catches it.
+    const byContent = await loadGeoFile(new File([lines], 'stops.json'), {
+      viewer,
+    });
+    assert.equal(byContent.format, 'geojsonl');
+    assert.equal(byContent.entityCount, 2);
+    byContent.revoke();
+    // A .json GeoJSONL file whose first line is longer than the
+    // detection head still loads: the loader routes the full text by
+    // content, even though detection fell back to GeoJSON.
+    const padded = JSON.stringify({
+      type: 'Feature',
+      properties: { comment: 'x'.repeat(2000) },
+      geometry: { type: 'Point', coordinates: [9, 9] },
+    });
+    const byPaddedContent = await loadGeoFile(
+      new File([[padded, point(8, 8)].join('\n')], 'padded.json'),
+      { viewer },
+    );
+    assert.equal(byPaddedContent.format, 'geojson');
+    assert.equal(byPaddedContent.entityCount, 2);
+    byPaddedContent.revoke();
+    // A single-line GeoJSON object in a .geojsonl file still loads.
+    const single = await loadGeoFile(new File([point(3, 3)], 'one.geojsonl'), {
+      viewer,
+    });
+    assert.equal(single.format, 'geojsonl');
+    assert.equal(single.entityCount, 1);
+    single.revoke();
+    // A broken line is refused with its line number, not a generic
+    // "not valid JSON".
+    await assert.rejects(
+      loadGeoFile(
+        new File([`${point(0, 0)}\n{nope}\n${point(1, 1)}`], 'bad.geojsonl'),
+        { viewer },
+      ),
+      (error) =>
+        error instanceof GeoImportError &&
+        error.message === 'line 2: not valid JSON.',
+    );
+    await assert.rejects(
+      loadGeoFile(new File(['{"type":"Foo"}'], 'neither.geojsonl'), {
+        viewer,
+      }),
+      (error) =>
+        error instanceof GeoImportError && /not GeoJSON/.test(error.message),
+    );
+  } finally {
+    Cesium.PinBuilder.prototype.fromColor = previous;
+  }
+});
+
 test('real loader refuses empty files and malformed nested geometry before allocating entities', async () => {
   for (const object of [
     { type: 'Feature', geometry: null },

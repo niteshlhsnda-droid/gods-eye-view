@@ -13,6 +13,11 @@ import {
   isWktText,
   parseWktToFeatureCollection,
 } from './wktGeoImport.js';
+import {
+  GeoJsonLinesError,
+  isGeoJsonLinesText,
+  parseGeoJsonLines,
+} from './geoJsonLinesImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -33,7 +38,8 @@ export const MAX_KML_LINKS = 2_000;
 /** Longest plain-text name kept from a file's features. */
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
-export const GEO_FILE_ACCEPT = '.geojson,.json,.topojson,.kml,.kmz,.gpx,.wkt';
+export const GEO_FILE_ACCEPT =
+  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt';
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -88,14 +94,19 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|null}
+ * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|null}
+
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
   if (ext === 'geojson') return 'geojson';
+  if (ext === 'geojson') return 'geojson';
   if (ext === 'topojson') return 'topojson';
+  if (ext === 'geojsonl' || ext === 'jsonl' || ext === 'ndjson')
+    return 'geojsonl';
   if (ext === 'kml' || ext === 'kmz' || ext === 'gpx' || ext === 'wkt')
     return ext;
+
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
     head[0] === 0x50 &&
@@ -112,6 +123,28 @@ export function detectGeoFileFormat(name, head) {
     // Anchored: only a document that opens with a Topology type is
     // TopoJSON — a GeoJSON properties bag that merely mentions one is not.
     if (/^\{\s*"type"\s*:\s*"Topology"/.test(text)) return 'topojson';
+    // A GeoJSONL head has at least two non-blank lines whose first parses
+    // as a GeoJSON object. A pretty-printed GeoJSON file fails it because
+    // its first line (`{`) is not complete JSON; a single one-line GeoJSON
+    // object fails it for having only one line. A first line longer than
+    // the detection head also falls through to GeoJSON — the loader still
+    // routes the full text by content.
+    const lines = text.split(/\r\n|\r|\n/).filter((line) => line.trim());
+    if (lines.length >= 2) {
+      try {
+        const first = JSON.parse(lines[0]);
+        if (
+          first &&
+          typeof first === 'object' &&
+          !Array.isArray(first) &&
+          GEOJSON_TYPES.has(first.type)
+        )
+          return 'geojsonl';
+      } catch {
+        // Not a complete JSON object on the first line: plain GeoJSON.
+      }
+    }
+
     return 'geojson';
   }
   if (text.startsWith('<')) {
@@ -159,17 +192,32 @@ export function parseGeoJsonText(text) {
 }
 
 /**
- * Parse JSON text as GeoJSON or TopoJSON, routed by the document's own
- * `type`. A `.json` Topology whose `type` sat beyond the 1024-byte
- * detection head, or a mislabelled extension, still loads; a Topology
- * with a TopoJSON defect is refused with the parser's specific reason
- * (dangling arc, unclosed ring) rather than a generic "not GeoJSON".
- * A TopoJSON refusal is rethrown as GeoImportError carrying the
- * parser's reason instead of a generic failure.
+ * Parse JSON text as GeoJSON, GeoJSONL or TopoJSON, routed by the
+ * document's own shape. A `.json` GeoJSONL file, a GeoJSONL file whose
+ * first line is longer than the detection head, or a `.json` Topology
+ * whose `type` sat beyond the 1024-byte detection head still loads; a
+ * TopoJSON or GeoJSONL refusal is rethrown as GeoImportError carrying the
+ * parser's specific reason (dangling arc, unclosed ring, line-numbered
+ * GeoJSONL error) rather than a generic failure.
+
  * @param {string} text
  * @returns {object}
  */
 function parseJsonGeoText(text) {
+  // GeoJSONL first: its multi-line text is not valid JSON as a whole, so
+  // the JSON.parse below must not see it.
+  if (isGeoJsonLinesText(text)) {
+    try {
+      return parseGeoJsonLines(text, {
+        maxFeatures: MAX_IMPORT_ENTITIES,
+        maxPositions: MAX_IMPORT_POSITIONS,
+      });
+    } catch (error) {
+      if (error instanceof GeoJsonLinesError)
+        throw new GeoImportError(error.message);
+      throw error;
+    }
+  }
   let value;
   try {
     value = JSON.parse(String(text).replace(/^﻿/, ''));
@@ -188,8 +236,8 @@ function parseJsonGeoText(text) {
       throw error;
     }
   }
-  // Not a Topology: the GeoJSON parser owns the verdict, including the
-  // mismatch refusal for a file that holds neither format.
+  // Not a Topology or GeoJSONL: the GeoJSON parser owns the verdict,
+  // including the mismatch refusal for a file that holds neither format.
   return parseGeoJsonText(text);
 }
 
@@ -1319,7 +1367,7 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, TopoJSON, KML, KMZ, GPX and WKT files can be imported.',
+      'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX and WKT files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1336,6 +1384,7 @@ export async function loadGeoFile(
     if (
       format === 'wkt' ||
       format === 'geojson' ||
+      format === 'geojsonl' ||
       format === 'topojson' ||
       format === 'gpx'
     ) {
