@@ -65,6 +65,7 @@
     "scoreboard:test-runner-coverage": "node scripts/scoreboard-test-runner-coverage.mjs",
     "scoreboard:untested-sources": "node scripts/scoreboard-untested-sources.mjs",
     "scoreboard:import-cycles": "node scripts/scoreboard-import-cycles.mjs",
+    "scoreboard:test-flaky-risk": "node scripts/scoreboard-test-flaky-risk.mjs",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
