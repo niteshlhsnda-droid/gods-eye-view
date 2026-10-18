@@ -197,6 +197,8 @@ function presentViewer(state, now = Date.now()) {
     captionRight: right.join(' · '),
     /** True when the open photo's capture is older than 2 years. */
     captureStale: capture.stale,
+    /** License attribution line for the photo card; never empty when open. */
+    captionAttribution: street.attributionHtml || null,
     link: street.externalUrl || null,
     linkLabel: street.providerLabel ? `${street.providerLabel} ↗` : '',
     follow: {

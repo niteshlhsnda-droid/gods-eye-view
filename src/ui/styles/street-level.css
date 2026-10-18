@@ -526,6 +526,28 @@ button.sl-status:focus-visible {
   text-decoration: underline;
 }
 
+/* License attribution line for the open photo card: its own row, always
+   visible while a photo is open. The [hidden] rule covers the no-card case;
+   :empty covers a card whose line failed to resolve. */
+.sl-image-credit {
+  flex: 1 1 100%;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.sl-image-credit:empty {
+  display: none;
+}
+
+.sl-image-credit[hidden] {
+  display: none;
+}
+
+.sl-image-credit a {
+  color: var(--text-primary);
+}
+
 .sl-meta {
   font-family: var(--font-mono);
   font-size: var(--sl-text-small);

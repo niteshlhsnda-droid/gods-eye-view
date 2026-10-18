@@ -1144,5 +1144,7 @@
   "src/data/altitudeLabel.js",
   "src/data/altitudeLabel.test.mjs",
   "src/data/sphericalPolygonMath.js",
-  "src/data/sphericalPolygonMath.test.mjs"
+  "src/data/sphericalPolygonMath.test.mjs",
+  "src/layers/streetLevel/photoAttribution.js",
+  "src/layers/streetLevel/photoAttribution.test.mjs"
 ]

@@ -673,3 +673,35 @@ test('an adapter that can frame but says this image has no frame offers no FIT /
   await host.open('mapillary', 'flat-1');
   assert.equal(state.street.renderModes, true, 'a flat image can be framed');
 });
+
+test('an opened photo resolves the provider credit as its card attribution', async () => {
+  const adapter = fakeAdapter();
+  const { state, host } = harness(adapter);
+  state.providers.get('mapillary').def.credit = {
+    html: 'Imagery © Test contributors, CC BY-SA 4.0',
+  };
+  await host.open('mapillary', 'a');
+  assert.equal(
+    state.street.attributionHtml,
+    'Imagery © Test contributors, CC BY-SA 4.0',
+  );
+});
+
+test('a per-image attribution from the pose wins over the provider credit', async () => {
+  const adapter = fakeAdapter();
+  const emit = adapter.emitPose.bind(adapter);
+  adapter.emitPose = (id) => emit(id, { attributionHtml: 'per-photo line' });
+  const { state, host } = harness(adapter);
+  state.providers.get('mapillary').def.credit = { html: 'Provider credit' };
+  await host.open('mapillary', 'a');
+  assert.equal(state.street.attributionHtml, 'per-photo line');
+});
+
+test('closing the photo clears the attribution line', async () => {
+  const adapter = fakeAdapter();
+  const { state, host } = harness(adapter);
+  await host.open('mapillary', 'a');
+  assert.ok(state.street.attributionHtml, 'a fallback line was resolved');
+  host.close();
+  assert.equal(state.street.attributionHtml, null);
+});
