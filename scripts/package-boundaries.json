@@ -1638,6 +1638,7 @@
       "src/data/detectionRenderDemand.js",
       "src/data/directions.js",
       "src/data/earthquakes.js",
+      "src/data/esriJsonImport.js",
       "src/data/feedState.js",
       "src/data/fireAnchors.js",
       "src/data/firmsAdapt.js",
