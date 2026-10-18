@@ -1189,5 +1189,7 @@
   "src/data/sphericalConvexHull.test.mjs",
   "src/layers/gnss/downlinkFormatLegality.js",
   "src/layers/gnss/downlinkFormatLegality.test.mjs",
-  "src/data/geoFileImportRouting.test.mjs"
+  "src/data/geoFileImportRouting.test.mjs",
+  "src/data/australianCycloneScale.js",
+  "src/data/australianCycloneScale.test.mjs"
 ]
