@@ -1321,6 +1321,7 @@
       "src/layers/streetLevel/selection.js",
       "src/layers/streetLevel/providers/mapillary/viewer.js",
       "src/layers/streetLevel/providers/mapillary/source.js",
+      "src/layers/streetLevel/providers/mapillary/daylight.js",
       "scripts/qa-street-level.mjs",
       "src/sources/needsDesktopServer.js",
       "src/sources/staticHosting.js"
@@ -2004,6 +2005,7 @@
       "src/layers/streetLevel/providers/mapillary/policy.js",
       "src/layers/streetLevel/providers/mapillary/sequences.js",
       "src/layers/streetLevel/providers/mapillary/source.js",
+      "src/layers/streetLevel/providers/mapillary/daylight.js",
       "src/layers/streetLevel/providers/mapillary/viewer.js",
       "src/layers/streetLevel/registry.js",
       "src/layers/streetLevel/selection.js",
@@ -2780,6 +2782,7 @@
       "src/layers/streetLevel/providers/mapillary/policy.js",
       "src/layers/streetLevel/providers/mapillary/sequences.js",
       "src/layers/streetLevel/providers/mapillary/source.js",
+      "src/layers/streetLevel/providers/mapillary/daylight.js",
       "src/layers/streetLevel/providers/mapillary/viewer.js",
       "src/layers/streetLevel/registry.js",
       "src/layers/streetLevel/selection.js",

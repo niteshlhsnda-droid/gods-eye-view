@@ -1,4 +1,5 @@
 import { createCoverage, sequenceIdFromPick } from './coverage.js';
+import { preferDaylight } from './daylight.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -201,7 +202,7 @@ export function createMapillaryProvider({ source }) {
           };
           const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
           const filter = context.getFilter();
-          const hit = byDistance.find((record) =>
+          const passing = byDistance.filter((record) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -209,6 +210,12 @@ export function createMapillaryProvider({ source }) {
               },
               filter,
             ),
+          );
+          // A night nearest yields to a daylight shot close by; otherwise
+          // the nearest passing image wins, exactly as before.
+          const hit = preferDaylight(
+            passing.map((record) => ({ record, metres: metres(record) })),
+            { lat, lon },
           );
           return hit ? String(hit.id) : null;
         },
