@@ -1068,13 +1068,13 @@
   "scripts/complexityHotspots.mjs",
   "src/tooling/complexityHotspots.test.mjs",
   "src/data/coordinatePrecision.js",
-  "src/data/coordinatePrecision.test.mjs"
+  "src/data/coordinatePrecision.test.mjs",
   "src/data/colorMath.js",
-  "src/data/colorMath.test.mjs"
+  "src/data/colorMath.test.mjs",
   "src/data/gmlImport.js",
-  "src/data/gmlImport.test.mjs"
+  "src/data/gmlImport.test.mjs",
   "src/data/enhancedFujita.js",
-  "src/data/enhancedFujita.test.mjs"
+  "src/data/enhancedFujita.test.mjs",
   "scripts/scoreboard-suppressions.mjs",
   "scripts/suppressionScoreboard.mjs",
   "src/tooling/suppressionScoreboard.test.mjs"
