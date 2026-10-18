@@ -1186,5 +1186,7 @@
   "src/director/sharing/lifetime.js",
   "src/director/sharing/lifetime.test.mjs",
   "src/data/sphericalConvexHull.js",
-  "src/data/sphericalConvexHull.test.mjs"
+  "src/data/sphericalConvexHull.test.mjs",
+  "src/layers/gnss/downlinkFormatLegality.js",
+  "src/layers/gnss/downlinkFormatLegality.test.mjs"
 ]
