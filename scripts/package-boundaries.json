@@ -1708,6 +1708,7 @@
       "src/data/telegeographySubmarineCables.js",
       "src/data/terrainHeights.js",
       "src/data/tomtomTiles.js",
+      "src/data/topoJsonImport.js",
       "src/data/tr3bRegistry.js",
       "src/data/trackedCamera.js",
       "src/data/trackedModelRegime.js",
