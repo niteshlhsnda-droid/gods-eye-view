@@ -109,6 +109,35 @@ export function preferPano(entries) {
   );
 }
 
+/**
+ * A nearest-image candidate below this predicted visual quality is passed
+ * over for a decent one nearby: Mapillary's `quality_score` runs [0, 1]
+ * (nullable), the mean of a sequence's per-image scores on coverage tiles,
+ * so below 0.25 is the bottom quartile — visibly poor (blurry, dark,
+ * occluded) rather than a fine judgement. Unscored images stay eligible:
+ * a missing score is not a bad photo.
+ */
+export const NEAREST_LOW_QUALITY_SCORE = 0.25;
+/**
+ * How much farther the decent replacement for a low-quality nearest image
+ * may be: twice its distance. Quality never sends the viewer across the
+ * radius for a marginally sharper photo, and a low-quality nearest image
+ * still wins when every decent one is far away.
+ */
+export const NEAREST_QUALITY_REACH = 2;
+
+/**
+ * Whether a Mapillary `quality_score` is low enough to pass over: a finite
+ * number below the floor. Missing, null, empty and non-numeric scores are
+ * not low — unscored imagery is never penalised for lacking a score.
+ * @param {number|string|null|undefined} score
+ */
+export function isLowQuality(score) {
+  if (score == null || score === '') return false;
+  const value = Number(score);
+  return Number.isFinite(value) && value < NEAREST_LOW_QUALITY_SCORE;
+}
+
 /** On-globe credit: Mapillary imagery is CC BY-SA 4.0 and needs attribution. */
 export const MAPILLARY_CREDIT_HTML =
   'Street Level: imagery © <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, CC BY-SA 4.0';

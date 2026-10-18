@@ -12,10 +12,12 @@ import {
   MAPILLARY_PROVIDER_ID,
   MAPILLARY_SOURCE_METHODS,
   NEAREST_LIMIT,
+  NEAREST_QUALITY_REACH,
   NEAREST_RADIUS_M,
   PICK_PREFIX,
   freshestFirst,
   preferPano,
+  isLowQuality,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -250,6 +252,12 @@ export function createMapillaryProvider({ source }) {
          * flat's distance wins (see `preferPano`): it lets the viewer look
          * around instead of staring one fixed way, while a current
          * streetscape still beats a decade-old one a few metres closer.
+         * Finally a bottom-quartile-quality winner is passed over for the
+         * nearest decent one within twice its distance (see
+         * `isLowQuality`): a blurry shot a few metres away does not beat
+         * a sharp one just past it — but quality never overrides the
+         * filter, never sends the viewer across the radius, and never
+         * loses the hit when every candidate is low-quality or unscored.
          * Position-less records stay eligible as
          * last-resort hits in API order, as before.
          */
@@ -293,7 +301,23 @@ export function createMapillaryProvider({ source }) {
           );
           const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
           // `passing` is API order, so a last-resort hit keeps it.
-          const hit = placed.length ? freshestPanoFirst(placed) : passing[0];
+          let hit = placed.length ? freshestPanoFirst(placed) : passing[0];
+          // Sharp-over-blurry: a bottom-quartile-quality winner is passed
+          // over for the nearest decent candidate within twice its
+          // distance. Unscored images stay eligible throughout — a missing
+          // score is not a bad photo.
+          if (hit && isLowQuality(hit.record.quality_score)) {
+            const decent = placed
+              .filter(({ record }) => !isLowQuality(record.quality_score))
+              .sort((a, b) => a.metres - b.metres)[0];
+            if (
+              decent &&
+              decent !== hit &&
+              decent.metres <= NEAREST_QUALITY_REACH * hit.metres
+            ) {
+              hit = decent;
+            }
+          }
           return hit ? String(hit.record.id) : null;
         },
 
