@@ -13,7 +13,7 @@ import {
   parseCliArgs,
   rankHotspots,
   summarizeResults,
-} from './complexityHotspots.js';
+} from '../../scripts/complexityHotspots.mjs';
 
 test('blankCommentsAndStrings hides comments, strings, and template text', () => {
   const source = [

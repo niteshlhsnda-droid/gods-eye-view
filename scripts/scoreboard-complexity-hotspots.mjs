@@ -1,5 +1,5 @@
 // Complexity-hotspot scoreboard: rank src/ files by a heuristic
-// maintainability score (see src/tooling/complexityHotspots.js).
+// maintainability score (see scripts/complexityHotspots.mjs).
 // Report-only: exit 0 even when hotspots exist; `--strict` exits 1
 // when any file nests branches deeper than STRICT_MAX_DEPTH. No file
 // writes.
@@ -25,7 +25,7 @@ import {
   parseCliArgs,
   rankHotspots,
   summarizeResults,
-} from '../src/tooling/complexityHotspots.js';
+} from './complexityHotspots.mjs';
 
 const USAGE = `Usage:
   node scripts/scoreboard-complexity-hotspots.mjs [--json] [--limit N] [--strict] [file ...]
