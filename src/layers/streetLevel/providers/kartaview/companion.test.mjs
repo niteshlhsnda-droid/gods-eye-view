@@ -79,10 +79,7 @@ test('a missing or blank sequence id never counts as company', () => {
     entry('pair-near', 9, 'seq-run'),
     entry('pair-far', 9.5, 'seq-run'),
   ];
-  assert.deepEqual(ids(preferCompanion(withPair)), [
-    'pair-near',
-    'pair-far',
-  ]);
+  assert.deepEqual(ids(preferCompanion(withPair)), ['pair-near', 'pair-far']);
 });
 
 test('a lone nearest shot at zero distance admits only company at zero distance', () => {

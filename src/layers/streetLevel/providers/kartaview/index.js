@@ -658,8 +658,8 @@ export function createKartaViewProvider({
               // cones need a sequence to walk, and a lone photo is a dead
               // end. Freshness still decides within the narrowed pool.
               return {
-                hit: freshestFirst(preferCompanion(showableCandidates))[0]
-                  .photo.id,
+                hit: freshestFirst(preferCompanion(showableCandidates))[0].photo
+                  .id,
               };
             if (near.length) return { status: 'archived' };
             if (filteredOut) return { status: 'filtered' };
