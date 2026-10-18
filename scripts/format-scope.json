@@ -1162,5 +1162,8 @@
   "src/data/greatCircleMath.js",
   "src/data/greatCircleMath.test.mjs",
   "src/data/tcxGeoImport.js",
-  "src/data/tcxGeoImport.test.mjs"
+  "src/data/tcxGeoImport.test.mjs",
+  "scripts/scoreboard-long-params.mjs",
+  "src/tooling/longParams.js",
+  "src/tooling/longParams.test.mjs"
 ]
