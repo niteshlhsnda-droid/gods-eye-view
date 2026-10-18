@@ -189,11 +189,9 @@ test('analyzeSource reports prettier and ts directives', () => {
 });
 
 test('analyzeSource finds a directive on a starred block-comment line', () => {
-  const source = [
-    '/*',
-    ' * eslint-disable-next-line no-console',
-    ' */',
-  ].join('\n');
+  const source = ['/*', ' * eslint-disable-next-line no-console', ' */'].join(
+    '\n',
+  );
   const { findings } = analyzeSource(source, 'src/a.js');
   assert.equal(findings.length, 1);
   assert.equal(findings[0].line, 2);
@@ -393,11 +391,7 @@ test('discoverSourceFiles walks the three scan roots', async () => {
     await writeFile(path.join(root, 'scripts', 'node_modules', 'x.js'), '');
     await writeFile(path.join(root, 'other', 'c.js'), '');
     const files = await discoverSourceFiles(root);
-    assert.deepEqual(files, [
-      'server/s.js',
-      'src/a.js',
-      'src/sub/b.mjs',
-    ]);
+    assert.deepEqual(files, ['server/s.js', 'src/a.js', 'src/sub/b.mjs']);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
