@@ -1031,5 +1031,8 @@
   "src/tooling/testHygiene.test.mjs",
   "scripts/scoreboard-test-runner-coverage.mjs",
   "src/tooling/testRunnerCoverage.js",
-  "src/tooling/testRunnerCoverage.test.mjs"
+  "src/tooling/testRunnerCoverage.test.mjs",
+  "scripts/scoreboard-untested-sources.mjs",
+  "src/tooling/untestedSources.js",
+  "src/tooling/untestedSources.test.mjs"
 ]
