@@ -303,7 +303,7 @@ function orientRing(ring, counterclockwise) {
   if (area === 0) {
     fail('That GeoRSS feed has a zero-area ring — it encloses nothing.');
   }
-  if ((area > 0) !== counterclockwise) return [...ring].reverse();
+  if (area > 0 !== counterclockwise) return [...ring].reverse();
   return ring;
 }
 
@@ -314,7 +314,9 @@ function checkClosedRing(ring, what) {
     );
   }
   if (!samePosition(ring[0], ring[ring.length - 1])) {
-    fail(`That GeoRSS ${what} is not closed — its first and last positions differ.`);
+    fail(
+      `That GeoRSS ${what} is not closed — its first and last positions differ.`,
+    );
   }
 }
 
@@ -346,7 +348,9 @@ function parseGmlPos(el, order, ctx) {
   if (numbers.length !== 2 && numbers.length !== 3) {
     fail(
       'That GeoRSS feed has a GML <pos> that is not 2 or 3 numbers: ' +
-        `"${String(el.textContent ?? '').trim().slice(0, 40)}".`,
+        `"${String(el.textContent ?? '')
+          .trim()
+          .slice(0, 40)}".`,
     );
   }
   return makePosition(
@@ -419,9 +423,11 @@ function parseGmlGeometry(el, inheritedOrder, ctx) {
       : classifyGmlSrs(attribute(el, 'srsName'));
   switch (el.localName) {
     case 'Point': {
-      const pos = firstElementChild(el, 'pos') ?? firstElementChild(el, 'coord');
+      const pos =
+        firstElementChild(el, 'pos') ?? firstElementChild(el, 'coord');
       const coordinates = firstElementChild(el, 'coordinates');
-      if (pos) return { type: 'Point', coordinates: parseGmlPos(pos, order, ctx) };
+      if (pos)
+        return { type: 'Point', coordinates: parseGmlPos(pos, order, ctx) };
       if (coordinates) {
         const positions = parseCoordinatesList(coordinates.textContent, ctx);
         if (positions.length !== 1) {
@@ -435,7 +441,9 @@ function parseGmlGeometry(el, inheritedOrder, ctx) {
     case 'LineString': {
       const positions = parseGmlPositions(el, order, ctx);
       if (positions.length < 2) {
-        fail('That GeoRSS feed has a GML <LineString> with fewer than 2 positions.');
+        fail(
+          'That GeoRSS feed has a GML <LineString> with fewer than 2 positions.',
+        );
       }
       return { type: 'LineString', coordinates: positions };
     }
@@ -476,7 +484,9 @@ function parseGmlGeometry(el, inheritedOrder, ctx) {
       const min = parsePairList(lower.textContent, order, ctx);
       const max = parsePairList(upper.textContent, order, ctx);
       if (min.length !== 1 || max.length !== 1) {
-        fail('That GeoRSS feed has a GML <Envelope> corner that is not one pair.');
+        fail(
+          'That GeoRSS feed has a GML <Envelope> corner that is not one pair.',
+        );
       }
       return boxPolygon(min[0], max[0], 'GML Envelope');
     }
@@ -563,7 +573,14 @@ function boxPolygon(min, max, what) {
   };
 }
 
-const SIMPLE_GEOMETRY = new Set(['point', 'line', 'polygon', 'box', 'circle', 'where']);
+const SIMPLE_GEOMETRY = new Set([
+  'point',
+  'line',
+  'polygon',
+  'box',
+  'circle',
+  'where',
+]);
 
 /** One GeoRSS simple element (`point` / `line` / `polygon` / `box`) → geometry. */
 function parseSimpleGeometry(el, ctx) {
@@ -764,7 +781,10 @@ function parseItem(item, feedTitle, ctx) {
  */
 export function geoRssToGeoJson(
   doc,
-  { maxFeatures = GEORSS_MAX_FEATURES, maxPositions = GEORSS_MAX_POSITIONS } = {},
+  {
+    maxFeatures = GEORSS_MAX_FEATURES,
+    maxPositions = GEORSS_MAX_POSITIONS,
+  } = {},
 ) {
   const root = doc?.documentElement;
   if (!root || root.nodeType !== 1) {
@@ -785,9 +805,7 @@ export function geoRssToGeoJson(
     items = elementChildren(root, 'entry');
   } else if (root.localName === 'RDF') {
     const channel = firstElementChild(root, 'channel');
-    feedTitle = channel
-      ? cleanName(childText(channel, 'title'))
-      : undefined;
+    feedTitle = channel ? cleanName(childText(channel, 'title')) : undefined;
     items = elementChildren(root, 'item');
   } else {
     fail(

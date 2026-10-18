@@ -55,11 +55,15 @@ test('isGeoRssText sniffs GeoRSS feeds and rejects the neighbours', () => {
     true,
   );
   assert.equal(
-    isGeoRssText('<RDF xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"></RDF>'),
+    isGeoRssText(
+      '<RDF xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"></RDF>',
+    ),
     true,
   );
   assert.equal(
-    isGeoRssText('<rss><channel><item><title>no geo</title></item></channel></rss>'),
+    isGeoRssText(
+      '<rss><channel><item><title>no geo</title></item></channel></rss>',
+    ),
     false,
   );
   assert.equal(
@@ -183,9 +187,7 @@ test('georss:line becomes a LineString', () => {
 
 test('georss:polygon is re-oriented to the GeoJSON right-hand rule', () => {
   // Clockwise in lon,lat: (0,0) → (0,1) → (1,1) → (1,0) → close.
-  const fc = parse(
-    rss([item([el('polygon', {}, '0 0 1 0 1 1 0 1 0 0')])]),
-  );
+  const fc = parse(rss([item([el('polygon', {}, '0 0 1 0 1 1 0 1 0 0')])]));
   assert.deepEqual(fc.features[0].geometry, {
     type: 'Polygon',
     coordinates: [
@@ -247,9 +249,7 @@ test('georss:where with GML CRS84 pos reads lon,lat as-is', () => {
 test('georss:where with no srsName assumes lon,lat like the GML parser', () => {
   const fc = parse(
     rss([
-      item([
-        el('where', {}, [el('Point', {}, [el('pos', {}, '85.1 25.6')])]),
-      ]),
+      item([el('where', {}, [el('Point', {}, [el('pos', {}, '85.1 25.6')])])]),
     ]),
   );
   assert.deepEqual(fc.features[0].geometry.coordinates, [85.1, 25.6]);
@@ -280,9 +280,7 @@ test('georss:where Polygon with a hole keeps the hole clockwise', () => {
               ]),
             ]),
             el('interiorRing', {}, [
-              el('LinearRing', {}, [
-                el('posList', {}, '2 2 8 2 8 8 2 8 2 2'),
-              ]),
+              el('LinearRing', {}, [el('posList', {}, '2 2 8 2 8 8 2 8 2 2')]),
             ]),
           ]),
         ]),
@@ -335,12 +333,8 @@ test('georss:where MultiPoint parses pointMember parts', () => {
       item([
         el('where', {}, [
           el('MultiPoint', {}, [
-            el('pointMember', {}, [
-              el('Point', {}, [el('pos', {}, '1 2')]),
-            ]),
-            el('pointMember', {}, [
-              el('Point', {}, [el('pos', {}, '3 4')]),
-            ]),
+            el('pointMember', {}, [el('Point', {}, [el('pos', {}, '1 2')])]),
+            el('pointMember', {}, [el('Point', {}, [el('pos', {}, '3 4')])]),
           ]),
         ]),
       ]),
@@ -404,10 +398,7 @@ test('two GeoRSS geometries in one item refuse the whole feed', () => {
 });
 
 test('georss:circle refuses — GeoJSON has no circle', () => {
-  assertRefuses(
-    rss([item([el('circle', {}, '25.6 85.1 5000')])]),
-    /circle/,
-  );
+  assertRefuses(rss([item([el('circle', {}, '25.6 85.1 5000')])]), /circle/);
 });
 
 test('georss:elev becomes the Point third ordinate', () => {
@@ -484,9 +475,7 @@ test('a degenerate box (min not below max) refuses the whole feed', () => {
 
 test('a non-WGS-84 srsName on a simple element refuses the whole feed', () => {
   assertRefuses(
-    rss([
-      item([el('point', { srsName: 'EPSG:3857' }, '25.6 85.1')]),
-    ]),
+    rss([item([el('point', { srsName: 'EPSG:3857' }, '25.6 85.1')])]),
     /unsupported CRS|srsName/,
   );
 });
@@ -522,9 +511,7 @@ test('a GML Curve inside where refuses — it is not a GeoJSON type', () => {
   assertRefuses(
     rss([
       item([
-        el('where', {}, [
-          el('Curve', {}, [el('posList', {}, '1 2 3 4')]),
-        ]),
+        el('where', {}, [el('Curve', {}, [el('posList', {}, '1 2 3 4')])]),
       ]),
     ]),
     /Curve/,
@@ -541,10 +528,7 @@ test('an RSS root without a channel is refused', () => {
 
 test('caps are enforced: maxFeatures and maxPositions refuse', () => {
   assertRefuses(
-    rss([
-      item([el('point', {}, '1 2')]),
-      item([el('point', {}, '3 4')]),
-    ]),
+    rss([item([el('point', {}, '1 2')]), item([el('point', {}, '3 4')])]),
     /more than 1 geo items/,
     { maxFeatures: 1 },
   );
