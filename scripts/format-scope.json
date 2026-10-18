@@ -1096,5 +1096,7 @@
   "src/data/vectorMath.js",
   "src/data/vectorMath.test.mjs",
   "src/layers/gnss/baroGeomDrift.js",
-  "src/layers/gnss/baroGeomDrift.test.mjs"
+  "src/layers/gnss/baroGeomDrift.test.mjs",
+  "src/layers/streetLevel/providers/mapillary/daylight.js",
+  "src/layers/streetLevel/providers/mapillary/daylight.test.mjs"
 ]

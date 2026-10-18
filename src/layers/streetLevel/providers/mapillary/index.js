@@ -7,6 +7,10 @@ import {
 import { pickFacingImage } from './facing.js';
 import { nearestPosition } from './position.js';
 export { nearestPosition } from './position.js';
+import {
+  DAYLIGHT_PREFERENCE_FACTOR,
+  captureLight,
+} from './daylight.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -309,6 +313,28 @@ export function createMapillaryProvider({ source }) {
               .sort((a, b) => a.metres - b.metres)[0];
             if (company) hit = company;
           }
+          // Daylight-over-night (Cycle 13): a known-night winner yields to
+          // the nearest daylight placed entry within twice its distance.
+          // An undated or daylight winner is never displaced.
+          if (
+            hit &&
+            captureLight({ lat, lon, capturedAt: hit.record?.captured_at }) ===
+              'night'
+          ) {
+            const dayLimit = DAYLIGHT_PREFERENCE_FACTOR * hit.metres;
+            const day = placed
+              .filter(
+                (entry) =>
+                  entry.metres <= dayLimit &&
+                  captureLight({
+                    lat,
+                    lon,
+                    capturedAt: entry.record?.captured_at,
+                  }) === 'day',
+              )
+              .sort((a, b) => a.metres - b.metres)[0];
+            if (day) hit = day;
+          }
           // Sharp-over-blurry: a bottom-quartile-quality winner is passed
           // over for the nearest decent candidate within twice its
           // distance. Unscored images stay eligible throughout — a missing
@@ -344,6 +370,7 @@ export function createMapillaryProvider({ source }) {
           }
 
           return hit ? String(hit.record.id) : null;
+
         },
 
         /** Nearest-lookup skips: records dropped for a claimed-but-unusable position. */
