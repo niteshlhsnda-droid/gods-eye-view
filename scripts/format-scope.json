@@ -1146,5 +1146,7 @@
   "src/data/sphericalPolygonMath.js",
   "src/data/sphericalPolygonMath.test.mjs",
   "src/layers/streetLevel/photoAttribution.js",
-  "src/layers/streetLevel/photoAttribution.test.mjs"
+  "src/layers/streetLevel/photoAttribution.test.mjs",
+  "src/data/dxfGeoImport.js",
+  "src/data/dxfGeoImport.test.mjs"
 ]
