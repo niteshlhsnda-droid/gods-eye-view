@@ -1086,5 +1086,7 @@
   "src/data/signalMath.js",
   "src/data/signalMath.test.mjs",
   "src/data/esriJsonImport.js",
-  "src/data/esriJsonImport.test.mjs"
+  "src/data/esriJsonImport.test.mjs",
+  "src/data/spaceWeatherScales.js",
+  "src/data/spaceWeatherScales.test.mjs"
 ]
