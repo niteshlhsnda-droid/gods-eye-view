@@ -851,6 +851,10 @@
   "src/layers/gnss/records.test.mjs",
   "src/layers/gnss/source.test.mjs",
   "src/layers/gnss/containmentJump.test.mjs",
+  "src/layers/gnss/velocityAccuracy.js",
+  "src/layers/gnss/records.test.mjs",
+  "src/layers/gnss/source.test.mjs",
+  "src/layers/gnss/velocityAccuracy.test.mjs",
   "src/layers/gnss/ownership.test.mjs",
   "scripts/qa-gnss.mjs",
   "src/layers/cyclones/index.js",
@@ -1077,7 +1081,7 @@
   "src/data/enhancedFujita.test.mjs",
   "scripts/scoreboard-suppressions.mjs",
   "scripts/suppressionScoreboard.mjs",
-  "src/tooling/suppressionScoreboard.test.mjs"
+  "src/tooling/suppressionScoreboard.test.mjs",
   "src/data/signalMath.js",
   "src/data/signalMath.test.mjs"
 ]

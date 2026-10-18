@@ -3600,7 +3600,8 @@
       "src/layers/gnss/records.js",
       "src/layers/gnss/spoofFeed.js",
       "src/layers/gnss/spoofSignals.js",
-      "src/layers/gnss/containmentJump.js"
+      "src/layers/gnss/containmentJump.js",
+      "src/layers/gnss/velocityAccuracy.js"
     ],
     "external": ["cesium"]
   },
