@@ -77,6 +77,39 @@ export function freshestFirst(entries) {
 }
 
 /**
+ * How much farther a candidate with a same-sequence companion may be than
+ * the nearest candidate and still win the nearest-image pick: twice its
+ * distance. A companion a few steps away beats the lone shot at the kerb —
+ * but a companion halfway down the street does not beat the lone shot of
+ * the doorway asked about.
+ */
+export const NEAREST_COMPANION_REACH = 2;
+
+/**
+ * The sequence id of a Mapillary image record, or null when it has none.
+ * The Graph API's `sequence` field is the sequence's string id (already
+ * requested in IMAGE_FIELDS); an object with an `id` is accepted
+ * defensively, and a blank id counts as none — a record without a sequence
+ * id can never prove a companion.
+ * @param {object} record a Mapillary graph image record
+ */
+export function sequenceIdOf(record) {
+  const value = record?.sequence;
+  const raw = typeof value === 'object' && value !== null ? value.id : value;
+  if (raw == null) return null;
+  const id = String(raw).trim();
+  return id === '' ? null : id;
+}
+
+/** True when `entry` shares its sequence with another placed entry. */
+export function hasCompanion(entry, placed) {
+  if (entry.sequenceId == null) return false;
+  return placed.some(
+    (other) => other !== entry && other.sequenceId === entry.sequenceId,
+  );
+}
+
+/**
  * How much farther a 360° pano may be than the nearest flat photo and
  * still win the nearest-image pick: twice its distance. A pano lets the
  * viewer look around the whole junction instead of one fixed direction,
@@ -108,6 +141,22 @@ export function preferPano(entries) {
     ) || nearest
   );
 }
+
+export function preferCompanion(entries) {
+  const placed = entries.filter(({ metres }) => Number.isFinite(metres));
+  if (!placed.length) return undefined;
+  const byDistance = [...placed].sort((a, b) => a.metres - b.metres);
+  const nearest = byDistance[0];
+  if (hasCompanion(nearest, placed)) return nearest;
+  return (
+    byDistance.find(
+      (entry) =>
+        hasCompanion(entry, placed) &&
+        entry.metres <= nearest.metres * NEAREST_COMPANION_REACH,
+    ) || nearest
+  );
+}
+
 
 /**
  * A nearest-image candidate below this predicted visual quality is passed

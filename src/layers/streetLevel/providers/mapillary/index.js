@@ -26,6 +26,9 @@ import {
   freshestFirst,
   preferPano,
   isLowQuality,
+  sequenceIdOf,
+  hasCompanion,
+  NEAREST_COMPANION_REACH,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -238,6 +241,10 @@ export function createMapillaryProvider({ source }) {
          * a sharp one just past it — but quality never overrides the
          * filter, never sends the viewer across the radius, and never
          * loses the hit when every candidate is low-quality or unscored.
+         * A lone winner then yields to the nearest companion-bearing
+         * placed entry within twice its distance (see `hasCompanion`):
+         * the companion opens a run the viewer can step along, the lone
+         * shot is a dead end.
          * With a `heading` (degrees clockwise from north) the pick then
          * prefers a shot facing that way when one is close by (see
          * `facesHeading`); without one the winner stands, as before.
@@ -269,6 +276,7 @@ export function createMapillaryProvider({ source }) {
               record,
               capturedAt: Number(record.captured_at) || 0,
               isPano: record.is_pano === true,
+              sequenceId: sequenceIdOf(record),
               metres: position
                 ? metresBetween({ lon, lat }, position)
                 : Infinity,
@@ -287,6 +295,20 @@ export function createMapillaryProvider({ source }) {
           const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
           // `passing` is API order, so a last-resort hit keeps it.
           let hit = placed.length ? freshestPanoFirst(placed) : passing[0];
+          // Same-sequence companion (Cycle 12): a lone winner yields to
+          // the nearest companion-bearing placed entry within twice its
+          // distance — the companion opens a run the viewer can step
+          // along, the lone shot is a dead end.
+          if (hit && !hasCompanion(hit, placed)) {
+            const company = placed
+              .filter(
+                (entry) =>
+                  hasCompanion(entry, placed) &&
+                  entry.metres <= hit.metres * NEAREST_COMPANION_REACH,
+              )
+              .sort((a, b) => a.metres - b.metres)[0];
+            if (company) hit = company;
+          }
           // Sharp-over-blurry: a bottom-quartile-quality winner is passed
           // over for the nearest decent candidate within twice its
           // distance. Unscored images stay eligible throughout — a missing
@@ -320,6 +342,7 @@ export function createMapillaryProvider({ source }) {
               hit = facing;
             }
           }
+
           return hit ? String(hit.record.id) : null;
         },
 
