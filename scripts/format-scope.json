@@ -1064,5 +1064,6 @@
   "scripts/complexityHotspots.mjs",
   "src/tooling/complexityHotspots.test.mjs",
   "src/data/coordinatePrecision.js",
-  "src/data/coordinatePrecision.test.mjs"
+  "src/data/coordinatePrecision.test.mjs",
+  "src/data/aircraftIcons.test.mjs"
 ]
