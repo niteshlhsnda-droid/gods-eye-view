@@ -1,6 +1,41 @@
 import { GUIDANCE_STATUSES } from '../loadingFeedback.js';
 
 /**
+ * Split a free-text source/coverage label into matchable tokens.
+ *
+ * The feed-state classifier must NOT substring-match provider names: the
+ * source label travels in from HTTP response headers (`X-Flight-Source` /
+ * `X-Flight-Coverage`), so a hostile or sloppy server could smuggle the
+ * magic substring into an unrelated label (e.g. `adsb.lol.evil.com`,
+ * `x-adsb.lol`, `no-fallback primary`) and flip the chip to FALLBACK.
+ * Tokens split on whitespace/commas/semicolons only — hyphens and dots stay
+ * inside a token, so hyphen- or dot-attached lookalikes never equal the
+ * provider token. Surrounding punctuation (`()[]{}"'`, `:`, `/`, `.`) is
+ * stripped so `(fallback)` and `adsb.lol.` still match. Token matching is
+ * not English parsing: a hypothetical `no fallback needed` label would
+ * still read fallback — no shipped label negates like that.
+ */
+function sourceTokens(source) {
+  return String(source || '')
+    .toLowerCase()
+    .split(/[\s,;]+/)
+    .map((token) => token.replace(/^[\s"'([{<>/:.]+|[\s"'})\]>/:.]+$/g, ''))
+    .filter(Boolean);
+}
+
+/** True when the label names the fallback provider as its own token. */
+function sourceIsAdsbLol(source) {
+  return sourceTokens(source).some(
+    (token) => token === 'adsb.lol' || token.endsWith('.adsb.lol'),
+  );
+}
+
+/** True when the label carries `fallback` as its own token. */
+function sourceIsFallback(source) {
+  return sourceTokens(source).includes('fallback');
+}
+
+/**
  * Normalize heterogeneous layer stats into one honest control-chip state.
  * @param {object|null} stats Layer getStats() result.
  * @returns {'nominal'|'loading'|'degraded'|'stale'|'partial'|'fallback'|'unavailable'} Feed state.
@@ -37,8 +72,8 @@ export function layerFeedState(stats = {}) {
     state.fallback === true ||
     status === 'fallback' ||
     state.mode === 'sim' ||
-    /\bfallback\b/i.test(source) ||
-    (!hasExplicitFallback && /\badsb\.lol\b/i.test(source))
+    sourceIsFallback(source) ||
+    (!hasExplicitFallback && sourceIsAdsbLol(source))
   ) {
     return 'fallback';
   }
