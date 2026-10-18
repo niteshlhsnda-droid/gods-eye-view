@@ -1173,5 +1173,9 @@
   "src/data/sphericalBooleanMath.test.mjs",
   "scripts/scoreboard-error-swallowing.mjs",
   "scripts/errorSwallowing.mjs",
-  "src/tooling/errorSwallowing.test.mjs"
+  "src/tooling/errorSwallowing.test.mjs",
+  "scripts/scoreboard-no-op-promise.mjs",
+  "scripts/noOpPromise.mjs",
+  "src/tooling/noOpPromise.js",
+  "src/tooling/noOpPromise.test.mjs"
 ]
