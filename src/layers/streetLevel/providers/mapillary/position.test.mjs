@@ -55,10 +55,10 @@ test('nearestPosition falls back to GPS on an out-of-range refined fix', () => {
 });
 
 test('nearestPosition uses GPS alone when there is no refined fix', () => {
-  assert.deepEqual(
-    nearestPosition({ geometry: point(2.0001, 1) }),
-    { lon: 2.0001, lat: 1 },
-  );
+  assert.deepEqual(nearestPosition({ geometry: point(2.0001, 1) }), {
+    lon: 2.0001,
+    lat: 1,
+  });
 });
 
 test('nearestPosition returns null when neither fix can place the photo', () => {
@@ -88,14 +88,14 @@ test('nearestPosition rejects string coordinates and keeps the edge values', () 
     }),
     { lon: 2.0001, lat: 1 },
   );
-  assert.deepEqual(
-    nearestPosition({ geometry: point(180, 90) }),
-    { lon: 180, lat: 90 },
-  );
-  assert.deepEqual(
-    nearestPosition({ geometry: point(-180, -90) }),
-    { lon: -180, lat: -90 },
-  );
+  assert.deepEqual(nearestPosition({ geometry: point(180, 90) }), {
+    lon: 180,
+    lat: 90,
+  });
+  assert.deepEqual(nearestPosition({ geometry: point(-180, -90) }), {
+    lon: -180,
+    lat: -90,
+  });
 });
 
 test('nearestPosition reads the first two elements of a 3D fix', () => {
