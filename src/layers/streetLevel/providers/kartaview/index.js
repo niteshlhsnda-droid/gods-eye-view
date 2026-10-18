@@ -9,6 +9,7 @@ import {
 } from './decode.js';
 import { createKartaViewSource } from './source.js';
 import { createKartaViewViewer } from './viewer.js';
+import { preferCompanion } from './companion.js';
 import {
   ARCHIVED_MESSAGE,
   COLORS,
@@ -652,9 +653,14 @@ export function createKartaViewProvider({
             );
             const showableCandidates = candidates.filter((_, i) => answers[i]);
             if (showableCandidates.length)
-              // Freshness decides among the nearest showable photos: the
-              // newest shotDate wins, distance breaks ties.
-              return { hit: freshestFirst(showableCandidates)[0].photo.id };
+              // A lone nearest shot yields to a companion-bearing shot
+              // nearby (see `preferCompanion`): ‹ › stepping and the
+              // cones need a sequence to walk, and a lone photo is a dead
+              // end. Freshness still decides within the narrowed pool.
+              return {
+                hit: freshestFirst(preferCompanion(showableCandidates))[0]
+                  .photo.id,
+              };
             if (near.length) return { status: 'archived' };
             if (filteredOut) return { status: 'filtered' };
             return { status: records.length === 0 ? 'empty' : 'out-of-range' };
