@@ -1133,6 +1133,8 @@
   "src/layers/streetLevel/providers/kartaview/companion.test.mjs",
   "src/data/georssImport.js",
   "src/data/georssImport.test.mjs",
+  "src/data/mvtGeoImport.js",
+  "src/data/mvtGeoImport.test.mjs",
   "src/data/modifiedMercalli.js",
   "src/data/modifiedMercalli.test.mjs",
   "scripts/scoreboard-unreachable-code.mjs",
