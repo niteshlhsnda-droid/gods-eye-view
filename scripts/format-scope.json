@@ -1056,5 +1056,7 @@
   "src/tooling/testFlakyRisk.js",
   "src/tooling/testFlakyRisk.test.mjs",
   "src/data/windMath.js",
-  "src/data/windMath.test.mjs"
+  "src/data/windMath.test.mjs",
+  "src/data/uvIndex.js",
+  "src/data/uvIndex.test.mjs"
 ]
