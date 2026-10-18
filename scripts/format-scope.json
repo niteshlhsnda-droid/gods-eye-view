@@ -843,6 +843,8 @@
   "src/layers/gnss/source.test.mjs",
   "src/layers/gnss/ownership.test.mjs",
   "scripts/qa-gnss.mjs",
+  "src/layers/gnss/trackPlausibility.js",
+  "src/layers/gnss/trackPlausibility.test.mjs",
   "src/layers/cyclones/index.js",
   "src/layers/cyclones/rendering.js",
   "src/layers/cyclones/labels.js",
