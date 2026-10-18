@@ -75,7 +75,6 @@ function createProviderState(context) {
   };
 }
 
-
 /**
  * Composed nearest-image pick (Cycle 5 freshest-first + Cycle 8 pano
  * preference): the freshest flat and the freshest pano are picked
