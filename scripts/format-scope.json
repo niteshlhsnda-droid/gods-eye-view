@@ -1122,5 +1122,7 @@
   "src/data/presentWeather.test.mjs",
   "scripts/scoreboard-unused-exports.mjs",
   "scripts/unusedExportScoreboard.mjs",
-  "src/tooling/unusedExportScoreboard.test.mjs"
+  "src/tooling/unusedExportScoreboard.test.mjs",
+  "src/data/speedLabel.js",
+  "src/data/speedLabel.test.mjs"
 ]
