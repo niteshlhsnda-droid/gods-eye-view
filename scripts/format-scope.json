@@ -1165,5 +1165,7 @@
   "src/data/tcxGeoImport.test.mjs",
   "scripts/scoreboard-long-params.mjs",
   "src/tooling/longParams.js",
-  "src/tooling/longParams.test.mjs"
+  "src/tooling/longParams.test.mjs",
+  "src/data/sphericalClipMath.js",
+  "src/data/sphericalClipMath.test.mjs"
 ]
