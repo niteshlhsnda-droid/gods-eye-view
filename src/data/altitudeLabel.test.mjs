@@ -114,7 +114,10 @@ test('unknown unit and datum render explicitly, never as defaults', () => {
     '120 (unit unknown, datum unknown)',
   );
   assert.equal(formatAltitudeLabel(120), '120 (unit unknown, datum unknown)');
-  assert.equal(formatAltitudeLabel(120, null), '120 (unit unknown, datum unknown)');
+  assert.equal(
+    formatAltitudeLabel(120, null),
+    '120 (unit unknown, datum unknown)',
+  );
   assert.equal(
     formatAltitudeLabel(120, { unit: 'fathoms', datum: 'msl' }),
     '120 (unit unknown) · MSL',
@@ -145,7 +148,20 @@ test('flight levels are rejected, never laundered into feet', () => {
 });
 
 test('invalid values render as Altitude unknown, never 0', () => {
-  for (const bad of [null, undefined, '', '   ', true, false, {}, [], NaN, Infinity, -Infinity, 'abc']) {
+  for (const bad of [
+    null,
+    undefined,
+    '',
+    '   ',
+    true,
+    false,
+    {},
+    [],
+    NaN,
+    Infinity,
+    -Infinity,
+    'abc',
+  ]) {
     assert.equal(
       formatAltitudeLabel(bad, { unit: 'ft', datum: 'msl' }),
       'Altitude unknown',
