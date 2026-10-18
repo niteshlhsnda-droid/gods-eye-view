@@ -221,7 +221,7 @@ test('published transit history scope agrees with the catalog capability', () =>
     .find((line) => line.startsWith('| **MBTA / MassDOT**'));
   assert.match(
     row,
-    /live vehicles and up to 15 minutes of recently observed positions/,
+    /vehicles and up to 15 minutes of recently observed positions/,
   );
   assert.match(row, /MBTA \/ MassDOT.*courtesy/);
   assert.match(sources, /other feeds have no proxy retention/);

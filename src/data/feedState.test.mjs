@@ -247,11 +247,13 @@ test('layerFeedState fallback triggers beyond mode sim and bare adsb.lol', () =>
     }),
     'fallback',
   );
-  // The adsb.lol match is a case-insensitive word-boundary regex, not a
-  // domain anchor — pinned as current behavior, not endorsed.
+  // The adsb.lol match is exact-token matching (Cycle 3 spoof fix): a
+  // hyphen- or dot-attached lookalike is its own token and does NOT
+  // classify as the fallback provider. Genuine subdomains (*.adsb.lol)
+  // still match — see the branch's own tests.
   assert.equal(
     layerFeedState({ source: 'not-adsb.lol.evil.com', count: 5 }),
-    'fallback',
+    'nominal',
   );
 });
 
