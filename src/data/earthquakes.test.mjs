@@ -10,7 +10,10 @@ import {
   EARTHQUAKE_OVERLAY_COLLISION_CAPACITY,
   createEarthquakeOverlayEntry,
   createEarthquakesLayer,
+  earthquakeReviewLabel,
   mapAnalystRecord,
+  normalizeEarthquakeReviewStatus,
+  normalizeEarthquakeSnapshot,
   selectEarthquakeOverlayCohort,
 } from './earthquakes.js';
 import { DataLayerManager } from './manager.js';
@@ -28,6 +31,7 @@ const FULL_RAW = {
   depth: 41.7,
   lat: 61.02,
   lon: -150.41,
+  reviewStatus: 'reviewed',
 };
 
 test('earthquake analyst record: full record maps every contract field', () => {
@@ -40,7 +44,62 @@ test('earthquake analyst record: full record maps every contract field', () => {
     lon: -150.41,
     timeMs: 1_753_600_000_000,
     place: '42 km SW of Anchorage, Alaska',
+    reviewStatus: 'reviewed',
   });
+});
+
+test('earthquake review status: only automatic/reviewed survive normalization', () => {
+  assert.equal(normalizeEarthquakeReviewStatus('automatic'), 'automatic');
+  assert.equal(normalizeEarthquakeReviewStatus('reviewed'), 'reviewed');
+  for (const unknown of [undefined, null, '', 'deleted', 'Automatic', 'REVIEWED', 0, {}]) {
+    assert.equal(normalizeEarthquakeReviewStatus(unknown), null, `status ${String(unknown)} must not claim a review state`);
+  }
+  // The normalizer is a label rule, not an inclusion rule: an unrecognized
+  // status still yields a row, with no review claim attached.
+  const rows = normalizeEarthquakeSnapshot({
+    features: [
+      {
+        id: 'us-auto',
+        geometry: { coordinates: [10, 20, 5] },
+        properties: { mag: 4.0, time: 100, place: 'Auto', status: 'automatic' },
+      },
+      {
+        id: 'us-del',
+        geometry: { coordinates: [11, 21, 6] },
+        properties: { mag: 4.0, time: 100, place: 'Deleted', status: 'deleted' },
+      },
+      {
+        id: 'us-missing',
+        geometry: { coordinates: [12, 22, 7] },
+        properties: { mag: 4.0, time: 100, place: 'Missing' },
+      },
+    ],
+  });
+  assert.deepEqual(rows.map((row) => row.reviewStatus), ['automatic', null, null]);
+});
+
+test('earthquake review label: automatic is PRELIMINARY, reviewed is plain, unknown is silent', () => {
+  assert.equal(earthquakeReviewLabel('automatic'), 'PRELIMINARY · automatic (unreviewed)');
+  assert.equal(earthquakeReviewLabel('reviewed'), 'Reviewed');
+  assert.equal(earthquakeReviewLabel(null), null);
+  assert.equal(earthquakeReviewLabel(undefined), null);
+  assert.equal(earthquakeReviewLabel('deleted'), null);
+  // Analyst records normalize through the same rule.
+  assert.equal(mapAnalystRecord({ ...FULL_RAW, reviewStatus: 'automatic' }).reviewStatus, 'automatic');
+  assert.equal(mapAnalystRecord({ ...FULL_RAW, reviewStatus: 'deleted' }).reviewStatus, null);
+  assert.equal(mapAnalystRecord({ ...FULL_RAW, reviewStatus: undefined }).reviewStatus, null);
+});
+
+test('earthquake overlay entry: automatic events carry PRELIMINARY in the title', () => {
+  const position = Cesium.Cartesian3.fromDegrees(-150.41, 61.02);
+  const base = { id: 'us1', position, magnitude: 5.24, accent: '#ff0000' };
+  assert.equal(
+    createEarthquakeOverlayEntry({ ...base, reviewStatus: 'automatic' }).title,
+    'M5.2 · PRELIMINARY',
+  );
+  assert.equal(createEarthquakeOverlayEntry({ ...base, reviewStatus: 'reviewed' }).title, 'M5.2');
+  assert.equal(createEarthquakeOverlayEntry({ ...base }).title, 'M5.2');
+  assert.equal(createEarthquakeOverlayEntry({ ...base, reviewStatus: 'deleted' }).title, 'M5.2');
 });
 
 test('earthquake analyst record: missing USGS id falls back to index-based id', () => {
@@ -160,6 +219,61 @@ test('real earthquake lifecycle publishes host labels while runtime entities car
     ]);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test('automatic quakes publish a PRELIMINARY overlay title and carry review status end to end', async () => {
+  const originalFetch = globalThis.fetch;
+  const hostCalls = [];
+  const dataSources = [];
+  const overlayHost = {
+    setEntries: (...args) => hostCalls.push(['entries', ...args]),
+    setVisible: (...args) => hostCalls.push(['visible', ...args]),
+    clearSource: (...args) => hostCalls.push(['clear', ...args]),
+  };
+  const viewer = {
+    dataSources: {
+      add(dataSource) { dataSources.push(dataSource); return dataSource; },
+      remove(dataSource) {
+        const index = dataSources.indexOf(dataSource);
+        if (index >= 0) dataSources.splice(index, 1);
+        return index >= 0;
+      },
+    },
+  };
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      features: [
+        {
+          id: 'us-auto-1',
+          geometry: { coordinates: [-150.41, 61.02, 41.7] },
+          properties: { mag: 5.24, place: 'Auto One', time: 1_753_600_000_000, status: 'automatic' },
+        },
+        {
+          id: 'us-reviewed-1',
+          geometry: { coordinates: [139.7, 35.6, 310] },
+          properties: { mag: 3.01, place: 'Reviewed One', time: 1_753_600_100_000, status: 'reviewed' },
+        },
+      ],
+    }),
+  });
+  const layer = createEarthquakesLayer({ overlayHost });
+  try {
+    layer.init(viewer);
+    layer.enable(viewer);
+    await layer.update(viewer);
+
+    const publication = hostCalls.find(([type]) => type === 'entries');
+    assert.ok(publication, 'real update path must publish the overlay source');
+    assert.deepEqual(publication[2].map(({ title }) => title), ['M5.2 · PRELIMINARY', 'M3.0']);
+    assert.deepEqual(
+      layer.getAnalystRecords().map((record) => record.reviewStatus),
+      ['automatic', 'reviewed'],
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    layer.destroy(viewer);
   }
 });
 

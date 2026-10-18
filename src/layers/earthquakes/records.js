@@ -1,3 +1,14 @@
+/** USGS review state for one event. Only the two states USGS documents as
+ *  human-review states are carried: `automatic` (machine-located, not yet
+ *  reviewed by a human) and `reviewed`. Anything else — missing, `deleted`,
+ *  or unrecognized — normalizes to null, which means "no review claim",
+ *  never "reviewed". Status is a label, not an inclusion rule: an
+ *  unrecognized status never drops a row the feed itself includes. */
+export function normalizeEarthquakeReviewStatus(status) {
+  if (status === 'automatic' || status === 'reviewed') return status;
+  return null;
+}
+
 /** Validate a complete feed before replacing the last good earthquake snapshot. */
 export function normalizeEarthquakeSnapshot(geojson) {
   if (!Array.isArray(geojson?.features)) return null;
@@ -43,6 +54,7 @@ export function normalizeEarthquakeSnapshot(geojson) {
       mag,
       place: typeof properties.place === 'string' ? properties.place : null,
       time: Number.isFinite(properties.time) ? properties.time : null,
+      reviewStatus: normalizeEarthquakeReviewStatus(properties.status),
     });
   }
   return rows;
