@@ -61,6 +61,7 @@
     "qa:transit": "node scripts/qa-transit.mjs",
     "scoreboard:layers": "node scripts/scoreboard-layers.mjs",
     "scoreboard:test-hygiene": "node scripts/scoreboard-test-hygiene.mjs",
+    "scoreboard:test-runner-coverage": "node scripts/scoreboard-test-runner-coverage.mjs",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {

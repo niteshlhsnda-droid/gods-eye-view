@@ -1027,5 +1027,8 @@
   "src/ui/flyToDataSource.test.mjs",
   "scripts/qa-emergency-squawk.mjs",
   "scripts/scoreboard-test-hygiene.mjs",
-  "src/tooling/testHygiene.test.mjs"
+  "src/tooling/testHygiene.test.mjs",
+  "scripts/scoreboard-test-runner-coverage.mjs",
+  "src/tooling/testRunnerCoverage.js",
+  "src/tooling/testRunnerCoverage.test.mjs"
 ]
