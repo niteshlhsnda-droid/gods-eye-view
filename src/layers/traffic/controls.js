@@ -163,7 +163,7 @@ export function createControls({ state: layerState, services, parts, source }) {
         layerState._roadMode || resolveRoadMode(null, layerState._liveMode);
       const needsKey = layerState._liveMode ? '' : ' (needs a TomTom key)';
       const titles = {
-        tomtom: `TomTom roads only, each with its live flow${needsKey}`,
+        tomtom: `TomTom roads only, each with its TomTom flow${needsKey}`,
         osm: 'OpenStreetMap roads, with TomTom flow matched when available',
         hybrid: `TomTom roads first; OpenStreetMap fills the rest, simulated${needsKey}`,
       };

@@ -14,10 +14,10 @@ import {
 } from './staticHosting.js';
 
 test('honest error carries the code, name and a needs-server message', () => {
-  const error = needsDesktopServerError('Live flights');
+  const error = needsDesktopServerError('Flights');
   assert.equal(error.code, NEEDS_DESKTOP_SERVER_CODE);
   assert.equal(error.name, 'NeedsDesktopServerError');
-  assert.match(error.message, /Live flights/);
+  assert.match(error.message, /Flights/);
   assert.match(error.message, /needs the desktop server/);
   assert.ok(error instanceof Error);
 });
@@ -38,12 +38,12 @@ test('throwIfStaticHosting throws only once the probe says static', async () => 
   try {
     // Unprobed: isStaticHosting() is false, desktop behavior unchanged.
     assert.equal(isStaticHosting(), false);
-    assert.doesNotThrow(() => throwIfStaticHosting('Live vessels'));
+    assert.doesNotThrow(() => throwIfStaticHosting('Vessels'));
 
     // Probe says the backend answered: still no throw.
     await probeApiAvailable({ fetchImpl: async () => ({ ok: true }) });
     assert.equal(isStaticHosting(), false);
-    assert.doesNotThrow(() => throwIfStaticHosting('Live vessels'));
+    assert.doesNotThrow(() => throwIfStaticHosting('Vessels'));
   } finally {
     resetStaticHostingProbe();
   }

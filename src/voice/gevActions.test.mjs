@@ -262,7 +262,7 @@ test('nearest-aircraft voice action serializes layer enable, arrival, refresh, a
       order.push('refresh-austin');
       return true;
     },
-    getAll: () => [{ id: 'flights', name: 'Live Flights', enabled }],
+    getAll: () => [{ id: 'flights', name: 'Flights', enabled }],
   };
   const runner = createGevActionRunner({ viewer, styleManager, dataManager });
   const resultPromise = runner('select_nearest_aircraft', {
@@ -319,7 +319,7 @@ test('nearest-aircraft voice action refreshes an already-enabled viewport layer 
       order.push('refresh-austin');
       return true;
     },
-    getAll: () => [{ id: 'flights', name: 'Live Flights', enabled: true }],
+    getAll: () => [{ id: 'flights', name: 'Flights', enabled: true }],
   };
   const runner = createGevActionRunner({ viewer, styleManager, dataManager });
   const resultPromise = runner('select_nearest_aircraft', {
@@ -369,7 +369,7 @@ test('fallback with zero airborne records reports enabled fallback without selec
     async refreshLayer() {
       return true;
     },
-    getAll: () => [{ id: 'flights', name: 'Live Flights', enabled }],
+    getAll: () => [{ id: 'flights', name: 'Flights', enabled }],
   };
   const runner = createGevActionRunner({ viewer, styleManager, dataManager });
   const resultPromise = runner('select_nearest_aircraft', {
@@ -396,7 +396,7 @@ test('nearest-aircraft voice action rejects a missing destination without changi
       enabled = true;
       return true;
     },
-    getAll: () => [{ id: 'flights', name: 'Live Flights', enabled }],
+    getAll: () => [{ id: 'flights', name: 'Flights', enabled }],
   };
   const runner = createGevActionRunner({ viewer, styleManager, dataManager });
   const result = await runner('select_nearest_aircraft', { layerId: 'flights' });
@@ -707,7 +707,7 @@ test('a newer voice action makes an older deferred navigation authority inert', 
 test('Data Layers voice inventory hides the Context coordinator while current-view truth retains it', async () => {
   globalThis.window = globalThis.window || { clearTimeout, setTimeout, requestIdleCallback: null };
   const layers = [
-    { id: 'flights', name: 'Live Flights', enabled: false, showInTogglePanel: true, stats: { count: 0 } },
+    { id: 'flights', name: 'Flights', enabled: false, showInTogglePanel: true, stats: { count: 0 } },
     { id: 'military-awareness', name: 'Global Context', enabled: true, showInTogglePanel: false, stats: { count: 1 } },
   ];
   const dataManager = {
@@ -2965,7 +2965,7 @@ function analystRunner(awareness, { getAll } = {}) {
         (() => [
           {
             id: 'flights',
-            name: 'Live Flights',
+            name: 'Flights',
             enabled: true,
             stats: { count: 1 },
           },
@@ -3359,7 +3359,7 @@ test('analyst_query and get_current_view_state carry stale feed provenance', asy
     isEnabled: (id) => id === 'flights',
     getAll: () => [{
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: true,
       source: 'OpenSky Network',
       stats: flights.getStats(),
@@ -3521,7 +3521,7 @@ test('the Contacts window ranks, filters and formats like any analyst answer', a
       dataManager: {
         layers: new Map([['flights', { module: flights }], ['military-awareness', { module: awareness }]]),
         isEnabled: (id) => id === 'flights',
-        getAll: () => [{ id: 'flights', name: 'Live Flights', enabled: true, stats: { count: 20 } }],
+        getAll: () => [{ id: 'flights', name: 'Flights', enabled: true, stats: { count: 20 } }],
       },
     });
     const farthest = await runner('analyst_query', {
@@ -3632,7 +3632,7 @@ test('a capped Contacts snapshot is a lower bound from one immutable cohort', as
       const frozen = capture();
       frozen.cohorts.flights.provenance = {
         id: 'flights',
-        name: 'Live Flights',
+        name: 'Flights',
         enabled: true,
         feedState: 'nominal',
         source,
@@ -3657,7 +3657,7 @@ test('a capped Contacts snapshot is a lower bound from one immutable cohort', as
       getAll: () => [
         {
           id: 'flights',
-          name: 'Live Flights',
+          name: 'Flights',
           enabled: true,
           source: 'live-snapshot-b',
           stats: { count: 1, source: 'live-snapshot-b' },

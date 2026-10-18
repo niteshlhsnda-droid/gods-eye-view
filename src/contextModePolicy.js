@@ -389,7 +389,7 @@ export function contextRestoreLayerIds(snapshot = {}) {
  * @param {object} input Current context and dependency visibility.
  * @param {string|null} input.contextMode Active Context mode.
  * @param {boolean} input.contextModeChanging Whether the Context transaction is unsettled.
- * @param {boolean} input.flightsEnabled Whether Live Flights is enabled.
+ * @param {boolean} input.flightsEnabled Whether Flights is enabled.
  * @param {boolean} input.militaryEnabled Whether Military Flights is enabled.
  * @returns {boolean} Whether cockpit entry may be offered or activated.
  */

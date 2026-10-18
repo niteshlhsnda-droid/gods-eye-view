@@ -30,7 +30,7 @@ so — that extra age is the part a `LIVE` badge would hide.
 | --- | --- | --- |
 | Military Flights | 15 s (`src/layers/military/queries.js`) | — |
 | Transit (GTFS-RT) | 15 s (`src/layers/transit/policy.js`, `TRANSIT_POLL_MS`) | — |
-| Live Flights | 30 s (`src/layers/flights/queries.js`) | — |
+| Flights | 30 s (`src/layers/flights/queries.js`) | — |
 | Live AIS Vessels | 60 s (`src/layers/vessels/policy.js`, `REFRESH_MS`) | — |
 | Earthquakes (24h) | 60 s (`src/layers/earthquakes/index.js`) | — |
 | Bikeshare | 60 s (`src/layers/bikeshare/policy.js`, `STATUS_POLL_MS`) | Station-status refresh, not vehicle movement. |

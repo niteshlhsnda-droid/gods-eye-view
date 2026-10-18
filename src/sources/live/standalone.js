@@ -71,7 +71,7 @@ export function createFlightSource({
     async getSnapshot(query = {}, { signal } = {}) {
       // Static hosting has no /api/flights backend: settle into the honest
       // terminal state instead of a doomed request + retry storm.
-      throwIfStaticHosting('Live flights');
+      throwIfStaticHosting('Flights');
       const params = new URLSearchParams();
       if (Number.isFinite(query.latitude) && Number.isFinite(query.longitude)) {
         params.set('lat', query.latitude.toFixed(4));
@@ -99,7 +99,7 @@ export function createFlightSource({
       };
     },
     async getTrack(reference, { signal } = {}) {
-      throwIfStaticHosting('Live flights');
+      throwIfStaticHosting('Flights');
       const { response, payload } = await readResponse(
         fetchImpl,
         '/api/flights/track?icao24=' + encodeURIComponent(reference),
@@ -113,7 +113,7 @@ export function createFlightSource({
       };
     },
     async getEnrichment(query, { signal } = {}) {
-      throwIfStaticHosting('Live flights');
+      throwIfStaticHosting('Flights');
       if (!['type', 'route'].includes(query.kind))
         throw new LiveSourceError('unsupported', 'Enrichment unavailable');
       const { response, payload } = await readResponse(
@@ -201,7 +201,7 @@ export function createVesselSource({
     async getSnapshot({ maxRows = 12000, area } = {}, { signal } = {}) {
       // Static hosting has no /api/vessels backend: settle into the honest
       // terminal state instead of a doomed request + retry storm.
-      throwIfStaticHosting('Live vessels');
+      throwIfStaticHosting('Vessels');
       const url = new URL(apiUrl, origin());
       url.searchParams.set('maxRows', String(maxRows));
       // An area asks for the vessels around a point; servers that hold every
@@ -239,7 +239,7 @@ export function createVesselSource({
       };
     },
     async getTrack(reference, { signal } = {}) {
-      throwIfStaticHosting('Live vessels');
+      throwIfStaticHosting('Vessels');
       const { response, payload } = await readResponse(
         fetchImpl,
         '/api/vessels/track?mmsi=' + encodeURIComponent(reference),

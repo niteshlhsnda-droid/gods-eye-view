@@ -42,7 +42,7 @@ test('partial feed controls distinguish incomplete records from stale data and o
   };
   const layer = {
     id: 'ais-live-vessels',
-    name: 'Live Vessels',
+    name: 'Vessels',
     source: 'AISStream',
     enabled: true,
     stats: {

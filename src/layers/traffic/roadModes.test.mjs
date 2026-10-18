@@ -552,3 +552,31 @@ test('private, parking, walking and unknown flow never animate or suppress a pub
   assert.equal(road.drivable, true);
   assert.equal(road.roadClass, 'Major road');
 });
+
+test('road-chip tooltips name the provider instead of asserting liveness', () => {
+  const layer = createTrafficLayer({
+    services: { credits: {}, render: {} },
+    source: {
+      requestRoads() {},
+      getStatus() {},
+      fetchFlowForBounds() {},
+      getFlowSessionStats: () => ({}),
+      resetFlowTileCache() {},
+    },
+  });
+  const titles = Object.fromEntries(
+    layer.getRowControls().chips.map((chip) => [chip.id, chip.title]),
+  );
+  // Audit #2: TomTom flow sits behind a 120 s proxy cache, so the tooltip
+  // must name the provider, never claim the flow is "live".
+  assert.equal(
+    titles['roads-tomtom'],
+    'TomTom roads only, each with its TomTom flow (needs a TomTom key)',
+  );
+  for (const [id, title] of Object.entries(titles)) {
+    assert.ok(
+      !/\blive\b/i.test(title),
+      `road-chip tooltip ${id} must not assert liveness: ${title}`,
+    );
+  }
+});

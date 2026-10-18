@@ -111,7 +111,7 @@ test('a disabled layer is off even when leftover stats would read stale', () => 
   const snap = layerSnapshot(
     {
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: false,
       source: 'OpenSky Network',
       stats: {
@@ -133,7 +133,7 @@ test('an enabled stale layer carries age, source, and a mechanical note', () => 
   const snap = layerSnapshot(
     {
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: true,
       stats: {
         stale: true,
@@ -150,7 +150,7 @@ test('an enabled stale layer carries age, source, and a mechanical note', () => 
   assert.equal(snap.ageLabel, '4m ago');
   const envelope = feedProvenanceEnvelope([snap], { now: NOW });
   assert.equal(envelope.overall, 'stale');
-  assert.match(envelope.note, /Live Flights is STALE/);
+  assert.match(envelope.note, /Flights is STALE/);
   assert.match(envelope.note, /OpenSky Network/);
   assert.match(envelope.note, /4m ago/);
   assert.match(envelope.note, /do not describe this as live/i);
@@ -188,7 +188,7 @@ test('an unavailable feed with no prior data does not become a confident zero', 
   const snap = layerSnapshot(
     {
       id: 'ais-live-vessels',
-      name: 'Live Vessels',
+      name: 'Vessels',
       enabled: true,
       stats: { error: 'AISStream down', count: 0, lastUpdate: null },
     },
@@ -204,7 +204,7 @@ test('fallback provenance names the fallback source instead of calling it live',
   const snap = layerSnapshot(
     {
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: true,
       stats: {
         source: 'adsb.lol fallback',
@@ -222,7 +222,7 @@ test('view-state rows keep the existing identity fields and add feedState', () =
   const row = viewStateLayerRow(
     {
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: true,
       stats: {
         count: 9,
@@ -235,7 +235,7 @@ test('view-state rows keep the existing identity fields and add feedState', () =
   );
   assert.deepEqual(row, {
     id: 'flights',
-    name: 'Live Flights',
+    name: 'Flights',
     enabled: true,
     count: 9,
     error: null,

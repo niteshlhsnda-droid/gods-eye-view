@@ -138,7 +138,7 @@ test('HUD summary context and telemetry tag carry chip-identical feed-state', ()
   const layers = [
     {
       id: 'flights',
-      name: 'Live Flights',
+      name: 'Flights',
       enabled: true,
       stats: { stale: true, count: 12, lastUpdate: now - 240_000, source: 'OpenSky Network' },
     },
@@ -150,12 +150,12 @@ test('HUD summary context and telemetry tag carry chip-identical feed-state', ()
     },
   ];
   const context = hudSummaryLayerContext(layers, { now });
-  assert.deepEqual(context.enabledLayerLabels, ['Live Flights']);
+  assert.deepEqual(context.enabledLayerLabels, ['Flights']);
   assert.equal(context.enabledLayers[0].feedState, 'stale');
   assert.equal(context.feedProvenance.overall, 'stale');
-  assert.equal(hudTelemetryProvenanceTag(layers, { now }), 'STALE LIVE FLIGHTS');
+  assert.equal(hudTelemetryProvenanceTag(layers, { now }), 'STALE FLIGHTS');
   assert.equal(hudTelemetryProvenanceTag([{
-    id: 'flights', name: 'Live Flights', enabled: true, stats: { count: 4, lastUpdate: now },
+    id: 'flights', name: 'Flights', enabled: true, stats: { count: 4, lastUpdate: now },
   }], { now }), null);
 });
 

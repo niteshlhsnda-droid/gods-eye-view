@@ -91,7 +91,7 @@ test('static hosting honest state is terminal: one settle, then update() no-ops'
   const probe = setup({
     async getSnapshot() {
       calls += 1;
-      throw needsDesktopServerError('Live flights');
+      throw needsDesktopServerError('Flights');
     },
   });
   // First update — the same call the manager makes after a hash-restore

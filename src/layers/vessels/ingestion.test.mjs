@@ -155,14 +155,14 @@ test('static hosting honest state is terminal: one settle, then update() no-ops'
   const probe = setup({
     async getSnapshot() {
       calls += 1;
-      throw needsDesktopServerError('Live vessels');
+      throw needsDesktopServerError('Vessels');
     },
   });
   assert.equal(probe.feed.staticTerminal, false);
   await probe.methods.update();
   assert.equal(calls, 1);
   assert.equal(probe.feed.staticTerminal, true);
-  assert.match(probe.feed.error, /Live vessels/);
+  assert.match(probe.feed.error, /Vessels/);
   assert.match(probe.feed.error, /needs the desktop server/);
   // Manager ticks and camera-move refreshes must not re-enter the source.
   await probe.methods.update();
