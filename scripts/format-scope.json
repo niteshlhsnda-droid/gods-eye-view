@@ -1034,5 +1034,7 @@
   "src/tooling/testRunnerCoverage.test.mjs",
   "scripts/scoreboard-untested-sources.mjs",
   "src/tooling/untestedSources.js",
-  "src/tooling/untestedSources.test.mjs"
+  "src/tooling/untestedSources.test.mjs",
+  "src/data/koppenGeiger.js",
+  "src/data/koppenGeiger.test.mjs"
 ]
