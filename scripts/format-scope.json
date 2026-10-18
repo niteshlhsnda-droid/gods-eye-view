@@ -1116,5 +1116,7 @@
   "src/layers/gnss/verticalRate.js",
   "src/layers/gnss/verticalRate.test.mjs",
   "src/layers/streetLevel/providers/kartaview/pano.js",
-  "src/layers/streetLevel/providers/kartaview/pano.test.mjs"
+  "src/layers/streetLevel/providers/kartaview/pano.test.mjs",
+  "src/data/presentWeather.js",
+  "src/data/presentWeather.test.mjs"
 ]
