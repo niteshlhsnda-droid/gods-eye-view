@@ -1331,7 +1331,9 @@
       "src/layers/streetLevel/providers/mapillary/daylight.js",
       "scripts/qa-street-level.mjs",
       "src/sources/needsDesktopServer.js",
-      "src/sources/staticHosting.js"
+      "src/sources/staticHosting.js",
+      "src/layers/streetLevel/providerAgreement.js",
+      "src/layers/streetLevel/providerAgreement.test.mjs"
     ],
     "external": ["cesium", "pbf", "@mapbox/vector-tile", "mapillary-js"]
   },
@@ -2398,7 +2400,9 @@
       "src/director/cameraDocument.js",
       "src/director/packs/manifest.js",
       "src/director/interactions/document.js",
-      "src/sources/needsDesktopServer.js"
+      "src/sources/needsDesktopServer.js",
+      "src/layers/streetLevel/providerAgreement.js",
+      "src/layers/streetLevel/providerAgreement.test.mjs"
     ],
     "external": [
       "@jtarrio/webrtlsdr",
@@ -3785,7 +3789,9 @@
       "src/layers/bikeshare/directFetch.js",
       "src/sources/infrastructureData.js",
       "src/sources/eventPacks.js",
-      "src/sources/needsDesktopServer.js"
+      "src/sources/needsDesktopServer.js",
+      "src/layers/streetLevel/providerAgreement.js",
+      "src/layers/streetLevel/providerAgreement.test.mjs"
     ],
     "external": ["@mapbox/vector-tile", "pbf", "fflate"]
   },
