@@ -167,6 +167,74 @@ test('nearestImage measures the short way round the date line', async () => {
   assert.equal(await west.nearestImage({ lat: 0, lon: -179.9999 }), 'across');
 });
 
+test('nearestImage ranks by the validated position, not a bogus refined fix', async () => {
+  const at = (id, geometry, computed_geometry) => ({
+    id,
+    is_pano: false,
+    captured_at: 10,
+    geometry,
+    computed_geometry,
+  });
+  const point = (lon, lat) => ({ type: 'Point', coordinates: [lon, lat] });
+  const source = fakeSource({
+    nearest: [
+      // Refined fix is the [0, 0] placeholder; its GPS fix is ~5 m away.
+      at('ghost', point(2.00005, 1), point(0, 0)),
+      // Genuinely ~45 m away, with a clean refined fix.
+      at('far', point(2.0004, 1), point(2.0004, 1)),
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'ghost');
+});
+
+test('nearestImage falls back to GPS on a non-finite refined fix', async () => {
+  const point = (lon, lat) => ({ type: 'Point', coordinates: [lon, lat] });
+  const source = fakeSource({
+    nearest: [
+      {
+        id: 'ghost',
+        is_pano: false,
+        captured_at: 10,
+        geometry: point(2.00005, 1),
+        computed_geometry: point(Number.NaN, 1),
+      },
+      {
+        id: 'far',
+        is_pano: false,
+        captured_at: 10,
+        geometry: point(2.0004, 1),
+        computed_geometry: point(2.0004, 1),
+      },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'ghost');
+});
+
+test('nearestImage keeps a position-less record as last resort only', async () => {
+  const source = fakeSource({
+    nearest: [
+      { id: 'lost', is_pano: false, captured_at: 10 },
+      {
+        id: 'placed',
+        is_pano: false,
+        captured_at: 10,
+        geometry: { type: 'Point', coordinates: [2.00005, 1] },
+      },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'placed');
+  // Nothing placed at all: the first record in API order still opens.
+  const onlyLost = createMapillaryProvider({
+    source: fakeSource({
+      nearest: [{ id: 'lost', is_pano: false, captured_at: 10 }],
+    }),
+  }).create(fakeContext());
+  assert.equal(await onlyLost.nearestImage({ lat: 1, lon: 2 }), 'lost');
+});
+
 test('cone thinning across the date line drops images metres apart', () => {
   const image = (id, lon) => ({ id, lon, lat: 0 });
   // A sequence driving east over ±180° with images ~1 m apart, then ~11 m on.

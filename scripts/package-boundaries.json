@@ -1321,6 +1321,7 @@
       "src/layers/streetLevel/selection.js",
       "src/layers/streetLevel/providers/mapillary/viewer.js",
       "src/layers/streetLevel/providers/mapillary/source.js",
+      "src/layers/streetLevel/providers/mapillary/position.js",
       "scripts/qa-street-level.mjs",
       "src/sources/needsDesktopServer.js",
       "src/sources/staticHosting.js"

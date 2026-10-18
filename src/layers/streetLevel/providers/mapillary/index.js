@@ -1,4 +1,5 @@
 import { createCoverage, sequenceIdFromPick } from './coverage.js';
+import { nearestPosition } from './position.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -193,10 +194,13 @@ export function createMapillaryProvider({ source }) {
             { signal },
           );
           // The API returns the images in the radius in no particular order.
+          // Rank by the validated position (refined fix when usable, else
+          // GPS); a record with no usable position sorts last in API order
+          // (stable sort) as a last resort, never ahead of a placed photo.
           const metres = (record) => {
-            const [lon2, lat2] = (record.computed_geometry || record.geometry)
-              ?.coordinates || [NaN, NaN];
-            const d = metresBetween({ lon, lat }, { lon: lon2, lat: lat2 });
+            const position = nearestPosition(record);
+            if (!position) return Infinity;
+            const d = metresBetween({ lon, lat }, position);
             return Number.isFinite(d) ? d : Infinity;
           };
           const byDistance = [...images].sort((a, b) => metres(a) - metres(b));
