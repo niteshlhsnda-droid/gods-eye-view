@@ -1137,5 +1137,6 @@
   "src/data/modifiedMercalli.test.mjs",
   "scripts/scoreboard-unreachable-code.mjs",
   "scripts/unreachableCodeScoreboard.mjs",
-  "src/tooling/unreachableCodeScoreboard.test.mjs"
+  "src/tooling/unreachableCodeScoreboard.test.mjs",
+  "src/sources/featureGeometry.test.mjs"
 ]
