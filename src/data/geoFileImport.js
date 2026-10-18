@@ -18,6 +18,10 @@ import {
   isGeoJsonLinesText,
   parseGeoJsonLines,
 } from './geoJsonLinesImport.js';
+import {
+  OsmGeoImportError,
+  parseOsmToFeatureCollection,
+} from './osmGeoImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -39,7 +43,7 @@ export const MAX_KML_LINKS = 2_000;
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
 export const GEO_FILE_ACCEPT =
-  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt';
+  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt,.osm';
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -94,7 +98,7 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|null}
+ * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|'osm'|null}
 
  */
 export function detectGeoFileFormat(name, head) {
@@ -104,7 +108,13 @@ export function detectGeoFileFormat(name, head) {
   if (ext === 'topojson') return 'topojson';
   if (ext === 'geojsonl' || ext === 'jsonl' || ext === 'ndjson')
     return 'geojsonl';
-  if (ext === 'kml' || ext === 'kmz' || ext === 'gpx' || ext === 'wkt')
+  if (
+    ext === 'kml' ||
+    ext === 'kmz' ||
+    ext === 'gpx' ||
+    ext === 'wkt' ||
+    ext === 'osm'
+  )
     return ext;
 
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
@@ -150,6 +160,7 @@ export function detectGeoFileFormat(name, head) {
   if (text.startsWith('<')) {
     if (/<kml[\s>]/i.test(text)) return 'kml';
     if (/<gpx[\s>]/i.test(text)) return 'gpx';
+    if (/<osm[\s>]/i.test(text)) return 'osm';
   }
   // A WKT dump may arrive as .txt or with no extension at all; the
   // keyword-anchored sniff keeps a prose file from matching.
@@ -1430,7 +1441,7 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX and WKT files can be imported.',
+      'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX, WKT and OSM files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1449,11 +1460,16 @@ export async function loadGeoFile(
       format === 'geojson' ||
       format === 'geojsonl' ||
       format === 'topojson' ||
-      format === 'gpx'
+      format === 'gpx' ||
+      format === 'osm'
     ) {
       let geojson;
       if (format === 'wkt') {
         geojson = parseWktToFeatureCollection(new TextDecoder().decode(bytes));
+      } else if (format === 'osm') {
+        geojson = parseOsmToFeatureCollection(
+          parseXml(decodeXml(bytes), 'OSM'),
+        );
       } else if (format === 'gpx') {
         geojson = parseGpxText(decodeXml(bytes));
       } else {
@@ -1512,6 +1528,11 @@ export async function loadGeoFile(
     // A WKT refusal already names the reason (bad SRID, unclosed ring);
     // carry that wording instead of the generic "could not be read".
     if (error instanceof WktGeoImportError)
+      throw new GeoImportError(error.message);
+    // An OSM refusal already names the reason (dangling reference,
+    // unclosed multipolygon ring); carry that wording instead of the
+    // generic "could not be read".
+    if (error instanceof OsmGeoImportError)
       throw new GeoImportError(error.message);
     throw new GeoImportError(
       `That ${format.toUpperCase()} file could not be read.`,

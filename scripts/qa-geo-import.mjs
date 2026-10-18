@@ -561,7 +561,7 @@ try {
   check(
     'a file that is not geodata is refused with a reason',
     refused.files.length === 5 &&
-      /notes\\.txt: Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX and WKT/.test(
+      /notes\\.txt: Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX, WKT and OSM/.test(
         refused.hint,
       ),
 

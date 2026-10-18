@@ -631,6 +631,26 @@ function zip(files) {
   return out;
 }
 
+test('OSM comes from the .osm extension, or from an <osm> root in any file', () => {
+  assert.equal(detectGeoFileFormat('map.osm'), 'osm');
+  assert.equal(detectGeoFileFormat('map.OSM'), 'osm');
+  assert.equal(
+    detectGeoFileFormat(
+      'export.xml',
+      bytes('<?xml version="1.0"?>\n<osm version="0.6">'),
+    ),
+    'osm',
+  );
+  assert.equal(
+    detectGeoFileFormat('export', bytes('<osm version="0.6">')),
+    'osm',
+  );
+  assert.equal(
+    detectGeoFileFormat('notes.txt', bytes('<osmotic>not a map</osmotic>')),
+    null,
+  );
+});
+
 test('format comes from the extension, then from the first bytes', () => {
   assert.equal(detectGeoFileFormat('trail.GPX'), 'gpx');
   assert.equal(detectGeoFileFormat('farm.kml'), 'kml');

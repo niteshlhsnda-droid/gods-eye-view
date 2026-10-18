@@ -1691,6 +1691,7 @@
       "src/data/naturalEarthRegions.js",
       "src/data/neighborhoodPolygons.js",
       "src/data/observedFreshness.js",
+      "src/data/osmGeoImport.js",
       "src/data/pickRegistry.js",
       "src/data/pickedContext.js",
       "src/data/placeProviderPayloads.js",
