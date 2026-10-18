@@ -84,6 +84,7 @@ export class StreetLevelControls {
       imageBy: byId('sl-image-by'),
       imageWhen: byId('sl-image-when'),
       imageLink: byId('sl-image-link'),
+      imageCredit: byId('sl-image-credit'),
       coverageMeta: byId('sl-coverage-meta'),
       panoButtons: all('[data-sl-pano]'),
       // Held, not re-queried: EXPAND moves them to <body> with the viewer.
@@ -611,6 +612,18 @@ export class StreetLevelControls {
       if (viewer.link) setAttr(el.imageLink, 'href', viewer.link);
       if (viewer.linkLabel)
         setProp(el.imageLink, 'textContent', viewer.linkLabel);
+    }
+    // The license attribution line is provider HTML (trusted, in-repo
+    // credit constants or an adapter's per-image line): innerHTML keeps its
+    // links live. A dataset guard stops innerHTML's normalisation from
+    // re-assigning on every snapshot.
+    if (el.imageCredit) {
+      const html = viewer.captionAttribution || '';
+      setProp(el.imageCredit, 'hidden', !viewer.captionAttribution);
+      if (el.imageCredit.dataset.slCreditHtml !== html) {
+        el.imageCredit.dataset.slCreditHtml = html;
+        el.imageCredit.innerHTML = html;
+      }
     }
   }
 

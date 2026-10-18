@@ -1,4 +1,5 @@
 import { freshStreet } from './state.js';
+import { photoCardAttribution } from './photoAttribution.js';
 
 /**
  * Owns the panel's viewer element and the provider adapter mounted in it.
@@ -24,6 +25,12 @@ export function createViewerHost({ state, parts }) {
   function applyPose(pose) {
     if (!active || !state.street.open || pose.providerId !== active.id) return;
     const previousSequence = state.street.sequenceId;
+    // Every open photo card carries its license attribution: the provider's
+    // own line, or an explicit fallback that says the line is missing.
+    const attribution = photoCardAttribution({
+      provider: providerEntry(pose.providerId)?.def ?? null,
+      pose,
+    });
     Object.assign(state.street, {
       providerId: pose.providerId,
       imageId: pose.imageId,
@@ -38,6 +45,7 @@ export function createViewerHost({ state, parts }) {
       title: pose.title || null,
       sequenceId: pose.sequenceId ?? null,
       creator: pose.creator || null,
+      attributionHtml: attribution.html,
       externalUrl: pose.externalUrl || null,
       // FIT / FILL, unless this image has no frame to fit (a panorama).
       renderModes:

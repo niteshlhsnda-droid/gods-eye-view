@@ -140,6 +140,8 @@ function presentViewer(state) {
     renderModes: street.renderModes !== false,
     captionLeft: left.join(' · '),
     captionRight: right.join(' · '),
+    /** License attribution line for the photo card; never empty when open. */
+    captionAttribution: street.attributionHtml || null,
     link: street.externalUrl || null,
     linkLabel: street.providerLabel ? `${street.providerLabel} ↗` : '',
     follow: {

@@ -22,6 +22,11 @@ export function freshStreet() {
     capturedAtPrecision: 'day',
     /** A place name for the caption (Google's address), or null. */
     title: null,
+    /**
+     * License attribution line for the open photo card (photoAttribution.js
+     * resolves it; a fallback when the provider supplies nothing), or null.
+     */
+    attributionHtml: null,
     /** Whether the open viewer has FIT/FILL render modes. */
     renderModes: true,
     sequenceId: null,

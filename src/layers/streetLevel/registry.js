@@ -16,7 +16,9 @@ export function filtersOf(provider) {
  * @property {string|null} requiresKeyId  Key-setup id the provider needs, or null when keyless.
  * @property {string} pickPrefix    Every primitive id the provider creates starts with it.
  * @property {{coverage: string}} colors   The source's one colour, from policy.js PROVIDER_COLORS.
- * @property {{html: string}} credit   On-globe attribution while the provider is active.
+ * @property {{html: string}} credit   On-globe attribution while the provider is active;
+ *   also the photo card's license line unless `photoAttribution` overrides it.
+ * @property {{html: string}} [photoAttribution]   Photo-card-specific license line (default: `credit`).
  * @property {boolean} [groundClick]   No coverage: a ground click at street zoom opens its nearest image.
  * @property {string} [requiresMapStack]   Usable only on this map stack.
  * @property {boolean} [defaultOn]     Default true.
@@ -86,6 +88,8 @@ export function filtersOf(provider) {
  * @property {string|null} creator
  * @property {string|null} sequenceId
  * @property {string} externalUrl      Deep link to the image on the provider's site.
+ * @property {string} [attributionHtml]   Per-image license attribution for the photo
+ *   card; the card falls back to the provider's credit line when absent.
  */
 
 const REQUIRED = Object.freeze([

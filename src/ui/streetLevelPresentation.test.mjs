@@ -385,6 +385,40 @@ test('an image without a creator name leaves the left caption empty', () => {
   assert.equal(view.viewer.linkLabel, '');
 });
 
+test('an open photo card passes its license attribution line through', () => {
+  const html = 'Imagery © <a href="https://example.test">Example</a>';
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: { open: true, imageId: '1', attributionHtml: html },
+    }),
+  );
+  assert.equal(view.viewer.captionAttribution, html);
+});
+
+test('a photo card without an attribution line reports none, not a crash', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({ street: { open: true, imageId: '1' } }),
+  );
+  assert.equal(view.viewer.captionAttribution, null);
+});
+
+test('an open card always carries an attribution line the audit can check', () => {
+  const attributed = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        attributionHtml: 'Imagery © Example',
+      },
+    }),
+  );
+  assert.ok(attributed.viewer.captionAttribution);
+  const missing = presentStreetLevelPanel(
+    snapshot({ street: { open: true, imageId: '1' } }),
+  );
+  assert.equal(missing.viewer.captionAttribution, null);
+});
+
 test('FOLLOW is disabled off Google 3D and says where to switch', () => {
   const open = { open: true, imageId: '1' };
   const off3d = presentStreetLevelPanel(
