@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { MAX_IMPORT_ENTITIES, MAX_IMPORT_POSITIONS } from './geoFileImport.js';
 import {
+  MAX_WKT_FEATURES,
+  MAX_WKT_POSITIONS,
   WktGeoImportError,
   isWktText,
   parseWkt,
@@ -139,6 +142,33 @@ test('SRID=4326 is accepted; any other SRID is refused, not re-labelled', () => 
     (error) =>
       error instanceof WktGeoImportError && /SRID=3857/.test(error.message),
   );
+});
+
+test('a lowercase srid prefix parses; a lowercase bad SRID still refuses', () => {
+  assert.deepEqual(parseWkt('srid=4326;point(85.1 25.6)'), {
+    type: 'Point',
+    coordinates: [85.1, 25.6],
+  });
+  assert.throws(
+    () => parseWkt('srid=3857;point(85.1 25.6)'),
+    (error) =>
+      error instanceof WktGeoImportError && /SRID=3857/.test(error.message),
+  );
+  assert.equal(isWktText('  srid=4326;linestring(0 0,1 1)'), true);
+});
+
+test('a lowercase dimension qualifier parses; lowercase measured still refuses', () => {
+  assert.deepEqual(parseWkt('point z (85.1 25.6 120)'), {
+    type: 'Point',
+    coordinates: [85.1, 25.6, 120],
+  });
+  assert.throws(() => parseWkt('point m (1 2 3)'), WktGeoImportError);
+  assert.throws(() => parseWkt('point zm (1 2 3 4)'), WktGeoImportError);
+});
+
+test('WKT caps are the importer caps, not a second copy of the numbers', () => {
+  assert.equal(MAX_WKT_FEATURES, MAX_IMPORT_ENTITIES);
+  assert.equal(MAX_WKT_POSITIONS, MAX_IMPORT_POSITIONS);
 });
 
 test('measured (M / ZM) coordinates are refused, never silently stripped', () => {

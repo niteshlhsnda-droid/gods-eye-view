@@ -472,6 +472,89 @@ test('format comes from the extension, then from the first bytes', () => {
   );
 });
 
+test('WKT comes from the .wkt extension, or from WKT text in any file', () => {
+  assert.equal(detectGeoFileFormat('shapes.wkt'), 'wkt');
+  assert.equal(detectGeoFileFormat('shapes.WKT'), 'wkt');
+  assert.equal(
+    detectGeoFileFormat('dump.txt', bytes('POINT(85.1 25.6)')),
+    'wkt',
+  );
+  assert.equal(
+    detectGeoFileFormat('dump.txt', bytes('  srid=4326;POINT(85.1 25.6)')),
+    'wkt',
+  );
+  assert.equal(
+    detectGeoFileFormat('dump', bytes('LINESTRING(0 0,1 1)')),
+    'wkt',
+  );
+  assert.equal(
+    detectGeoFileFormat('notes.txt', bytes('just some notes')),
+    null,
+  );
+});
+
+test('a WKT file loads through the real loader as GeoJSON features', async () => {
+  const previous = Cesium.PinBuilder.prototype.fromColor;
+  Cesium.PinBuilder.prototype.fromColor = () => ({
+    toDataURL: () => 'data:image/png;base64,local',
+    tagName: 'CANVAS',
+  });
+  try {
+    const loaded = await loadGeoFile(
+      new File(
+        ['POINT(1 2)\nLINESTRING(0 0,3 4)\nPOLYGON((0 0,1 0,1 1,0 0))'],
+        'shapes.wkt',
+      ),
+      {
+        viewer: {
+          scene: {
+            frameState: { mode: Cesium.SceneMode.SCENE3D },
+            primitives: new Cesium.PrimitiveCollection(),
+            globe: { getHeight: () => 1234 },
+          },
+        },
+      },
+    );
+    try {
+      assert.equal(loaded.format, 'wkt');
+      assert.equal(loaded.name, 'shapes.wkt');
+      assert.equal(loaded.entityCount, 3);
+      const all =
+        loaded.dataSource.importedEntities || loaded.dataSource.entities.values;
+      const point = all.find((entity) => entity.billboard);
+      assert.ok(point, 'the WKT point becomes a billboard entity');
+      assert.ok(
+        Math.abs(
+          Cesium.Cartographic.fromCartesian(
+            point.position.getValue(Cesium.JulianDate.now()),
+          ).height - 1234,
+        ) < 1e-6,
+        'the WKT point is grounded like any imported point',
+      );
+    } finally {
+      loaded.revoke();
+    }
+  } finally {
+    Cesium.PinBuilder.prototype.fromColor = previous;
+  }
+});
+
+test('a WKT refusal carries the parser reason, not a generic failure', async () => {
+  await assert.rejects(
+    () =>
+      loadGeoFile(new File(['SRID=3857;POINT(1 2)'], 'projected.wkt'), {
+        viewer: {},
+      }),
+    (error) =>
+      error instanceof GeoImportError && /SRID=3857/.test(error.message),
+  );
+  await assert.rejects(
+    () => loadGeoFile(new File(['POINT EMPTY'], 'empty.wkt'), { viewer: {} }),
+    (error) =>
+      error instanceof GeoImportError && /nothing to draw/.test(error.message),
+  );
+});
+
 test('display names are printable and bounded', () => {
   assert.equal(importDisplayName('  hike\u0000.gpx '), 'hike.gpx');
   assert.equal(importDisplayName(''), 'Imported file');
