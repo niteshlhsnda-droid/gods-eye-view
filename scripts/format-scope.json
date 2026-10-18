@@ -1140,5 +1140,7 @@
   "src/tooling/unreachableCodeScoreboard.test.mjs",
   "src/sources/featureGeometry.test.mjs",
   "src/data/altitudeLabel.js",
-  "src/data/altitudeLabel.test.mjs"
+  "src/data/altitudeLabel.test.mjs",
+  "src/data/sphericalPolygonMath.js",
+  "src/data/sphericalPolygonMath.test.mjs"
 ]
