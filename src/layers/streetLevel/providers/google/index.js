@@ -1,4 +1,5 @@
 import { FOLLOW_MAP_STACK_ID } from '../../policy.js';
+import { metresBetween } from '../../view.js';
 import { createMapsLoader } from './mapsLoader.js';
 import { createGoogleViewer } from './viewer.js';
 import {
@@ -14,6 +15,7 @@ import {
   NEAREST_TIMEOUT_MS,
   NO_ANSWER_MESSAGE,
   PICK_PREFIX,
+  imageDateMs,
 } from './policy.js';
 
 /** `promise`, unless it times out, `signal` aborts or Google refuses the key. */
@@ -91,6 +93,61 @@ export function createGoogleProvider({
         context.notify();
       });
 
+      /**
+       * The nearest Google-collected outdoor panorama's data, or null.
+       * Shared by `nearestImage` and `nearestPick` so both resolve to the
+       * same panorama; seeds the details cache exactly as the old
+       * `nearestImage` did, so opening the winner needs no second lookup.
+       */
+      async function nearestPickData({ lat, lon }, { signal } = {}) {
+        if (loader.authFailed()) throw new Error(KEY_REJECTED_MESSAGE);
+        signal?.throwIfAborted();
+        // Set once the caller has its answer (aborted, timed out, refused):
+        // a lookup still waiting on Google's script then asks nothing.
+        let settled = false;
+        const lookup = (async () => {
+          const lib = await loader.importLibrary('streetView');
+          await getService();
+          if (settled) return null;
+          const { GOOGLE, OUTDOOR } = lib.StreetViewSource;
+          try {
+            const { data } = await service.getPanorama({
+              location: { lat, lng: lon },
+              radius: NEAREST_RADIUS_M,
+              // Both: Google's own imagery, outdoors (sources intersect).
+              sources: [GOOGLE, OUTDOOR],
+              preference: lib.StreetViewPreference.NEAREST,
+            });
+            return data;
+          } catch (error) {
+            if (error?.code === 'ZERO_RESULTS') return null;
+            throw error;
+          }
+        })();
+        const data = await settleWithin(lookup, {
+          ms: NEAREST_TIMEOUT_MS,
+          signal,
+          loader,
+        }).finally(() => {
+          settled = true;
+        });
+        const panoId = data?.location?.pano;
+        if (!panoId) return null;
+        viewer.remember(panoId, data);
+        // A panorama answer always carries its position; without one the
+        // pick still stands (never lose the hit) at the query point.
+        const at = data?.location?.latLng;
+        const metres =
+          typeof at?.lat === 'function' && typeof at?.lng === 'function'
+            ? metresBetween({ lat, lon }, { lat: at.lat(), lon: at.lng() })
+            : 0;
+        return {
+          panoId,
+          metres,
+          capturedAt: imageDateMs(data?.imageDate) ?? 0,
+        };
+      }
+
       return {
         async status() {
           keyRequired = !getApiKey();
@@ -140,41 +197,28 @@ export function createGoogleProvider({
          * filters do not apply (see `filters`).
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
-          if (loader.authFailed()) throw new Error(KEY_REJECTED_MESSAGE);
-          signal?.throwIfAborted();
-          // Set once the caller has its answer (aborted, timed out, refused):
-          // a lookup still waiting on Google's script then asks nothing.
-          let settled = false;
-          const lookup = (async () => {
-            const lib = await loader.importLibrary('streetView');
-            await getService();
-            if (settled) return null;
-            const { GOOGLE, OUTDOOR } = lib.StreetViewSource;
-            try {
-              const { data } = await service.getPanorama({
-                location: { lat, lng: lon },
-                radius: NEAREST_RADIUS_M,
-                // Both: Google's own imagery, outdoors (sources intersect).
-                sources: [GOOGLE, OUTDOOR],
-                preference: lib.StreetViewPreference.NEAREST,
-              });
-              return data;
-            } catch (error) {
-              if (error?.code === 'ZERO_RESULTS') return null;
-              throw error;
-            }
-          })();
-          const data = await settleWithin(lookup, {
-            ms: NEAREST_TIMEOUT_MS,
-            signal,
-            loader,
-          }).finally(() => {
-            settled = true;
-          });
-          const panoId = data?.location?.pano;
-          if (!panoId) return null;
-          viewer.remember(panoId, data);
-          return panoId;
+          const pick = await nearestPickData({ lat, lon }, { signal });
+          return pick ? pick.panoId : null;
+        },
+
+        /**
+         * The provider's own nearest pick with the normalized arbitration
+         * fields (see ../../providerAgreement.js), or null. Google's
+         * panoramas are all 360°; it is the same pick `nearestImage` would
+         * open — the core arbitrates between providers instead of taking
+         * the first provider's hit.
+         */
+        async nearestPick({ lat, lon }, { signal } = {}) {
+          const pick = await nearestPickData({ lat, lon }, { signal });
+          return pick
+            ? {
+                providerId: GOOGLE_PROVIDER_ID,
+                recordId: pick.panoId,
+                metres: pick.metres,
+                isPano: true,
+                capturedAt: pick.capturedAt,
+              }
+            : null;
         },
 
         viewer,

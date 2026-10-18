@@ -943,3 +943,118 @@ test('switching source by params clears a failed lookup’s error; reapplying th
   second.setParams({ mapillary: false, other: true });
   assert.equal(second.getUIState().street.error, kept);
 });
+
+/**
+ * A fake provider whose instance exposes `nearestPick` (the normalized
+ * arbitration pick) instead of only `nearestImage`, so the core's
+ * cross-provider arbitration can be exercised end to end.
+ */
+function pickProvider({ id, pickPrefix, pick }) {
+  const provider = fakeProvider({ id, pickPrefix });
+  const create = provider.create;
+  provider.create = (context) => {
+    const instance = create(context);
+    instance.nearestPick = async () => ({ ...pick });
+    return instance;
+  };
+  return provider;
+}
+
+/**
+ * NOTE on arbitration coverage: the layer lights one provider at a time
+ * (the chip model — setProviderEnabled/setParams enforce it), so
+ * openNearest's loop gathers at most one provider pick in production
+ * today. Cross-provider arbitration itself is covered by
+ * providerAgreement.test.mjs (the module's 18-case contract); the tests
+ * below pin the wiring seams that ARE reachable: a lone pick opens, a
+ * provider without nearestPick keeps the legacy cascade, an unusable pick
+ * never loses the hit, and a throwing nearestPick reports like a throwing
+ * nearestImage. If a future cycle lets the nearest button consult several
+ * providers, the loop already arbitrates their picks.
+ */
+const agreementPickFor = (id, recordId, metres, extra = {}) => ({
+  providerId: id,
+  recordId,
+  metres,
+  isPano: false,
+  capturedAt: 1_700_000_000_000,
+  ...extra,
+});
+
+test('openNearest opens a lone provider pick with nothing to arbitrate', async (t) => {
+  const lone = pickProvider({
+    id: 'alpha',
+    pickPrefix: 'alp:',
+    pick: agreementPickFor('alpha', 'a1', 120),
+  });
+  const quiet = pickProvider({
+    id: 'beta',
+    pickPrefix: 'bet:',
+    pick: null,
+  });
+  const { layer } = await enabledLayer(t, [lone, quiet]);
+  layer.attachViewerHost({});
+  assert.equal(await layer.openNearest({ lat: 1, lon: 1 }), true);
+  assert.deepEqual(lone.calls.open, ['a1']);
+});
+
+test('openNearest keeps the legacy first-hit cascade for providers without nearestPick', async (t) => {
+  const legacy = fakeProvider({
+    id: 'legacy',
+    pickPrefix: 'leg:',
+    nearestImage: async () => 'legacy-img',
+  });
+  const modern = pickProvider({
+    id: 'beta',
+    pickPrefix: 'bet:',
+    pick: agreementPickFor('beta', 'b1', 2),
+  });
+  const { layer } = await enabledLayer(t, [legacy, modern]);
+  layer.attachViewerHost({});
+  assert.equal(await layer.openNearest({ lat: 1, lon: 1 }), true);
+  assert.deepEqual(
+    legacy.calls.open,
+    ['legacy-img'],
+    'the legacy provider keeps registry-order priority',
+  );
+  assert.deepEqual(modern.calls.open, []);
+});
+
+test('openNearest never loses the hit when no pick is usable', async (t) => {
+  const broken = pickProvider({
+    id: 'alpha',
+    pickPrefix: 'alp:',
+    // A non-finite distance is not arbitrable; the provider's own pick is
+    // still the answer rather than "no imagery".
+    pick: agreementPickFor('alpha', 'a1', Number.NaN),
+  });
+  const { layer } = await enabledLayer(t, [broken]);
+  layer.attachViewerHost({});
+  assert.equal(await layer.openNearest({ lat: 1, lon: 1 }), true);
+  assert.deepEqual(broken.calls.open, ['a1']);
+});
+
+test('a throwing nearestPick reports its error like a throwing nearestImage', async (t) => {
+  const failing = pickProvider({
+    id: 'alpha',
+    pickPrefix: 'alp:',
+    pick: agreementPickFor('alpha', 'a1', 5),
+  });
+  const create = failing.create;
+  failing.create = (context) => {
+    const instance = create(context);
+    instance.nearestPick = async () => {
+      throw new Error('alpha did not answer');
+    };
+    return instance;
+  };
+  const { layer } = await enabledLayer(t, [failing]);
+  layer.attachViewerHost({});
+  assert.equal(await layer.openNearest({ lat: 1, lon: 1 }), false);
+  assert.match(
+    layer.getUIState().street.error,
+    /alpha did not answer/,
+    'the provider’s error is reported, not swallowed',
+  );
+  assert.equal(layer.getUIState().street.loading, false);
+});

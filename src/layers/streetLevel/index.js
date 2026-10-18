@@ -18,6 +18,7 @@ import { cameraHeightAboveGround, viewCentre, whenIdle } from './view.js';
 import { createGroundClick, groundClickHeightOk } from './groundClick.js';
 import { createGroundCaster, nextSurfaceMode } from './groundCast.js';
 import { createMeshSampler } from './meshSampler.js';
+import { agreementPick } from './providerAgreement.js';
 
 /** Above this camera height the ground under the camera is not worth fetching. */
 const SURFACE_WARM_BELOW_M = 6000;
@@ -706,13 +707,29 @@ export function createStreetLevelLayer({
         (!providerIds || providerIds.includes(entry.def.id)) &&
         providerAvailable(entry);
       const entries = activeEntries().filter(asked);
+      // Every provider resolves its own pick first — its nearestImage
+      // ranking (freshestPanoFirst / preferPano / preferCompanion compose
+      // inside the provider) — and the agreement is the final arbitration
+      // step *between* providers. Providers without `nearestPick` keep the
+      // legacy first-hit cascade in registry order.
+      const picks = [];
+      let legacyHit = null;
       for (const entry of entries) {
-        let imageId = null;
+        let answered = null;
         try {
-          imageId = await entry.instance.nearestImage(
-            { lat: view.lat, lon: view.lon },
-            { signal },
-          );
+          if (typeof entry.instance.nearestPick === 'function') {
+            const found = await entry.instance.nearestPick(
+              { lat: view.lat, lon: view.lon },
+              { signal },
+            );
+            if (found) answered = { pick: { ...found, entry } };
+          } else {
+            const imageId = await entry.instance.nearestImage(
+              { lat: view.lat, lon: view.lon },
+              { signal },
+            );
+            if (imageId) answered = { imageId, entry };
+          }
         } catch (error) {
           // Overtaken: whatever replaced it owns the panel, errors included.
           if (signal.aborted) return false;
@@ -722,12 +739,29 @@ export function createStreetLevelLayer({
         }
         if (signal.aborted) return false;
         if (!state.enabled) break;
-        // Switched off, or its map left, while it looked: try the next.
-        if (!imageId || !entry.on || !providerAvailable(entry)) continue;
-        nearestLookup = null;
-        return openImage(entry.def.id, imageId, { frame });
+        // Switched off, or its map left, while it looked: drop its answer.
+        if (!answered || !entry.on || !providerAvailable(entry)) continue;
+        if (answered.pick) picks.push(answered.pick);
+        else if (!legacyHit) legacyHit = answered;
       }
       if (nearestLookup === lookup) nearestLookup = null;
+      if (state.enabled) {
+        // Legacy providers (no `nearestPick`) keep the old cascade: the
+        // first provider in registry order with a hit wins outright.
+        if (legacyHit)
+          return openImage(legacyHit.entry.def.id, legacyHit.imageId, {
+            frame,
+          });
+        const winner = agreementPick(picks);
+        if (winner?.entry)
+          return openImage(winner.entry.def.id, winner.recordId, { frame });
+        // No usable pick, but a provider did answer: never lose the hit —
+        // fall back to the first provider's own pick in registry order.
+        if (picks.length > 0) {
+          const first = picks[0];
+          return openImage(first.entry.def.id, first.recordId, { frame });
+        }
+      }
       // Switched off while it looked: nothing to open, nothing to report.
       const stillOn = entries.some(
         (entry) => entry.on && providerAvailable(entry),

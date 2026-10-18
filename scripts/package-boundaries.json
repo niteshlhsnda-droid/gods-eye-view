@@ -2808,6 +2808,7 @@
       "src/layers/streetLevel/params.js",
       "src/layers/streetLevel/pickRouter.js",
       "src/layers/streetLevel/policy.js",
+      "src/layers/streetLevel/providerAgreement.js",
       "src/layers/streetLevel/providers/google/index.js",
       "src/layers/streetLevel/providers/google/mapsLoader.js",
       "src/layers/streetLevel/providers/google/policy.js",

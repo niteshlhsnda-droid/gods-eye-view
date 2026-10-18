@@ -291,3 +291,24 @@ test('the panorama a lookup found is dated without a second lookup', async () =>
     'no getPanorama({pano}) for a panorama the lookup already described',
   );
 });
+
+test('nearestPick exposes the same panorama nearestImage would open, with arbitration fields', async () => {
+  const { instance } = setup();
+  // Query at the panorama's own position: the pick measures ~0 m.
+  const pick = await instance.nearestPick({ lat: 38.5816, lon: -121.4944 });
+  assert.equal(pick.providerId, 'google');
+  assert.equal(pick.recordId, 'fresh');
+  assert.equal(pick.isPano, true, 'Street View is all 360°');
+  assert.ok(
+    Number.isFinite(pick.metres) && pick.metres < 1,
+    `pano at the query point, got ${pick.metres}`,
+  );
+  assert.equal(pick.capturedAt, Date.UTC(2025, 5, 1));
+  assert.equal(
+    await instance.nearestImage({ lat: 38.5816, lon: -121.4944 }),
+    pick.recordId,
+    'the pick is what nearestImage would open',
+  );
+  const none = setup({ nearest: () => null });
+  assert.equal(await none.instance.nearestPick({ lat: 0, lon: 0 }), null);
+});
