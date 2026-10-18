@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createMapillaryProvider, nearestPosition } from './index.js';
-import { freshestFirst, mapillaryImageUrl } from './policy.js';
+import { freshestFirst, mapillaryImageUrl, preferPano } from './policy.js';
 import { sequenceIdFromPick } from './coverage.js';
 import { normalizeSequenceImage, thinImages } from './sequences.js';
 import { validateProviders } from '../../registry.js';
@@ -205,6 +205,113 @@ test('nearestImage counts dropped records and keeps position-less ones eligible'
   // The count accumulates across lookups.
   assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'no-coords');
   assert.deepEqual(instance.nearestStats(), { droppedWithoutPosition: 4 });
+});
+
+test('nearestImage prefers a pano a few steps away over the nearest flat shot', async () => {
+  const at = (id, lon, isPano) => ({
+    id,
+    is_pano: isPano,
+    captured_at: 10,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  // Flat ~5.6 m east, pano ~8.9 m east: inside twice the flat distance.
+  const source = fakeSource({
+    nearest: [at('flat', 2.00005, false), at('pano', 2.00008, true)],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'pano');
+});
+
+test('nearestImage keeps the flat shot when the pano is halfway down the street', async () => {
+  const at = (id, lon, isPano) => ({
+    id,
+    is_pano: isPano,
+    captured_at: 10,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  // Flat ~5.6 m east, pano ~22 m east: past twice the flat distance.
+  const source = fakeSource({
+    nearest: [at('flat', 2.00005, false), at('pano', 2.0002, true)],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'flat');
+});
+
+test('nearestImage pano preference never overrides a flat-only filter', async () => {
+  const at = (id, lon, isPano) => ({
+    id,
+    is_pano: isPano,
+    captured_at: 10,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  // The pano is nearer; with a flat-only filter it must not win.
+  const source = fakeSource({
+    nearest: [at('flat', 2.0002, false), at('pano', 2.00005, true)],
+  });
+  const instance = createMapillaryProvider({ source }).create(
+    fakeContext({ pano: 'flat', sinceMs: null }),
+  );
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'flat');
+});
+
+test('nearestImage pano preference needs a real position on both sides', async () => {
+  // The pano has no position (last-resort only); the placed flat wins.
+  const source = fakeSource({
+    nearest: [
+      { id: 'pano', is_pano: true, captured_at: 10 },
+      {
+        id: 'flat',
+        is_pano: false,
+        captured_at: 10,
+        geometry: { type: 'Point', coordinates: [2.00005, 1] },
+      },
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'flat');
+  // With no positions at all, API order decides, as before.
+  const unplaced = fakeSource({
+    nearest: [
+      { id: 'pano', is_pano: true, captured_at: 10 },
+      { id: 'flat', is_pano: false, captured_at: 10 },
+    ],
+  });
+  const unplacedInstance = createMapillaryProvider({ source: unplaced }).create(
+    fakeContext(),
+  );
+  assert.equal(await unplacedInstance.nearestImage({ lat: 1, lon: 2 }), 'pano');
+});
+
+test('preferPano picks the nearest, the near pano, or nothing', () => {
+  assert.equal(preferPano([]), undefined);
+  assert.equal(preferPano([{ isPano: false, metres: Infinity }]), undefined);
+  const flat = { isPano: false, metres: 5 };
+  const nearPano = { isPano: true, metres: 9 };
+  const farPano = { isPano: true, metres: 11 };
+  assert.equal(preferPano([flat, nearPano]), nearPano);
+  assert.equal(preferPano([flat, farPano]), flat);
+  assert.equal(preferPano([nearPano, flat]), nearPano);
+});
+
+test('nearestImage composes freshest-first with the pano preference', async () => {
+  const at = (id, lon, isPano, capturedAt) => ({
+    id,
+    is_pano: isPano,
+    captured_at: capturedAt,
+    geometry: { type: 'Point', coordinates: [lon, 1] },
+  });
+  // The older pano is nearer, but the freshest pano decides the pano side:
+  // freshest flat ~5.6 m (captured 30), older pano ~6.7 m (captured 10),
+  // freshest pano ~8.9 m (captured 20) — inside twice the flat's distance.
+  const source = fakeSource({
+    nearest: [
+      at('flat', 2.00005, false, 30),
+      at('old-pano', 2.00006, true, 10),
+      at('pano', 2.00008, true, 20),
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  assert.equal(await instance.nearestImage({ lat: 1, lon: 2 }), 'pano');
 });
 
 test('a "since N days" window follows the clock in a long-open tab', async (t) => {

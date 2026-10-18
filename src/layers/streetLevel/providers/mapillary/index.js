@@ -15,6 +15,7 @@ import {
   NEAREST_RADIUS_M,
   PICK_PREFIX,
   freshestFirst,
+  preferPano,
 } from './policy.js';
 
 /** Per-provider mutable state, created once per `create()`. */
@@ -90,6 +91,26 @@ export function nearestPosition(record) {
     return { lon, lat };
   }
   return claimed ? null : undefined;
+}
+
+/**
+ * Composed nearest-image pick (Cycle 5 freshest-first + Cycle 8 pano
+ * preference): the freshest flat and the freshest pano are picked
+ * separately with `freshestFirst`, then the 2× pano-distance rule
+ * (`preferPano`) decides between the two type-winners. When only one
+ * capture type is present, its freshest shot wins outright.
+ * @param {Array<{isPano: boolean, capturedAt: number, metres: number}>} placed
+ */
+function freshestPanoFirst(placed) {
+  const freshestFlat = placed.some(({ isPano }) => !isPano)
+    ? freshestFirst(placed.filter(({ isPano }) => !isPano))[0]
+    : null;
+  const freshestPano = placed.some(({ isPano }) => isPano)
+    ? freshestFirst(placed.filter(({ isPano }) => isPano))[0]
+    : null;
+  if (!freshestPano) return freshestFlat;
+  if (!freshestFlat) return freshestPano;
+  return preferPano([freshestFlat, freshestPano]);
 }
 
 /**
@@ -224,9 +245,12 @@ export function createMapillaryProvider({ source }) {
          * finite distance to Null Island and could outrank every real photo
          * near the click. Dropped records are counted in `nearestStats`.
          * Among the passing candidates with a real position, the freshest
-         * shot wins (see `freshestFirst`): the set is already bounded to
-         * the 50 m radius, so a current streetscape beats a decade-old one
-         * a few metres closer. Position-less records stay eligible as
+         * flat and the freshest pano are picked separately (see
+         * `freshestFirst`), then a 360° pano within twice the freshest
+         * flat's distance wins (see `preferPano`): it lets the viewer look
+         * around instead of staring one fixed way, while a current
+         * streetscape still beats a decade-old one a few metres closer.
+         * Position-less records stay eligible as
          * last-resort hits in API order, as before.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
@@ -236,9 +260,11 @@ export function createMapillaryProvider({ source }) {
           );
           // The API returns the images in the radius in no particular order.
           // Cycle 3 position guard: a claimed-but-unusable position is
-          // dropped and counted, never ranked. Cycle 5 ranking: among the
-          // passing candidates with a real position, the freshest shot
-          // wins; position-less records stay eligible as last-resort hits.
+          // dropped and counted, never ranked. Cycle 5 ranking + Cycle 8
+          // pano preference, composed: the freshest flat and the freshest
+          // pano are picked separately, then the 2× pano-distance rule
+          // decides between the two winners. Position-less records stay
+          // eligible as last-resort hits.
           const ranked = [];
           for (const record of images) {
             const position = nearestPosition(record);
@@ -249,13 +275,14 @@ export function createMapillaryProvider({ source }) {
             ranked.push({
               record,
               capturedAt: Number(record.captured_at) || 0,
+              isPano: record.is_pano === true,
               metres: position
                 ? metresBetween({ lon, lat }, position)
                 : Infinity,
             });
           }
           const filter = context.getFilter();
-          const passing = ranked.filter(({ record, capturedAt }) =>
+          const passing = ranked.filter(({ record, capturedAt, isPano }) =>
             passesImageryFilter(
               {
                 isPano: record.is_pano === true,
@@ -265,8 +292,8 @@ export function createMapillaryProvider({ source }) {
             ),
           );
           const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
-          // `ranked` is API order, so a last-resort hit keeps it.
-          const hit = placed.length ? freshestFirst(placed)[0] : passing[0];
+          // `passing` is API order, so a last-resort hit keeps it.
+          const hit = placed.length ? freshestPanoFirst(placed) : passing[0];
           return hit ? String(hit.record.id) : null;
         },
 
