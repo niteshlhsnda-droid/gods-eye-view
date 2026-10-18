@@ -48,6 +48,8 @@ function firstAngle(...values) {
  * receiver with no fix, not a photo in the Gulf of Guinea (the upstream
  * KartaView provider drops the same pair in `normalizePhoto`), and an
  * out-of-range or non-numeric coordinate cannot stand on the globe.
+ * Sequence images fetch `geometry` only (see SEQUENCE_IMAGE_FIELDS), so
+ * there is no `computed_geometry` fallback here.
  */
 export function normalizeSequenceImage(record) {
   const coordinates = record?.geometry?.coordinates;

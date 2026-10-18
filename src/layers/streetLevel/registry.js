@@ -51,6 +51,7 @@ export function filtersOf(provider) {
  * @property {(sequenceId: string) => Promise<void>} [selectSequence]
  * @property {() => void} [clearSequence]
  * @property {() => {selectedId: string|null, images: number, loading: boolean}} [sequenceStats]
+ * @property {() => {droppedWithoutPosition: number}} [nearestStats]   Nearest-lookup records dropped for a claimed-but-unusable position.
  * @property {(point: {lat: number, lon: number}, options?: {signal?: AbortSignal}) => Promise<string|null>} nearestImage   An aborted lookup gives up (it may reject with an AbortError).
  * @property {ViewerAdapter} viewer
  *
