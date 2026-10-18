@@ -1058,5 +1058,8 @@
   "src/data/windMath.js",
   "src/data/windMath.test.mjs",
   "src/data/uvIndex.js",
-  "src/data/uvIndex.test.mjs"
+  "src/data/uvIndex.test.mjs",
+  "scripts/scoreboard-complexity-hotspots.mjs",
+  "src/tooling/complexityHotspots.js",
+  "src/tooling/complexityHotspots.test.mjs"
 ]
