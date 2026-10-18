@@ -42,14 +42,25 @@ function firstAngle(...values) {
   return null;
 }
 
-/** Normalize a graph image record into the shape the cones use. */
+/**
+ * Normalize a graph image record into the shape the cones use. A record
+ * without a usable position is dropped, not drawn: a [0, 0] geometry is a
+ * receiver with no fix, not a photo in the Gulf of Guinea (the upstream
+ * KartaView provider drops the same pair in `normalizePhoto`), and an
+ * out-of-range or non-numeric coordinate cannot stand on the globe.
+ */
 export function normalizeSequenceImage(record) {
   const coordinates = record?.geometry?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const lon = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  if (lon === 0 && lat === 0) return null;
+  if (Math.abs(lon) > 180 || Math.abs(lat) > 90) return null;
   return {
     id: String(record.id),
-    lon: Number(coordinates[0]),
-    lat: Number(coordinates[1]),
+    lon,
+    lat,
     // The device compass first; Mapillary's computed heading (derived from
     // the sequence geometry) when the device reported none. A photo with
     // neither keeps compassAngle null — unknown, not north.
