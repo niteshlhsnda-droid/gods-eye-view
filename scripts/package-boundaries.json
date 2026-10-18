@@ -3570,7 +3570,8 @@
       "src/layers/gnss/index.js",
       "src/sources/httpBody.js",
       "src/layers/gnss/source.js",
-      "src/layers/gnss/records.js"
+      "src/layers/gnss/records.js",
+      "src/layers/gnss/containmentJump.js"
     ],
     "external": ["cesium"]
   },
