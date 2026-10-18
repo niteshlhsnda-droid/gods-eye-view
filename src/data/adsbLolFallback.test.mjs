@@ -49,3 +49,33 @@ test('keeps grounded fallback contacts and rejects rows without positions', () =
   assert.equal(normalized.states[0][7], null);
   assert.equal(normalized.states[0][8], true);
 });
+
+test('empty-but-valid adsb.lol point responses are valid snapshots, never errors', () => {
+  // Probe-verified empty shape: adsb.lol returns {"ac":[],"total":0} for
+  // genuinely empty skies (mid-ocean 0,-30; Svalbard 78.22,15.63). An empty
+  // response is a successful observation of zero aircraft — the caller must
+  // treat it as valid, never as a failure to retry. Same principle as the
+  // empty-vessel-coverage rule in CHANGELOG.md: an explicitly current,
+  // complete empty snapshot clears stale contacts instead of erroring.
+  for (const payload of [
+    { now: 1_700_000_000, ac: [], total: 0 },
+    { now: 1_700_000_000_000, ac: [], total: 0 },
+  ]) {
+    const normalized = normalizeAdsbLolPointResponse(payload);
+    assert.equal(normalized.time, 1_700_000_000);
+    assert.deepEqual(normalized.states, []);
+  }
+});
+
+test('empty adsb.lol point response without now still yields an empty snapshot', () => {
+  // No `now` in the payload: the normalizer falls back to the wall clock
+  // for the snapshot time. The snapshot is still valid-empty, not an error.
+  const before = Math.floor(Date.now() / 1000);
+  const normalized = normalizeAdsbLolPointResponse({ ac: [], total: 0 });
+  const after = Math.floor(Date.now() / 1000);
+  assert.deepEqual(normalized.states, []);
+  assert.ok(
+    normalized.time >= before && normalized.time <= after,
+    `snapshot time ${normalized.time} within [${before}, ${after}]`,
+  );
+});
