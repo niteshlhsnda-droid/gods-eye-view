@@ -107,6 +107,9 @@ export function createLifecycle({
       layerState._lastViewRect = null;
       layerState._selectedFire = null;
       layerState._labelCandidates = [];
+      // The next rebuild re-measures the cohort; until then the panel falls
+      // back to the bare count rather than a stale truncation claim.
+      layerState._ambientCohortShown = null;
       layerState._labelLodDistance = 0;
       layerState._pickIndexById.clear();
       layerState._fireByCardId.clear();

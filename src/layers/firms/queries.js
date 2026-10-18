@@ -1,4 +1,5 @@
 import { fireDetectionKey } from '../../data/firmsLabels.js';
+import { firmsCohortLabel } from '../../data/firmsCohortLabel.js';
 import {
   newestObservedAt,
   observedFreshnessLabel,
@@ -88,9 +89,18 @@ export function createQueries({
           now,
         })}`;
       }
+      // Canonical honesty label for the capped ambient cohort. The layer
+      // panel renders `countLabel` verbatim when present, so a truncated
+      // 18-card cohort never reads as the whole detection population. Null
+      // (not yet measured, or invalid) falls back to the bare count.
+      const cohortLabel = firmsCohortLabel({
+        shown: layerState._ambientCohortShown,
+        total: layerState._count,
+      });
       return {
         count: layerState._count,
         cells: layerState._cellCount,
+        countLabel: cohortLabel ? cohortLabel.text : null,
         lastUpdate: layerState._lastUpdate,
         loading: layerState._loading,
         stale: layerState._stale,

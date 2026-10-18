@@ -1025,6 +1025,7 @@
     "exports": ["./layers/firms"],
     "modules": [
       "src/data/firmsAdapt.js",
+      "src/data/firmsCohortLabel.js",
       "src/data/firmsLabels.js",
       "src/data/iconOrientation.js",
       "src/data/observedFreshness.js",
@@ -1651,6 +1652,7 @@
       "src/data/fireAnchors.js",
       "src/data/firmsAdapt.js",
       "src/data/firmsHeatmap.js",
+      "src/data/firmsCohortLabel.js",
       "src/data/firmsLabels.js",
       "src/data/flights.js",
       "src/data/flowMatch.js",
@@ -2507,6 +2509,7 @@
       "src/data/detectionRenderDemand.js",
       "src/data/directions.js",
       "src/data/firmsAdapt.js",
+      "src/data/firmsCohortLabel.js",
       "src/data/firmsLabels.js",
       "src/data/flowMatch.js",
       "src/data/focusDeemphasis.js",
