@@ -102,7 +102,14 @@ const finite = (value) => typeof value === 'number' && Number.isFinite(value);
  * facts the layer needs. Returns null when the payload has no aircraft array.
  *
  * @param {{ac?: object[], now?: number}} payload - readsb-style snapshot.
- * @returns {{hex: string, lat: number, lon: number, nic: number|null, nacp: number|null, gpsLost: boolean, degraded: boolean}[]|null}
+ * @returns {{hex: string, lat: number, lon: number, nic: number|null, nacp: number|null, gpsLost: boolean, seenPosS: number|null, degraded: boolean}[]|null}
+ *
+ * `seenPosS` is the age in seconds of the reported position when the
+ * snapshot was taken (`seen_pos` from adsb.lol). It is null for GPS-lost
+ * rows: their reported position is the last-good GNSS fix, whose age is
+ * unknown, and `seen_pos` dates the later MLAT/estimate position instead.
+ * The spoof-feed tracker uses it to date per-aircraft fixes; without it a
+ * stale check could only judge the whole snapshot's age.
  */
 export function normalizeGnssAircraft(payload) {
   if (!Array.isArray(payload?.ac)) return null;
@@ -150,6 +157,9 @@ export function normalizeGnssAircraft(payload) {
       nic,
       nacp,
       gpsLost,
+      // A GPS-lost row's position is the last-good GNSS fix of unknown
+      // age; seen_pos dates the later estimate, so it must not date it.
+      seenPosS: gpsLost ? null : age,
       degraded:
         gpsLost ||
         (nacp !== null && nacp < GNSS_NACP_THRESHOLD) ||

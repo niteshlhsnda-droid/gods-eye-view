@@ -98,6 +98,7 @@ for (const hook of ['configureServer', 'configurePreviewServer']) {
           nic: 0,
           nacp: 0,
           gpsLost: false,
+          seenPosS: 1,
           degraded: true,
         },
       ],

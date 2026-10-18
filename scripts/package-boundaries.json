@@ -1927,6 +1927,8 @@
       "src/layers/gnss/index.js",
       "src/layers/gnss/source.js",
       "src/layers/gnss/records.js",
+      "src/layers/gnss/spoofFeed.js",
+      "src/layers/gnss/spoofSignals.js",
       "src/layers/perimeters/index.js",
       "src/layers/perimeters/records.js",
       "src/layers/perimeters/source.js",
@@ -2703,6 +2705,8 @@
       "src/layers/gnss/index.js",
       "src/layers/gnss/source.js",
       "src/layers/gnss/records.js",
+      "src/layers/gnss/spoofFeed.js",
+      "src/layers/gnss/spoofSignals.js",
       "src/layers/perimeters/index.js",
       "src/layers/perimeters/records.js",
       "src/layers/perimeters/source.js",
@@ -3570,7 +3574,9 @@
       "src/layers/gnss/index.js",
       "src/sources/httpBody.js",
       "src/layers/gnss/source.js",
-      "src/layers/gnss/records.js"
+      "src/layers/gnss/records.js",
+      "src/layers/gnss/spoofFeed.js",
+      "src/layers/gnss/spoofSignals.js"
     ],
     "external": ["cesium"]
   },
