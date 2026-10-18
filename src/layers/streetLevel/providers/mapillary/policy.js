@@ -157,7 +157,6 @@ export function preferCompanion(entries) {
   );
 }
 
-
 /**
  * A nearest-image candidate below this predicted visual quality is passed
  * over for a decent one nearby: Mapillary's `quality_score` runs [0, 1]
