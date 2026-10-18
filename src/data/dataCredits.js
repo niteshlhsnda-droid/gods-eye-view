@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { BASEMAP_VINTAGE_DISCLOSURE } from './basemapVintage.js';
 
 /**
  * Per-layer data attribution registered into Cesium's credit display.
@@ -92,6 +93,14 @@ export function hideOsmCredit(viewer, owner) {
 }
 
 export const DATA_CREDITS = [
+  // ── Base-map vintage disclosure (not attribution) ────────────────
+  // The base map is undated: no freshness label, no currency claim —
+  // see docs/basemap-imagery-vintage.md. Wording owned by
+  // `src/data/basemapVintage.js`, pinned verbatim by dataCredits tests.
+  {
+    key: 'basemap-vintage',
+    html: BASEMAP_VINTAGE_DISCLOSURE,
+  },
   // ── Live sources ────────────────────────────────────────────────
   {
     key: 'opensky',
