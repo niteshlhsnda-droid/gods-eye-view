@@ -14,7 +14,7 @@ import {
   formatLayerScoreboard,
   scoreboardExitCode,
   summarizeLayerTests,
-} from '../src/tooling/layerScoreboard.js';
+} from './layerScoreboard.mjs';
 
 const args = process.argv.slice(2);
 const asJson = args.includes('--json');

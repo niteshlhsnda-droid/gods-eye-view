@@ -11,9 +11,9 @@
  *
  * The counting logic is pure (`summarizeLayerTests`); only
  * `collectLayerEntries` touches the filesystem, so tests can feed
- * synthetic entries. The CLI lives in `scripts/scoreboard-layers.mjs`.
+ * synthetic entries. The CLI lives in `./scoreboard-layers.mjs`.
  *
- * @module tooling/layerScoreboard
+ * @module scripts/layerScoreboard
  */
 import { readdirSync } from 'node:fs';
 import path from 'node:path';

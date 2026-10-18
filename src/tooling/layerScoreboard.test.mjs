@@ -8,7 +8,7 @@ import {
   formatLayerScoreboard,
   scoreboardExitCode,
   summarizeLayerTests,
-} from './layerScoreboard.js';
+} from '../../scripts/layerScoreboard.mjs';
 
 test('summarizes per-layer counts and flags test-less layers', () => {
   const report = summarizeLayerTests([
