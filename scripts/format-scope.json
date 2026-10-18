@@ -34,6 +34,7 @@
   "src/data/osmGeoImport.test.mjs",
   "src/data/polylineGeoImport.js",
   "src/data/polylineGeoImport.test.mjs",
+  "src/data/geoImportImages.test.mjs",
   "src/ui/geoFileImport.test.mjs",
   "src/annotations/adminOutline.test.mjs",
   "src/annotations/regionRing.test.mjs",
