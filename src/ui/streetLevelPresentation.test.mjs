@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  describeCaptureDate,
   presentStreetLevelPanel,
   SINCE_STOPS,
   sinceStopIndex,
@@ -361,9 +362,11 @@ test('viewer caption reads "Image by" left, date right, and links to the provide
         followAvailable: true,
       },
     }),
+    { now: Date.UTC(2024, 0, 15) },
   );
   assert.equal(view.viewer.captionLeft, 'Image by mapfool');
   assert.equal(view.viewer.captionRight, '360° · 93° · 2023-10-08');
+  assert.equal(view.viewer.captureStale, false, '3 months old is not stale');
   assert.equal(
     view.viewer.link,
     'https://www.mapillary.com/app/?pKey=1814275685699406&focus=photo',
@@ -378,9 +381,11 @@ test('an image without a creator name leaves the left caption empty', () => {
     snapshot({
       street: { open: true, imageId: '1', capturedAt: Date.UTC(2024, 0, 2) },
     }),
+    { now: Date.UTC(2024, 6, 1) },
   );
   assert.equal(view.viewer.captionLeft, '');
   assert.equal(view.viewer.captionRight, '2024-01-02');
+  assert.equal(view.viewer.captureStale, false);
   assert.equal(view.viewer.link, null);
   assert.equal(view.viewer.linkLabel, '');
 });
@@ -427,9 +432,11 @@ test('a Street View caption names the place, dates it by month, and offers no FI
           'https://www.google.com/maps/@?api=1&map_action=pano&pano=pano-1',
       },
     }),
+    { now: Date.UTC(2023, 5, 1) },
   );
   assert.equal(view.viewer.captionLeft, '1014 10th St · Image by Google');
   assert.equal(view.viewer.captionRight, '360° · 0° · 2023-01');
+  assert.equal(view.viewer.captureStale, false);
   assert.equal(view.viewer.linkLabel, 'STREET VIEW ↗');
   assert.equal(view.viewer.renderModes, false);
 });
@@ -538,4 +545,157 @@ test('KEY REQUIRED points at Street View when it would draw with the Google key'
   );
   assert.equal(plain.status.text, 'KEY REQUIRED');
   assert.notEqual(plain.meta, guidance);
+});
+
+test('a capture date formats by day or by month precision', () => {
+  const now = Date.UTC(2026, 9, 17);
+  assert.deepEqual(describeCaptureDate(Date.UTC(2023, 9, 8), 'day', now), {
+    known: true,
+    label: '2023-10-08',
+    stale: true,
+  });
+  assert.deepEqual(describeCaptureDate(Date.UTC(2023, 0, 15), 'month', now), {
+    known: true,
+    label: '2023-01',
+    stale: true,
+  });
+  assert.deepEqual(describeCaptureDate(Date.UTC(2026, 9, 1), 'day', now), {
+    known: true,
+    label: '2026-10-01',
+    stale: false,
+  });
+});
+
+test('a capture date accepts ISO and numeric-epoch strings and Date objects', () => {
+  const now = Date.UTC(2026, 9, 17);
+  assert.equal(
+    describeCaptureDate('2023-10-08T12:00:00Z', 'day', now).label,
+    '2023-10-08',
+  );
+  assert.equal(
+    describeCaptureDate('1690000000000', 'day', now).label,
+    '2023-07-22',
+  );
+  assert.equal(
+    describeCaptureDate(new Date(Date.UTC(2024, 4, 3)), 'day', now).label,
+    '2024-05-03',
+  );
+});
+
+test('missing, zero, invalid and pre-1990 capture dates read Unknown date', () => {
+  const now = Date.UTC(2026, 9, 17);
+  for (const value of [
+    null,
+    undefined,
+    0,
+    -1,
+    '',
+    '   ',
+    NaN,
+    'not-a-date',
+    '2023-13-40',
+    'garbage',
+    true,
+    {},
+    [],
+    Date.UTC(1985, 5, 1),
+    // Epoch seconds, not milliseconds: a 1970 misread must never render.
+    1_690_000_000,
+    '1690000000',
+  ])
+    assert.deepEqual(
+      describeCaptureDate(value, 'day', now),
+      { known: false, label: 'Unknown date', stale: false },
+      `value ${String(value)}`,
+    );
+});
+
+test('a future capture date reads Unknown date, never a negative age', () => {
+  const now = Date.UTC(2026, 9, 17);
+  assert.deepEqual(describeCaptureDate(now + 1, 'day', now), {
+    known: false,
+    label: 'Unknown date',
+    stale: false,
+  });
+  assert.deepEqual(describeCaptureDate(now + 86_400_000, 'day', now), {
+    known: false,
+    label: 'Unknown date',
+    stale: false,
+  });
+  // Captured right now is known and fresh, not stale.
+  assert.deepEqual(describeCaptureDate(now, 'day', now), {
+    known: true,
+    label: '2026-10-17',
+    stale: false,
+  });
+});
+
+test('STALE starts only past 2 years (730 days), at the boundary it is fresh', () => {
+  const now = Date.UTC(2026, 9, 17);
+  const day = 86_400_000;
+  assert.equal(
+    describeCaptureDate(now - 730 * day, 'day', now).stale,
+    false,
+    'exactly 2 years old is not older than 2 years',
+  );
+  assert.equal(
+    describeCaptureDate(now - 730 * day - 1, 'day', now).stale,
+    true,
+    'one millisecond past 2 years is stale',
+  );
+  assert.equal(describeCaptureDate(now - 729 * day, 'day', now).stale, false);
+});
+
+test('a photo without a capture date reads Unknown date and never shows STALE', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: { open: true, imageId: '1', capturedAt: null },
+    }),
+    { now: Date.UTC(2026, 9, 17) },
+  );
+  assert.equal(view.viewer.captionRight, 'Unknown date');
+  assert.equal(view.viewer.captureStale, false);
+  const zero = presentStreetLevelPanel(
+    snapshot({
+      street: { open: true, imageId: '1', capturedAt: 0 },
+    }),
+    { now: Date.UTC(2026, 9, 17) },
+  );
+  assert.equal(zero.viewer.captionRight, 'Unknown date');
+  assert.equal(zero.viewer.captureStale, false);
+});
+
+test('a photo older than 2 years shows its date and the STALE badge flag', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        capturedAt: Date.UTC(2020, 0, 1),
+      },
+    }),
+    { now: Date.UTC(2026, 9, 17) },
+  );
+  assert.equal(view.viewer.captionRight, '2020-01-01');
+  assert.equal(view.viewer.captureStale, true);
+});
+
+test('a future or invalid capture date on the card reads Unknown date', () => {
+  const now = Date.UTC(2026, 9, 17);
+  const future = presentStreetLevelPanel(
+    snapshot({
+      street: { open: true, imageId: '1', capturedAt: now + 86_400_000 },
+    }),
+    { now },
+  );
+  assert.equal(future.viewer.captionRight, 'Unknown date');
+  assert.equal(future.viewer.captureStale, false);
+  const invalid = presentStreetLevelPanel(
+    snapshot({
+      street: { open: true, imageId: '1', capturedAt: 'not-a-date' },
+    }),
+    { now },
+  );
+  assert.equal(invalid.viewer.captionRight, 'Unknown date');
+  assert.equal(invalid.viewer.captureStale, false);
 });

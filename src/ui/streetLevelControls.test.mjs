@@ -300,6 +300,7 @@ function panelDom() {
     'sl-viewer',
     'sl-image-by',
     'sl-image-when',
+    'sl-image-stale',
     'sl-image-link',
   ])
     add(wrap, id === 'sl-image-link' ? 'a' : 'div', { id });
@@ -494,6 +495,7 @@ function uiState({
   pano = 'all',
   renderMode = 'letterbox',
   keyRequired = false,
+  capturedAt = null,
 } = {}) {
   return {
     enabled,
@@ -529,6 +531,7 @@ function uiState({
       renderMode,
       providerId: open ? 'mapillary' : null,
       imageId: open ? 'img-1' : null,
+      capturedAt,
       error: null,
     },
     surface: 'draped',
@@ -602,6 +605,25 @@ test('the legend rebuilds when a swatch changes, even at the same count', () =>
     );
     assert.equal(legend.childElementCount, 2);
     assert.equal(swatch(), '#a66bff');
+  }));
+
+test('the STALE badge shows only for a photo captured over 2 years ago', () =>
+  withDom(async (dom) => {
+    const { layer } = stubPanel(
+      dom,
+      uiState({ open: true, capturedAt: Date.UTC(2020, 0, 1) }),
+    );
+    const badge = () => dom.root.querySelector('#sl-image-stale');
+    assert.equal(badge().textContent, 'STALE');
+    assert.equal(badge().hidden, false);
+    layer.publish(uiState({ open: true, capturedAt: Date.now() }));
+    assert.equal(badge().hidden, true);
+    layer.publish(uiState({ open: true, capturedAt: null }));
+    assert.equal(badge().hidden, true, 'unknown date never reads stale');
+    assert.equal(
+      dom.root.querySelector('#sl-image-when').textContent,
+      'Unknown date',
+    );
   }));
 
 test('the viewer is resized once when it opens, not on every render', () =>
