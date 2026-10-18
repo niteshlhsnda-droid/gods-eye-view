@@ -1102,5 +1102,8 @@
   "src/data/mifImport.js",
   "src/data/mifImport.test.mjs",
   "src/data/seaState.js",
-  "src/data/seaState.test.mjs"
+  "src/data/seaState.test.mjs",
+  "scripts/scoreboard-duplicate-literals.mjs",
+  "scripts/duplicateLiteralScoreboard.mjs",
+  "src/tooling/duplicateLiteralScoreboard.test.mjs"
 ]

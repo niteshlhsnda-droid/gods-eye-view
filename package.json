@@ -59,6 +59,7 @@
     "qa:street-level:fixtures": "node scripts/qa-street-level.mjs --fixtures",
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "scoreboard:todo-debt": "node scripts/scoreboard-todo-debt.mjs",
+    "scoreboard:duplicate-literals": "node scripts/scoreboard-duplicate-literals.mjs",
     "qa:transit": "node scripts/qa-transit.mjs",
     "scoreboard:layers": "node scripts/scoreboard-layers.mjs",
     "scoreboard:slowest-tests": "node scripts/slowest-tests.mjs --run",
