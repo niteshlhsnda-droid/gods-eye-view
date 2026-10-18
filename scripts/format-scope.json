@@ -1062,5 +1062,7 @@
   "src/data/uvIndex.test.mjs",
   "scripts/scoreboard-complexity-hotspots.mjs",
   "src/tooling/complexityHotspots.js",
-  "src/tooling/complexityHotspots.test.mjs"
+  "src/tooling/complexityHotspots.test.mjs",
+  "src/data/coordinatePrecision.js",
+  "src/data/coordinatePrecision.test.mjs"
 ]

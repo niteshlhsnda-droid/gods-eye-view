@@ -605,7 +605,6 @@ test('freshestFirst sorts by capture date, unknown last, distance on ties', () =
   assert.equal(entries[0].metres, 1, 'the input order is untouched');
 });
 
-
 test('nearestImage with a heading prefers a facing shot a few metres farther', async () => {
   const at = (id, lon, compassAngle) => ({
     id,
