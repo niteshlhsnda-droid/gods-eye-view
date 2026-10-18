@@ -1150,5 +1150,8 @@
   "src/data/dxfGeoImport.js",
   "src/data/dxfGeoImport.test.mjs",
   "src/data/koppenGeiger.js",
-  "src/data/koppenGeiger.test.mjs"
+  "src/data/koppenGeiger.test.mjs",
+  "scripts/scoreboard-magic-numbers.mjs",
+  "src/tooling/magicNumbers.js",
+  "src/tooling/magicNumbers.test.mjs"
 ]
