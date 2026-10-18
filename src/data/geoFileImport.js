@@ -22,6 +22,45 @@ import {
   OsmGeoImportError,
   parseOsmToFeatureCollection,
 } from './osmGeoImport.js';
+import {
+  WkbGeoImportError,
+  isWkbBytes,
+  parseWkbToGeoJson,
+} from './wkbGeoImport.js';
+import { EsriJsonImportError, esriJsonToGeoJson } from './esriJsonImport.js';
+import {
+  ShapefileImportError,
+  isShapefileBytes,
+  parseShapefile,
+} from './shapefileImport.js';
+import { GmlImportError, isGmlText, gmlToGeoJson } from './gmlImport.js';
+import {
+  GeoRssImportError,
+  isGeoRssText,
+  geoRssToGeoJson,
+} from './georssImport.js';
+import {
+  DxfGeoImportError,
+  isDxfText,
+  parseDxfToFeatureCollection,
+} from './dxfGeoImport.js';
+import {
+  MifImportError,
+  isMifText,
+  parseMifToFeatureCollection,
+} from './mifImport.js';
+import {
+  TcxGeoImportError,
+  isTcxText,
+  parseTcxToFeatureCollection,
+} from './tcxGeoImport.js';
+import { IgcGeoImportError, igcToGeoJson } from './igcGeoImport.js';
+import { parseNmeaText, isNmeaText } from './nmeaGeoImport.js';
+import { CsvGeoImportError, parseCsvGeo } from './csvGeoImport.js';
+import {
+  PolylineGeoImportError,
+  encodedPolylineToGeoJson,
+} from './polylineGeoImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -43,7 +82,33 @@ export const MAX_KML_LINKS = 2_000;
 export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
 export const GEO_FILE_ACCEPT =
-  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt,.osm';
+  '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt,.osm,' +
+  '.wkb,.esrijson,.shp,.gml,.rss,.atom,.dxf,.mif,.tcx,.igc,.nmea,.csv,.polyline';
+
+/**
+ * Every format the loader parses to GeoJSON (the KML/KMZ branch is the
+ * only other loader path).
+ */
+const GEOJSON_LOADER_FORMATS = new Set([
+  'geojson',
+  'geojsonl',
+  'topojson',
+  'wkt',
+  'gpx',
+  'osm',
+  'wkb',
+  'esrijson',
+  'shapefile',
+  'gml',
+  'georss',
+  'dxf',
+  'mif',
+  'tcx',
+  'igc',
+  'nmea',
+  'csv',
+  'polyline',
+]);
 
 const GEOJSON_TYPES = new Set([
   'FeatureCollection',
@@ -98,12 +163,12 @@ export class GeoImportError extends Error {
  * The format of a file, from its name first and its first bytes second.
  * @param {string} name File name.
  * @param {Uint8Array} [head] The first bytes of the file.
- * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|'osm'|null}
-
+ * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|'osm'|
+ *   'wkb'|'esrijson'|'shapefile'|'gml'|'georss'|'dxf'|'mif'|'tcx'|'igc'|
+ *   'nmea'|'csv'|'polyline'|null}
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
-  if (ext === 'geojson') return 'geojson';
   if (ext === 'geojson') return 'geojson';
   if (ext === 'topojson') return 'topojson';
   if (ext === 'geojsonl' || ext === 'jsonl' || ext === 'ndjson')
@@ -113,9 +178,26 @@ export function detectGeoFileFormat(name, head) {
     ext === 'kmz' ||
     ext === 'gpx' ||
     ext === 'wkt' ||
-    ext === 'osm'
+    ext === 'osm' ||
+    ext === 'wkb' ||
+    ext === 'esrijson' ||
+    ext === 'shp' ||
+    ext === 'gml' ||
+    ext === 'rss' ||
+    ext === 'atom' ||
+    ext === 'dxf' ||
+    ext === 'mif' ||
+    ext === 'tcx' ||
+    ext === 'igc' ||
+    ext === 'nmea' ||
+    ext === 'csv' ||
+    ext === 'polyline'
   )
-    return ext;
+    return ext === 'shp'
+      ? 'shapefile'
+      : ext === 'rss' || ext === 'atom'
+        ? 'georss'
+        : ext;
 
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
@@ -125,6 +207,12 @@ export function detectGeoFileFormat(name, head) {
     head[3] === 0x04
   )
     return 'kmz';
+  // Binary magic, before any text decode: a shapefile's 9994/version
+  // header and WKB's byte-order + type word are both unambiguous. The
+  // shapefile check runs first — a shapefile's big-endian 9994 header
+  // could otherwise pass WKB's conservative sniff.
+  if (isShapefileBytes(head)) return 'shapefile';
+  if (isWkbBytes(head)) return 'wkb';
   const text = new TextDecoder()
     .decode(head.subarray(0, 1024))
     .replace(/^﻿/, '')
@@ -154,17 +242,52 @@ export function detectGeoFileFormat(name, head) {
         // Not a complete JSON object on the first line: plain GeoJSON.
       }
     }
-
+    // Esri JSON has no sniffable magic, only characteristic keys. The
+    // strong keys below never appear in GeoJSON (which carries
+    // "coordinates", never "paths"/"rings"/"spatialReference").
+    // "attributes" is deliberately excluded: a GeoJSON properties bag may
+    // carry one, and routing such a file to the Esri parser would refuse
+    // a perfectly valid GeoJSON.
+    if (
+      /"spatialReference"\s*:|"geometryType"\s*:\s*"esriGeometry\/|"objectIdFieldName"\s*:|"globalIdFieldName"\s*:|"paths"\s*:|"rings"\s*:|"xmin"\s*:/.test(
+        text,
+      )
+    )
+      return 'esrijson';
     return 'geojson';
   }
   if (text.startsWith('<')) {
     if (/<kml[\s>]/i.test(text)) return 'kml';
     if (/<gpx[\s>]/i.test(text)) return 'gpx';
     if (/<osm[\s>]/i.test(text)) return 'osm';
+    if (isTcxText(text)) return 'tcx';
+    // GeoRSS before GML: a GeoRSS feed may carry GML-encoded geometry,
+    // which the GeoRSS parser understands — the GML parser would refuse
+    // the feed wrapper.
+    if (isGeoRssText(text)) return 'georss';
+    if (isGmlText(text)) return 'gml';
   }
   // A WKT dump may arrive as .txt or with no extension at all; the
   // keyword-anchored sniff keeps a prose file from matching.
   if (isWktText(text)) return 'wkt';
+  // ASCII DXF opens with "0"/"SECTION" lines; a binary DXF carries the
+  // "AutoCAD Binary DXF" magic and routes here too, so the parser can
+  // refuse it with its clear "export ASCII DXF" message.
+  if (isDxfText(text)) return 'dxf';
+  if (isMifText(text)) return 'mif';
+  if (isNmeaText(text)) return 'nmea';
+  // IGC has no sniffable magic and no exported sniff: a flight log's
+  // first line is the 'A' manufacturer record and its fixes are B
+  // records (B + hhmmss + DDMMmmmN/S + DDDMMmmmE/W). Conservative on
+  // purpose — .igc files route by extension regardless.
+  if (
+    /^[A]/.test(text.split(/\r\n|\r|\n/).find((line) => line.trim()) || '') &&
+    /^B\d{6}\d{7}[NS]\d{8}[EW]/m.test(text)
+  )
+    return 'igc';
+  // CSV and encoded polyline have NO sniffable magic: a lat/lon table is
+  // indistinguishable from any other CSV, and an encoded polyline from any
+  // other base-ish string. Both route by extension only.
   return ext === 'json' ? 'geojson' : null;
 }
 
@@ -1441,7 +1564,9 @@ export async function loadGeoFile(
   const format = detectGeoFileFormat(file.name, bytes.subarray(0, 1024));
   if (!format)
     throw new GeoImportError(
-      'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX, WKT and OSM files can be imported.',
+      'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX, WKT, OSM, WKB, ' +
+        'Esri JSON, Shapefile, GML, GeoRSS, DXF, MIF, TCX, IGC, NMEA, CSV ' +
+        'and encoded-polyline files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1455,15 +1580,15 @@ export async function loadGeoFile(
   let removed = 0;
   let crsIgnored = false;
   try {
-    if (
-      format === 'wkt' ||
-      format === 'geojson' ||
-      format === 'geojsonl' ||
-      format === 'topojson' ||
-      format === 'gpx' ||
-      format === 'osm'
-    ) {
+    if (GEOJSON_LOADER_FORMATS.has(format)) {
       let geojson;
+      // Formats that never carry CRS metadata take their coordinates as
+      // WGS 84: the import proceeds, but the caller must show the amber
+      // "CRS ignored" warning, exactly as for a legacy GeoJSON `crs`
+      // member. Formats whose spec fixes WGS 84 (IGC, NMEA), that declare
+      // and validate their CRS (MIF), or that make no CRS assumption at
+      // all (TCX) need no warning.
+      let crsAssumed = false;
       if (format === 'wkt') {
         geojson = parseWktToFeatureCollection(new TextDecoder().decode(bytes));
       } else if (format === 'osm') {
@@ -1472,6 +1597,87 @@ export async function loadGeoFile(
         );
       } else if (format === 'gpx') {
         geojson = parseGpxText(decodeXml(bytes));
+      } else if (format === 'wkb') {
+        // Bare WKB carries no CRS; EWKB tags only SRID 4326. Taken as
+        // WGS 84, with the amber warning covering the assumption.
+        geojson = parseWkbToGeoJson(bytes);
+        crsAssumed = true;
+      } else if (format === 'esrijson') {
+        // The parser validates a declared spatialReference (only 4326
+        // passes); a missing one is assumed WGS 84 lon,lat. Warn either
+        // way: nothing is reprojected on import.
+        geojson = esriJsonToGeoJson(new TextDecoder().decode(bytes));
+        crsAssumed = true;
+      } else if (format === 'shapefile') {
+        // A file drop cannot carry the .prj sidecar, so the coordinates
+        // are asserted WGS 84 and the amber warning covers that assertion.
+        geojson = parseShapefile(bytes, {
+          assumeWgs84: true,
+          maxFeatures: MAX_IMPORT_ENTITIES,
+          maxPositions: MAX_IMPORT_POSITIONS,
+        });
+        crsAssumed = true;
+      } else if (format === 'gml') {
+        geojson = gmlToGeoJson(parseXml(decodeXml(bytes), 'GML'), {
+          maxFeatures: MAX_IMPORT_ENTITIES,
+          maxPositions: MAX_IMPORT_POSITIONS,
+        });
+        crsAssumed = true;
+      } else if (format === 'georss') {
+        geojson = geoRssToGeoJson(parseXml(decodeXml(bytes), 'GeoRSS'), {
+          maxFeatures: MAX_IMPORT_ENTITIES,
+          maxPositions: MAX_IMPORT_POSITIONS,
+        });
+        crsAssumed = true;
+      } else if (format === 'dxf') {
+        // A DXF file carries no CRS; the parser treats coordinates as
+        // WGS 84 degrees and refuses likely-projected files outright.
+        geojson = parseDxfToFeatureCollection(new TextDecoder().decode(bytes), {
+          maxEntities: MAX_IMPORT_ENTITIES,
+          maxPositions: MAX_IMPORT_POSITIONS,
+        });
+        crsAssumed = true;
+      } else if (format === 'mif') {
+        // The MIF CoordSys clause is mandatory and must declare WGS 84 —
+        // anything else is refused, so no warning is needed. The .mid
+        // attribute sidecar cannot ride along in a file drop: features
+        // get empty properties.
+        geojson = parseMifToFeatureCollection(new TextDecoder().decode(bytes));
+      } else if (format === 'tcx') {
+        // TCX stores plain degree positions; the parser makes no CRS
+        // assumption, so no warning is needed.
+        geojson = parseTcxToFeatureCollection(new TextDecoder().decode(bytes));
+      } else if (format === 'igc') {
+        // IGC is WGS 84 by specification (the header declares WGS84
+        // datum) — nothing is assumed, so no warning is needed.
+        geojson = igcToGeoJson(new TextDecoder().decode(bytes), {
+          maxFixes: MAX_IMPORT_POSITIONS,
+        });
+      } else if (format === 'nmea') {
+        // NMEA 0183 is defined on the WGS 84 datum — no warning is
+        // needed. The parser never throws: null means no usable fix,
+        // refused here with a specific message.
+        geojson = parseNmeaText(new TextDecoder().decode(bytes));
+        if (!geojson)
+          throw new GeoImportError(
+            'That NMEA file has no usable position fix.',
+          );
+      } else if (format === 'csv') {
+        // Only explicit lat/lon column names count; the coordinates are
+        // assumed WGS 84 degrees, covered by the amber warning.
+        geojson = parseCsvGeo(new TextDecoder().decode(bytes));
+        crsAssumed = true;
+      } else if (format === 'polyline') {
+        // Encoded polylines have no magic and no CRS; the format is
+        // conventionally WGS 84 lat,lon — routed by extension only, with
+        // the amber warning covering the assumption.
+        const lines = new TextDecoder()
+          .decode(bytes)
+          .split(/\r\n|\r|\n/)
+          .map((line) => line.trim())
+          .filter(Boolean);
+        geojson = encodedPolylineToGeoJson(lines);
+        crsAssumed = true;
       } else {
         geojson = parseJsonGeoText(new TextDecoder().decode(bytes));
       }
@@ -1479,7 +1685,7 @@ export async function loadGeoFile(
       if (size.over) throw overLimitError(size);
       if (!size.positions)
         throw new GeoImportError('That file has nothing to draw.');
-      crsIgnored = prepareGeoJson(geojson);
+      crsIgnored = crsAssumed || prepareGeoJson(geojson);
       bytes = null;
       dataSource = await boundedImport(
         Cesium.GeoJsonDataSource.load(geojson, {
@@ -1525,14 +1731,24 @@ export async function loadGeoFile(
   } catch (error) {
     revoke();
     if (error instanceof GeoImportError) throw error;
-    // A WKT refusal already names the reason (bad SRID, unclosed ring);
-    // carry that wording instead of the generic "could not be read".
-    if (error instanceof WktGeoImportError)
-      throw new GeoImportError(error.message);
-    // An OSM refusal already names the reason (dangling reference,
-    // unclosed multipolygon ring); carry that wording instead of the
-    // generic "could not be read".
-    if (error instanceof OsmGeoImportError)
+    // A parser refusal already names the reason (bad SRID, unclosed ring,
+    // dangling reference, no lat/lon columns); carry that wording instead
+    // of the generic "could not be read".
+    if (
+      error instanceof WktGeoImportError ||
+      error instanceof OsmGeoImportError ||
+      error instanceof WkbGeoImportError ||
+      error instanceof EsriJsonImportError ||
+      error instanceof ShapefileImportError ||
+      error instanceof GmlImportError ||
+      error instanceof GeoRssImportError ||
+      error instanceof DxfGeoImportError ||
+      error instanceof MifImportError ||
+      error instanceof TcxGeoImportError ||
+      error instanceof IgcGeoImportError ||
+      error instanceof CsvGeoImportError ||
+      error instanceof PolylineGeoImportError
+    )
       throw new GeoImportError(error.message);
     throw new GeoImportError(
       `That ${format.toUpperCase()} file could not be read.`,
