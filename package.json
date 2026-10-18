@@ -60,6 +60,7 @@
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "qa:transit": "node scripts/qa-transit.mjs",
     "scoreboard:layers": "node scripts/scoreboard-layers.mjs",
+    "scoreboard:test-hygiene": "node scripts/scoreboard-test-hygiene.mjs",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
