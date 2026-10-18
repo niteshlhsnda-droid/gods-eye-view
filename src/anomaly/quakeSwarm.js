@@ -12,17 +12,7 @@
  *   { id?, mag, timeMs, lat, lon, depthKm?, place? }
  */
 
-const EARTH_RADIUS_KM = 6371;
-
-function haversineKm(aLat, aLon, bLat, bLon) {
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const dLat = toRad(bLat - aLat);
-  const dLon = toRad(bLon - aLon);
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(s)));
-}
+import { haversineDistanceM } from '../data/geoMath.js';
 
 function formatPoint(lat, lon) {
   return (
@@ -37,6 +27,12 @@ function validQuake(record) {
     typeof record === 'object' &&
     Number.isFinite(record.lat) &&
     Number.isFinite(record.lon) &&
+    // Range-check: haversineDistanceM throws on out-of-range coords, and
+    // this detector must never throw on malformed input.
+    record.lat >= -90 &&
+    record.lat <= 90 &&
+    record.lon >= -180 &&
+    record.lon <= 180 &&
     Number.isFinite(record.mag) &&
     Number.isFinite(record.timeMs)
   );
@@ -68,7 +64,8 @@ export function detectQuakeSwarms(
       if (otherIndex === seedIndex || claimed.has(otherIndex)) return;
       if (
         Math.abs(other.timeMs - seed.timeMs) <= windowMs &&
-        haversineKm(seed.lat, seed.lon, other.lat, other.lon) <= radiusKm
+        haversineDistanceM(seed.lat, seed.lon, other.lat, other.lon) / 1000 <=
+          radiusKm
       ) {
         cluster.push(otherIndex);
       }

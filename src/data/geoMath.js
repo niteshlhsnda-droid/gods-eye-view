@@ -26,6 +26,12 @@
  * so migration is a separate, per-group change — no call site is
  * re-pointed in this commit.
  *
+ * Migrated so far:
+ * - `src/anomaly/quakeSwarm.js` (boundary groups `anomaly`,
+ *   `livenow-server` list this file). Its `validQuake` range-checks
+ *   lat/lon so `haversineDistanceM`'s assert can never throw on filtered
+ *   rows, preserving the detector's never-throws-on-bad-data contract.
+ *
  * @module data/geoMath
  */
 
