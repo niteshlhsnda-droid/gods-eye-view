@@ -16,6 +16,32 @@ const SPRITE_ID = 'street-level:mapillary-cones';
 /** How many recently viewed sequences keep their image list in memory. */
 const SEQUENCE_CACHE_SIZE = 40;
 
+/**
+ * A compass angle as degrees clockwise from north, wrapped to [0, 360):
+ * 370° is 10°, −10° is 350°. Anything that is not a finite angle —
+ * missing, null, an empty string — is unknown, returned as null. Unknown
+ * is never 0: a missing heading is not due north.
+ */
+export function normalizeCompassAngle(value) {
+  const angle =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN;
+  if (!Number.isFinite(angle)) return null;
+  return ((angle % 360) + 360) % 360;
+}
+
+/** The first finite angle among the candidates, or null when none is one. */
+function firstAngle(...values) {
+  for (const value of values) {
+    const angle = normalizeCompassAngle(value);
+    if (angle !== null) return angle;
+  }
+  return null;
+}
+
 /** Normalize a graph image record into the shape the cones use. */
 export function normalizeSequenceImage(record) {
   const coordinates = record?.geometry?.coordinates;
@@ -24,7 +50,13 @@ export function normalizeSequenceImage(record) {
     id: String(record.id),
     lon: Number(coordinates[0]),
     lat: Number(coordinates[1]),
-    compassAngle: Number(record.compass_angle) || 0,
+    // The device compass first; Mapillary's computed heading (derived from
+    // the sequence geometry) when the device reported none. A photo with
+    // neither keeps compassAngle null — unknown, not north.
+    compassAngle: firstAngle(
+      record.compass_angle,
+      record.computed_compass_angle,
+    ),
     capturedAt: Number(record.captured_at) || 0,
     isPano: record.is_pano === true,
     altitude: Number.isFinite(record.computed_altitude)
@@ -152,7 +184,7 @@ export function createSequences({ state, source, parts }) {
         imageId: image.isPano ? 'mly-cone-pano' : 'mly-cone',
         width: IMAGE_CONE_SIZE_PX,
         height: IMAGE_CONE_SIZE_PX,
-        rotation: -Cesium.Math.toRadians(image.compassAngle),
+        rotation: -Cesium.Math.toRadians(image.compassAngle ?? 0),
         alignedAxis: Cesium.Cartesian3.UNIT_Z,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
         verticalOrigin: Cesium.VerticalOrigin.CENTER,
