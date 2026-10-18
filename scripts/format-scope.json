@@ -1124,5 +1124,7 @@
   "scripts/unusedExportScoreboard.mjs",
   "src/tooling/unusedExportScoreboard.test.mjs",
   "src/data/speedLabel.js",
-  "src/data/speedLabel.test.mjs"
+  "src/data/speedLabel.test.mjs",
+  "src/data/humidityMath.js",
+  "src/data/humidityMath.test.mjs"
 ]
