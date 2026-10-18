@@ -1110,5 +1110,7 @@
   "src/layers/earthquakes/magnitudeType.js",
   "src/layers/earthquakes/magnitudeType.test.mjs",
   "src/data/dateMath.js",
-  "src/data/dateMath.test.mjs"
+  "src/data/dateMath.test.mjs",
+  "src/layers/gnss/verticalRate.js",
+  "src/layers/gnss/verticalRate.test.mjs"
 ]
