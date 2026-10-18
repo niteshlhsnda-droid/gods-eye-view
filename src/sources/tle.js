@@ -54,13 +54,23 @@ export function tleAgeMs(line1, nowMs = Date.now()) {
 }
 
 /**
+ * Canonical TLE staleness threshold: element sets older than this are stale
+ * (SGP4 error grows with epoch age). Single source of truth — the satellite
+ * and debris layer policies re-export this constant instead of restating
+ * the 72 h literal, so the threshold cannot drift between layers.
+ */
+export const TLE_MAX_AGE_MS = 72 * 3600_000;
+
+/**
  * Whether a TLE set should be treated as stale for refresh scheduling.
  * Malformed epochs count as stale (they cannot be trusted for propagation).
+ * Future-dated epochs (negative age from clock skew or bad data) also count
+ * as stale — a TLE from the future is not fresher, it is untrustworthy.
  */
 export function tleIsStale(
   line1,
-  { maxAgeMs = 72 * 3600_000, nowMs = Date.now() } = {},
+  { maxAgeMs = TLE_MAX_AGE_MS, nowMs = Date.now() } = {},
 ) {
   const age = tleAgeMs(line1, nowMs);
-  return age == null ? true : age > maxAgeMs;
+  return age == null || age < 0 ? true : age > maxAgeMs;
 }
