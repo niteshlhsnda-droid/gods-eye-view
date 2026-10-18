@@ -59,19 +59,21 @@ function isFiniteNumber(value) {
 export function parseHexColor(input) {
   if (typeof input !== 'string') return null;
   const text = input.trim().replace(/^#/, '');
-  if (!/^[0-9a-fA-F]{3}$/.test(text) && !/^[0-9a-fA-F]{4}$/.test(text) &&
-      !/^[0-9a-fA-F]{6}$/.test(text) && !/^[0-9a-fA-F]{8}$/.test(text)) {
+  if (
+    !/^[0-9a-fA-F]{3}$/.test(text) &&
+    !/^[0-9a-fA-F]{4}$/.test(text) &&
+    !/^[0-9a-fA-F]{6}$/.test(text) &&
+    !/^[0-9a-fA-F]{8}$/.test(text)
+  ) {
     return null;
   }
-  const expanded = text.length <= 4
-    ? [...text].map((c) => c + c).join('')
-    : text;
+  const expanded =
+    text.length <= 4 ? [...text].map((c) => c + c).join('') : text;
   const r = Number.parseInt(expanded.slice(0, 2), 16);
   const g = Number.parseInt(expanded.slice(2, 4), 16);
   const b = Number.parseInt(expanded.slice(4, 6), 16);
-  const a = expanded.length === 8
-    ? Number.parseInt(expanded.slice(6, 8), 16) / 255
-    : 1;
+  const a =
+    expanded.length === 8 ? Number.parseInt(expanded.slice(6, 8), 16) / 255 : 1;
   return { r, g, b, a };
 }
 

@@ -180,10 +180,7 @@ test('relativeLuminance matches WCAG reference values', () => {
   closeTo(relativeLuminance('#00ff00'), 0.7152, 1e-4);
   closeTo(relativeLuminance('#0000ff'), 0.0722, 1e-4);
   // Alpha is ignored: same opaque result for the translucent form.
-  assert.equal(
-    relativeLuminance('#ff000080'),
-    relativeLuminance('#ff0000'),
-  );
+  assert.equal(relativeLuminance('#ff000080'), relativeLuminance('#ff0000'));
   assert.equal(relativeLuminance('nope'), null);
 });
 
