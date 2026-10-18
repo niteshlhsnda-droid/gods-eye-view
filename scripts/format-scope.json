@@ -1189,5 +1189,5 @@
   "src/data/sphericalConvexHull.test.mjs",
   "src/layers/gnss/downlinkFormatLegality.js",
   "src/layers/gnss/downlinkFormatLegality.test.mjs",
-  "src/layers/streetLevel/providerAgreement.test.mjs"
+  "src/data/geoFileImportRouting.test.mjs"
 ]
