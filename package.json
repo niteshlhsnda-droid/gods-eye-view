@@ -67,6 +67,7 @@
     "scoreboard:import-cycles": "node scripts/scoreboard-import-cycles.mjs",
     "scoreboard:test-flaky-risk": "node scripts/scoreboard-test-flaky-risk.mjs",
     "scoreboard:complexity-hotspots": "node scripts/scoreboard-complexity-hotspots.mjs",
+    "scoreboard:test-async-gap": "node scripts/scoreboard-test-async-gap.mjs",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
