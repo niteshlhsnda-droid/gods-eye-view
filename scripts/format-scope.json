@@ -1173,5 +1173,7 @@
   "src/data/sphericalBooleanMath.test.mjs",
   "scripts/scoreboard-error-swallowing.mjs",
   "scripts/errorSwallowing.mjs",
-  "src/tooling/errorSwallowing.test.mjs"
+  "src/tooling/errorSwallowing.test.mjs",
+  "src/layers/streetLevel/providerAgreement.js",
+  "src/layers/streetLevel/providerAgreement.test.mjs"
 ]

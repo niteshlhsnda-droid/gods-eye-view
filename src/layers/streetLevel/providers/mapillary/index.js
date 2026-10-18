@@ -131,6 +131,126 @@ export function createMapillaryProvider({ source }) {
         render: context.services?.render,
       });
 
+      /**
+       * The provider's own nearest pick (the same entry `nearestImage`
+       * would open), or null. Shared so `nearestPick` can expose the
+       * normalized arbitration fields without duplicating the ranking.
+       */
+      async function findNearestHit({ lat, lon }, { signal, heading } = {}) {
+        const images = await source.nearestImages(
+          { lat, lon, radius: NEAREST_RADIUS_M, limit: NEAREST_LIMIT },
+          { signal },
+        );
+        // The API returns the images in the radius in no particular order.
+        // Cycle 3 position guard: a claimed-but-unusable position is
+        // dropped and counted, never ranked. Cycle 5 ranking + Cycle 8
+        // pano preference, composed: the freshest flat and the freshest
+        // pano are picked separately, then the 2× pano-distance rule
+        // decides between the two winners. Position-less records stay
+        // eligible as last-resort hits. Positions come from the shared
+        // ./position.js module (Cycle 11: SfM-refined fix when usable,
+        // else GPS).
+        const ranked = [];
+        for (const record of images) {
+          const position = nearestPosition(record);
+          if (position === null) {
+            state.nearest.droppedWithoutPosition++;
+            continue;
+          }
+          ranked.push({
+            record,
+            capturedAt: Number(record.captured_at) || 0,
+            isPano: record.is_pano === true,
+            sequenceId: sequenceIdOf(record),
+            metres: position ? metresBetween({ lon, lat }, position) : Infinity,
+          });
+        }
+        const filter = context.getFilter();
+        const passing = ranked.filter(({ record, capturedAt, isPano }) =>
+          passesImageryFilter(
+            {
+              isPano: record.is_pano === true,
+              capturedAt,
+            },
+            filter,
+          ),
+        );
+        const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
+        // `passing` is API order, so a last-resort hit keeps it.
+        let hit = placed.length ? freshestPanoFirst(placed) : passing[0];
+        // Same-sequence companion (Cycle 12): a lone winner yields to
+        // the nearest companion-bearing placed entry within twice its
+        // distance — the companion opens a run the viewer can step
+        // along, the lone shot is a dead end.
+        if (hit && !hasCompanion(hit, placed)) {
+          const company = placed
+            .filter(
+              (entry) =>
+                hasCompanion(entry, placed) &&
+                entry.metres <= hit.metres * NEAREST_COMPANION_REACH,
+            )
+            .sort((a, b) => a.metres - b.metres)[0];
+          if (company) hit = company;
+        }
+        // Daylight-over-night (Cycle 13): a known-night winner yields to
+        // the nearest daylight placed entry within twice its distance.
+        // An undated or daylight winner is never displaced.
+        if (
+          hit &&
+          captureLight({ lat, lon, capturedAt: hit.record?.captured_at }) ===
+            'night'
+        ) {
+          const dayLimit = DAYLIGHT_PREFERENCE_FACTOR * hit.metres;
+          const day = placed
+            .filter(
+              (entry) =>
+                entry.metres <= dayLimit &&
+                captureLight({
+                  lat,
+                  lon,
+                  capturedAt: entry.record?.captured_at,
+                }) === 'day',
+            )
+            .sort((a, b) => a.metres - b.metres)[0];
+          if (day) hit = day;
+        }
+        // Sharp-over-blurry: a bottom-quartile-quality winner is passed
+        // over for the nearest decent candidate within twice its
+        // distance. Unscored images stay eligible throughout — a missing
+        // score is not a bad photo.
+        if (hit && isLowQuality(hit.record.quality_score)) {
+          const decent = placed
+            .filter(({ record }) => !isLowQuality(record.quality_score))
+            .sort((a, b) => a.metres - b.metres)[0];
+          if (
+            decent &&
+            decent !== hit &&
+            decent.metres <= NEAREST_QUALITY_REACH * hit.metres
+          ) {
+            hit = decent;
+          }
+        }
+        // Heading-aware pick: with a heading, prefer the nearest shot
+        // facing within 60° of it when one is at most 15 m farther than
+        // the winner; panos face every way. Without a heading the winner
+        // stands, as before.
+        const target = normalizeHeading(heading);
+        if (hit && target !== null) {
+          const facing = placed
+            .filter(({ record }) => facesHeading(record, target))
+            .sort((a, b) => a.metres - b.metres)[0];
+          if (
+            facing &&
+            facing !== hit &&
+            facing.metres <= hit.metres + FACING_MAX_EXTRA_M
+          ) {
+            hit = facing;
+          }
+        }
+
+        return hit ?? null;
+      }
+
       return {
         async status() {
           try {
@@ -253,120 +373,27 @@ export function createMapillaryProvider({ source }) {
          * last-resort hits in API order, as before.
          */
         async nearestImage({ lat, lon }, { signal, heading } = {}) {
-          const images = await source.nearestImages(
-            { lat, lon, radius: NEAREST_RADIUS_M, limit: NEAREST_LIMIT },
-            { signal },
-          );
-          // The API returns the images in the radius in no particular order.
-          // Cycle 3 position guard: a claimed-but-unusable position is
-          // dropped and counted, never ranked. Cycle 5 ranking + Cycle 8
-          // pano preference, composed: the freshest flat and the freshest
-          // pano are picked separately, then the 2× pano-distance rule
-          // decides between the two winners. Position-less records stay
-          // eligible as last-resort hits. Positions come from the shared
-          // ./position.js module (Cycle 11: SfM-refined fix when usable,
-          // else GPS).
-          const ranked = [];
-          for (const record of images) {
-            const position = nearestPosition(record);
-            if (position === null) {
-              state.nearest.droppedWithoutPosition++;
-              continue;
-            }
-            ranked.push({
-              record,
-              capturedAt: Number(record.captured_at) || 0,
-              isPano: record.is_pano === true,
-              sequenceId: sequenceIdOf(record),
-              metres: position
-                ? metresBetween({ lon, lat }, position)
-                : Infinity,
-            });
-          }
-          const filter = context.getFilter();
-          const passing = ranked.filter(({ record, capturedAt, isPano }) =>
-            passesImageryFilter(
-              {
-                isPano: record.is_pano === true,
-                capturedAt,
-              },
-              filter,
-            ),
-          );
-          const placed = passing.filter(({ metres: d }) => Number.isFinite(d));
-          // `passing` is API order, so a last-resort hit keeps it.
-          let hit = placed.length ? freshestPanoFirst(placed) : passing[0];
-          // Same-sequence companion (Cycle 12): a lone winner yields to
-          // the nearest companion-bearing placed entry within twice its
-          // distance — the companion opens a run the viewer can step
-          // along, the lone shot is a dead end.
-          if (hit && !hasCompanion(hit, placed)) {
-            const company = placed
-              .filter(
-                (entry) =>
-                  hasCompanion(entry, placed) &&
-                  entry.metres <= hit.metres * NEAREST_COMPANION_REACH,
-              )
-              .sort((a, b) => a.metres - b.metres)[0];
-            if (company) hit = company;
-          }
-          // Daylight-over-night (Cycle 13): a known-night winner yields to
-          // the nearest daylight placed entry within twice its distance.
-          // An undated or daylight winner is never displaced.
-          if (
-            hit &&
-            captureLight({ lat, lon, capturedAt: hit.record?.captured_at }) ===
-              'night'
-          ) {
-            const dayLimit = DAYLIGHT_PREFERENCE_FACTOR * hit.metres;
-            const day = placed
-              .filter(
-                (entry) =>
-                  entry.metres <= dayLimit &&
-                  captureLight({
-                    lat,
-                    lon,
-                    capturedAt: entry.record?.captured_at,
-                  }) === 'day',
-              )
-              .sort((a, b) => a.metres - b.metres)[0];
-            if (day) hit = day;
-          }
-          // Sharp-over-blurry: a bottom-quartile-quality winner is passed
-          // over for the nearest decent candidate within twice its
-          // distance. Unscored images stay eligible throughout — a missing
-          // score is not a bad photo.
-          if (hit && isLowQuality(hit.record.quality_score)) {
-            const decent = placed
-              .filter(({ record }) => !isLowQuality(record.quality_score))
-              .sort((a, b) => a.metres - b.metres)[0];
-            if (
-              decent &&
-              decent !== hit &&
-              decent.metres <= NEAREST_QUALITY_REACH * hit.metres
-            ) {
-              hit = decent;
-            }
-          }
-          // Heading-aware pick: with a heading, prefer the nearest shot
-          // facing within 60° of it when one is at most 15 m farther than
-          // the winner; panos face every way. Without a heading the winner
-          // stands, as before.
-          const target = normalizeHeading(heading);
-          if (hit && target !== null) {
-            const facing = placed
-              .filter(({ record }) => facesHeading(record, target))
-              .sort((a, b) => a.metres - b.metres)[0];
-            if (
-              facing &&
-              facing !== hit &&
-              facing.metres <= hit.metres + FACING_MAX_EXTRA_M
-            ) {
-              hit = facing;
-            }
-          }
-
+          const hit = await findNearestHit({ lat, lon }, { signal, heading });
           return hit ? String(hit.record.id) : null;
+        },
+
+        /**
+         * The provider's own nearest pick with the normalized arbitration
+         * fields (see ../../providerAgreement.js), or null. It is the same
+         * pick `nearestImage` would open; the core arbitrates between
+         * providers instead of taking the first provider's hit.
+         */
+        async nearestPick({ lat, lon }, { signal, heading } = {}) {
+          const hit = await findNearestHit({ lat, lon }, { signal, heading });
+          return hit
+            ? {
+                providerId: MAPILLARY_PROVIDER_ID,
+                recordId: String(hit.record.id),
+                metres: hit.metres,
+                isPano: hit.isPano === true,
+                capturedAt: Number(hit.capturedAt) || 0,
+              }
+            : null;
         },
 
         /** Nearest-lookup skips: records dropped for a claimed-but-unusable position. */

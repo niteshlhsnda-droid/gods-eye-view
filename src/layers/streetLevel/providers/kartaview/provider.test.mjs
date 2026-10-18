@@ -1281,3 +1281,31 @@ test('a sequence page that lands while a lost GPU context recovers still draws i
   // reportError(null) clears; nothing was reported.
   assert.deepEqual(errors.filter(Boolean), []);
 });
+
+test('nearestPick exposes the same pick nearestImage would open, with arbitration fields', async () => {
+  const { instance } = setup({
+    nearest: [
+      photoRecord('far', { metres: 80 }),
+      photoRecord('near', { metres: 12 }),
+    ],
+  });
+  const pick = await instance.nearestPick({ lat: 42.3314, lon: -83.0458 });
+  assert.equal(pick.providerId, 'kartaview');
+  assert.equal(pick.recordId, 'near');
+  assert.equal(pick.isPano, false);
+  assert.ok(
+    pick.metres > 10 && pick.metres < 15,
+    `near photo ~12 m away, got ${pick.metres}`,
+  );
+  assert.ok(pick.capturedAt > 0, 'shotDate parsed to epoch ms');
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    pick.recordId,
+    'the pick is what nearestImage would open',
+  );
+  const none = setup({ nearest: [photoRecord('far', { metres: 80 })] });
+  assert.equal(
+    await none.instance.nearestPick({ lat: 42.3314, lon: -83.0458 }),
+    null,
+  );
+});

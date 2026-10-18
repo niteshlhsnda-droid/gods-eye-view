@@ -502,6 +502,82 @@ export function createKartaViewProvider({
         ...viewerOptions,
       });
 
+      /**
+       * One nearest-photo search: the winning {photo, metres} candidate, or
+       * why there is none — 'archived' (near photos, all gone), 'filtered'
+       * (near photos, none passes the filter), 'empty' (the search returned
+       * nothing at all) or 'out-of-range' (it returned photos, none within
+       * the radius).
+       */
+      async function attemptNearestSearch(
+        { lat, lon, filter },
+        { signal, wide },
+      ) {
+        const records = await source.nearestPhotos(
+          { lat, lon, filter },
+          { signal, wide },
+        );
+        const near = [];
+        let filteredOut = 0;
+        for (const record of records) {
+          const photo = remember(record);
+          if (!photo?.urls.view) continue;
+          const metres = metresBetween({ lat, lon }, photo);
+          if (metres > NEAREST_RADIUS_M) continue;
+          if (!passesKartaViewFilter(photo, filter)) filteredOut++;
+          else near.push({ photo, metres });
+        }
+        near.sort((a, b) => a.metres - b.metres);
+        // Probed side by side (photo storage is not the API host).
+        const candidates = near.slice(0, NEAREST_PROBES);
+        const answers = await Promise.all(
+          candidates.map(({ photo }) => showable(photo, { signal })),
+        );
+        const showableCandidates = candidates.filter((_, i) => answers[i]);
+        if (showableCandidates.length)
+          // True combination (Cycles 14 + 15): a 360° photo within
+          // twice the nearest flat photo's distance wins over a
+          // flat one (see `preferPano`), then a lone nearest shot
+          // yields to a companion-bearing shot nearby (see
+          // `preferCompanion`) so ‹ › stepping has a sequence to
+          // walk. Freshness still decides within the narrowed pool.
+          return {
+            hit: freshestFirst(
+              preferCompanion(preferPano(showableCandidates)),
+            )[0],
+          };
+        if (near.length) return { status: 'archived' };
+        if (filteredOut) return { status: 'filtered' };
+        return { status: records.length === 0 ? 'empty' : 'out-of-range' };
+      }
+
+      /**
+       * The winning {photo, metres} candidate across both tries, or null.
+       * Archived / filtered-out / empty searches throw the same errors
+       * `nearestImage` always threw. Shared by `nearestImage` and
+       * `nearestPick` so both resolve to the same pick.
+       */
+      async function attemptNearestPick({ lat, lon }, { signal } = {}) {
+        const filter = context.getFilter();
+        const first = await attemptNearestSearch(
+          { lat, lon, filter },
+          { signal, wide: false },
+        );
+        if (first.hit) return first.hit;
+        if (first.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
+        if (first.status === 'filtered') throw new Error(FILTERED_OUT_MESSAGE);
+        const wide = await attemptNearestSearch(
+          { lat, lon, filter },
+          { signal, wide: true },
+        );
+        if (wide.hit) return wide.hit;
+        if (wide.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
+        if (wide.status === 'filtered') throw new Error(FILTERED_OUT_MESSAGE);
+        if (first.status === 'empty' && wide.status === 'empty')
+          throw new Error(SEARCH_EMPTY_MESSAGE);
+        return null;
+      }
+
       return {
         async status() {
           return { configured: true };
@@ -624,63 +700,26 @@ export function createKartaViewProvider({
          * that exist but are all too far away.
          */
         async nearestImage({ lat, lon }, { signal } = {}) {
-          const filter = context.getFilter();
-          /**
-           * One search: the hit id, or why there is none — 'archived'
-           * (near photos, all gone), 'filtered' (near photos, none passes
-           * the filter), 'empty' (the search returned nothing at all) or
-           * 'out-of-range' (it returned photos, none within the radius).
-           */
-          async function attempt(wide) {
-            const records = await source.nearestPhotos(
-              { lat, lon, filter },
-              { signal, wide },
-            );
-            const near = [];
-            let filteredOut = 0;
-            for (const record of records) {
-              const photo = remember(record);
-              if (!photo?.urls.view) continue;
-              const metres = metresBetween({ lat, lon }, photo);
-              if (metres > NEAREST_RADIUS_M) continue;
-              if (!passesKartaViewFilter(photo, filter)) filteredOut++;
-              else near.push({ photo, metres });
-            }
-            near.sort((a, b) => a.metres - b.metres);
-            // Probed side by side (photo storage is not the API host).
-            const candidates = near.slice(0, NEAREST_PROBES);
-            const answers = await Promise.all(
-              candidates.map(({ photo }) => showable(photo, { signal })),
-            );
-            const showableCandidates = candidates.filter((_, i) => answers[i]);
-            if (showableCandidates.length)
-              // True combination (Cycles 14 + 15): a 360° photo within
-              // twice the nearest flat photo's distance wins over a
-              // flat one (see `preferPano`), then a lone nearest shot
-              // yields to a companion-bearing shot nearby (see
-              // `preferCompanion`) so ‹ › stepping has a sequence to
-              // walk. Freshness still decides within the narrowed pool.
-              return {
-                hit: freshestFirst(
-                  preferCompanion(preferPano(showableCandidates)),
-                )[0].photo.id,
-              };
-            if (near.length) return { status: 'archived' };
-            if (filteredOut) return { status: 'filtered' };
-            return { status: records.length === 0 ? 'empty' : 'out-of-range' };
-          }
-          const first = await attempt(false);
-          if (first.hit) return first.hit;
-          if (first.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
-          if (first.status === 'filtered')
-            throw new Error(FILTERED_OUT_MESSAGE);
-          const wide = await attempt(true);
-          if (wide.hit) return wide.hit;
-          if (wide.status === 'archived') throw new Error(ARCHIVED_MESSAGE);
-          if (wide.status === 'filtered') throw new Error(FILTERED_OUT_MESSAGE);
-          if (first.status === 'empty' && wide.status === 'empty')
-            throw new Error(SEARCH_EMPTY_MESSAGE);
-          return null;
+          const pick = await attemptNearestPick({ lat, lon }, { signal });
+          return pick ? pick.photo.id : null;
+        },
+        /**
+         * The provider's own nearest pick with the normalized arbitration
+         * fields (see ../../providerAgreement.js), or null. It is the same
+         * pick `nearestImage` would open; the core arbitrates between
+         * providers instead of taking the first provider's hit.
+         */
+        async nearestPick({ lat, lon }, { signal } = {}) {
+          const pick = await attemptNearestPick({ lat, lon }, { signal });
+          return pick
+            ? {
+                providerId: KARTAVIEW_PROVIDER_ID,
+                recordId: pick.photo.id,
+                metres: pick.metres,
+                isPano: pick.photo.isPano === true,
+                capturedAt: pick.photo.capturedAt ?? 0,
+              }
+            : null;
         },
 
         viewer,

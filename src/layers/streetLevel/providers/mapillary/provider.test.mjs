@@ -808,3 +808,39 @@ test('coverage asks for no tiles before the key status is known', async () => {
     instance.destroy(viewer);
   }
 });
+
+test('nearestPick exposes the same pick nearestImage would open, with arbitration fields', async () => {
+  const at = (id, lon, lat, extra = {}) => ({
+    id,
+    is_pano: false,
+    captured_at: 1_700_000_000_000,
+    geometry: { type: 'Point', coordinates: [lon, lat] },
+    ...extra,
+  });
+  const source = fakeSource({
+    nearest: [
+      at('flat', 2.00007, 1), // ~8 m east
+      // ~14 m east: a pano within twice the nearest flat's distance wins.
+      at('pano', 2.00013, 1, { is_pano: true }),
+    ],
+  });
+  const instance = createMapillaryProvider({ source }).create(fakeContext());
+  const pick = await instance.nearestPick({ lat: 1, lon: 2 });
+  assert.equal(pick.providerId, 'mapillary');
+  assert.equal(pick.recordId, 'pano');
+  assert.equal(pick.isPano, true);
+  assert.ok(
+    pick.metres > 10 && pick.metres < 20,
+    `pano ~14 m away, got ${pick.metres}`,
+  );
+  assert.equal(pick.capturedAt, 1_700_000_000_000);
+  assert.equal(
+    await instance.nearestImage({ lat: 1, lon: 2 }),
+    pick.recordId,
+    'the pick is what nearestImage would open',
+  );
+  const none = createMapillaryProvider({ source: fakeSource() }).create(
+    fakeContext(),
+  );
+  assert.equal(await none.nearestPick({ lat: 1, lon: 2 }), null);
+});
