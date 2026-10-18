@@ -1179,5 +1179,8 @@
   "src/data/sphericalVoronoiMath.js",
   "src/data/sphericalVoronoiMath.test.mjs",
   "src/layers/streetLevel/providerAgreement.js",
-  "src/layers/streetLevel/providerAgreement.test.mjs"
+  "src/layers/streetLevel/providerAgreement.test.mjs",
+  "scripts/deadParams.mjs",
+  "scripts/scoreboard-dead-params.mjs",
+  "src/tooling/deadParams.test.mjs"
 ]
