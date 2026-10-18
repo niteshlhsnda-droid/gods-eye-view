@@ -1071,4 +1071,6 @@
   "src/data/coordinatePrecision.test.mjs"
   "src/data/colorMath.js",
   "src/data/colorMath.test.mjs"
+  "src/data/gmlImport.js",
+  "src/data/gmlImport.test.mjs"
 ]
