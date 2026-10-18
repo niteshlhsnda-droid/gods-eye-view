@@ -858,6 +858,8 @@
   "src/layers/gnss/velocityAccuracy.test.mjs",
   "src/layers/gnss/ownership.test.mjs",
   "scripts/qa-gnss.mjs",
+  "src/layers/gnss/duplicateIcao24.js",
+  "src/layers/gnss/duplicateIcao24.test.mjs",
   "src/layers/cyclones/index.js",
   "src/layers/cyclones/rendering.js",
   "src/layers/cyclones/labels.js",
