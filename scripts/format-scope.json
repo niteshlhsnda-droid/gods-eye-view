@@ -903,6 +903,8 @@
   "src/layers/streetLevel/viewerHost.js",
   "src/layers/streetLevel/providers/mapillary/index.js",
   "src/layers/streetLevel/state.js",
+  "src/layers/streetLevel/captureDate.js",
+  "src/layers/streetLevel/captureDate.test.mjs",
   "src/layers/streetLevel/providers/mapillary/policy.js",
   "src/layers/streetLevel/providers/mapillary/coverage.js",
   "src/layers/streetLevel/providers/mapillary/sequences.js",
