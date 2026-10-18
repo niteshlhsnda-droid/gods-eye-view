@@ -63,10 +63,7 @@ test('constants match the documented defaults', () => {
 });
 
 test('a parked aircraft is consistent', () => {
-  const verdict = checkDeadReckoning(
-    fix(0, 0, 0, 0),
-    later(0, 0, 0, 0),
-  );
+  const verdict = checkDeadReckoning(fix(0, 0, 0, 0), later(0, 0, 0, 0));
   assert.equal(verdict.judged, true);
   assert.equal(verdict.anomalous, false);
   assert.deepEqual(verdict.signals, []);
@@ -103,10 +100,8 @@ test('steady straight flight is consistent', () => {
   assert.ok(verdict.residualM < 1e-6);
   // Independent haversine agrees with the local-tangent displacement.
   assert.ok(
-    Math.abs(
-      verdict.displacementM -
-        haversineM(0, 0, moveNorth(0, distM), 0),
-    ) < 0.01,
+    Math.abs(verdict.displacementM - haversineM(0, 0, moveNorth(0, distM), 0)) <
+      0.01,
   );
 });
 
@@ -175,15 +170,10 @@ test('a stale position is caught: frozen fixes reporting flight', () => {
   // Both fixes at the same spot while both report 500 kt north.
   // Containment-jump and teleport never fire (no displacement), but
   // dead-reckoning predicts ~2572 m of travel against ~0 m actual.
-  const verdict = checkDeadReckoning(
-    fix(0, 0, 500, 0),
-    later(0, 0, 500, 0),
-  );
+  const verdict = checkDeadReckoning(fix(0, 0, 500, 0), later(0, 0, 500, 0));
   assert.equal(verdict.anomalous, true);
   assert.ok(
-    Math.abs(
-      verdict.residualM - 500 * DEAD_RECKONING_KNOT_TO_MPS * 10,
-    ) < 1e-9,
+    Math.abs(verdict.residualM - 500 * DEAD_RECKONING_KNOT_TO_MPS * 10) < 1e-9,
   );
   assert.equal(verdict.displacementM, 0);
 });
@@ -214,7 +204,10 @@ test('a pure direction error is caught even though the speed is right', () => {
   assert.equal(verdict.anomalous, true);
   assert.ok(verdict.residualM > 400);
   // Derived speed still equals the reported speed.
-  assert.ok(Math.abs(verdict.displacementM / 10 - 500 * DEAD_RECKONING_KNOT_TO_MPS) < 1e-6);
+  assert.ok(
+    Math.abs(verdict.displacementM / 10 - 500 * DEAD_RECKONING_KNOT_TO_MPS) <
+      1e-6,
+  );
   assert.equal(verdict.turnAllowanceM, 0);
 });
 
@@ -223,12 +216,10 @@ test('a residual exactly at the tolerance is consistent (strict comparison)', ()
   // residual the module computes for a 0.001 deg north step, so
   // residual === tolerance and strict (>) comparison must pass.
   const dLat = 0.001;
-  const expectedResidual = EARTH_RADIUS_M * (dLat * Math.PI / 180);
-  const verdict = checkDeadReckoning(
-    fix(0, 0, 0, 0),
-    later(dLat, 0, 0, 0),
-    { minToleranceM: expectedResidual },
-  );
+  const expectedResidual = EARTH_RADIUS_M * ((dLat * Math.PI) / 180);
+  const verdict = checkDeadReckoning(fix(0, 0, 0, 0), later(dLat, 0, 0, 0), {
+    minToleranceM: expectedResidual,
+  });
   assert.equal(verdict.judged, true);
   assert.equal(verdict.residualM, verdict.toleranceM);
   assert.equal(verdict.anomalous, false);
@@ -236,12 +227,10 @@ test('a residual exactly at the tolerance is consistent (strict comparison)', ()
 
 test('a residual just above the tolerance is anomalous', () => {
   const dLat = 0.001;
-  const expectedResidual = EARTH_RADIUS_M * (dLat * Math.PI / 180);
-  const verdict = checkDeadReckoning(
-    fix(0, 0, 0, 0),
-    later(dLat, 0, 0, 0),
-    { minToleranceM: expectedResidual - 1 },
-  );
+  const expectedResidual = EARTH_RADIUS_M * ((dLat * Math.PI) / 180);
+  const verdict = checkDeadReckoning(fix(0, 0, 0, 0), later(dLat, 0, 0, 0), {
+    minToleranceM: expectedResidual - 1,
+  });
   assert.equal(verdict.anomalous, true);
   assert.ok(verdict.residualM - verdict.toleranceM > 0.9);
 });
@@ -302,10 +291,7 @@ test('missing position is missing-position, out-of-range is invalid-position', (
     later(0, 0, 0, 0),
   );
   assert.equal(missing.reason, 'missing-position');
-  const outOfRange = checkDeadReckoning(
-    fix(91, 0, 0, 0),
-    later(0, 0, 0, 0),
-  );
+  const outOfRange = checkDeadReckoning(fix(91, 0, 0, 0), later(0, 0, 0, 0));
   assert.equal(outOfRange.reason, 'invalid-position');
   const nanLon = checkDeadReckoning(
     fix(0, Number.NaN, 0, 0),
@@ -320,15 +306,9 @@ test('missing velocity is missing-velocity, negative speed is invalid-velocity',
     later(0, 0, 0, 0),
   );
   assert.equal(missing.reason, 'missing-velocity');
-  const negative = checkDeadReckoning(
-    fix(0, 0, -5, 0),
-    later(0, 0, 0, 0),
-  );
+  const negative = checkDeadReckoning(fix(0, 0, -5, 0), later(0, 0, 0, 0));
   assert.equal(negative.reason, 'invalid-velocity');
-  const badTrack = checkDeadReckoning(
-    fix(0, 0, 0, 361),
-    later(0, 0, 0, 0),
-  );
+  const badTrack = checkDeadReckoning(fix(0, 0, 0, 361), later(0, 0, 0, 0));
   assert.equal(badTrack.reason, 'invalid-velocity');
   const nanTrack = checkDeadReckoning(
     fix(0, 0, 0, Number.NaN),
@@ -338,10 +318,7 @@ test('missing velocity is missing-velocity, negative speed is invalid-velocity',
 });
 
 test('track 360 is accepted as north', () => {
-  const verdict = checkDeadReckoning(
-    fix(0, 0, 0, 360),
-    later(0, 0, 0, 360),
-  );
+  const verdict = checkDeadReckoning(fix(0, 0, 0, 360), later(0, 0, 0, 360));
   assert.equal(verdict.judged, true);
   assert.equal(verdict.anomalous, false);
 });
@@ -488,9 +465,8 @@ test('detect emits one event per violating pair, in timestamp order', () => {
   assert.equal(events[0].hex, 'abc');
   assert.equal(events[0].displacementM, 0);
   assert.ok(
-    Math.abs(
-      events[0].residualM - 500 * DEAD_RECKONING_KNOT_TO_MPS * 10,
-    ) < 1e-9,
+    Math.abs(events[0].residualM - 500 * DEAD_RECKONING_KNOT_TO_MPS * 10) <
+      1e-9,
   );
   assert.equal(events[0].signal, DEAD_RECKONING_SIGNAL);
   // Events carry NO interpretation: that judgment is summary-level only.

@@ -375,7 +375,12 @@ export function checkDeadReckoning(
   ) {
     return { ...base, reason: 'invalid-quality' };
   }
-  if (!isNacp(prev.nacp) || !isNacp(curr.nacp) || !isNacv(prev.nacv) || !isNacv(curr.nacv)) {
+  if (
+    !isNacp(prev.nacp) ||
+    !isNacp(curr.nacp) ||
+    !isNacv(prev.nacv) ||
+    !isNacv(curr.nacv)
+  ) {
     return { ...base, reason: 'missing-quality' };
   }
   if (prev.nacp === 0 || curr.nacp === 0) {
@@ -455,7 +460,8 @@ export function checkDeadReckoning(
   const epuPrevM = NACP_EPU_M[prev.nacp];
   const epuCurrM = NACP_EPU_M[curr.nacp];
   const positionAllowanceM = epuPrevM + epuCurrM;
-  const meanNacvBoundMps = (NACV_BOUND_MPS[prev.nacv] + NACV_BOUND_MPS[curr.nacv]) / 2;
+  const meanNacvBoundMps =
+    (NACV_BOUND_MPS[prev.nacv] + NACV_BOUND_MPS[curr.nacv]) / 2;
   const velocityAllowanceM = meanNacvBoundMps * dtS;
   const timingAllowanceM = meanSpeedMps * timingUncertaintyS;
   const toleranceM = Math.max(
