@@ -1944,6 +1944,7 @@
       "src/data/satellitePass.js",
       "src/data/satellites.js",
       "src/data/scenePick.js",
+      "src/data/shapefileImport.js",
       "src/data/spriteOrder.js",
       "src/data/surfaceServices.js",
       "src/data/telegeographySubmarineCables.js",
