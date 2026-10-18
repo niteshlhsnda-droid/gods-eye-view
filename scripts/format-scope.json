@@ -1148,5 +1148,7 @@
   "src/layers/streetLevel/photoAttribution.js",
   "src/layers/streetLevel/photoAttribution.test.mjs",
   "src/data/dxfGeoImport.js",
-  "src/data/dxfGeoImport.test.mjs"
+  "src/data/dxfGeoImport.test.mjs",
+  "src/data/koppenGeiger.js",
+  "src/data/koppenGeiger.test.mjs"
 ]
