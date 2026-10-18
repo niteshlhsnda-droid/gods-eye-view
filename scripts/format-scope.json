@@ -1153,5 +1153,6 @@
   "src/data/koppenGeiger.test.mjs",
   "scripts/scoreboard-magic-numbers.mjs",
   "src/tooling/magicNumbers.js",
-  "src/tooling/magicNumbers.test.mjs"
+  "src/tooling/magicNumbers.test.mjs",
+  "src/app/errors.test.mjs"
 ]
