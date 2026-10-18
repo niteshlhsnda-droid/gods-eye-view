@@ -1024,5 +1024,8 @@
   "src/data/aircraftEmergencyAnalyst.test.mjs",
   "src/ui/flyToDataSource.js",
   "src/ui/flyToDataSource.test.mjs",
-  "scripts/qa-emergency-squawk.mjs"
+  "scripts/qa-emergency-squawk.mjs",
+  "scripts/scoreboard-todo-debt.mjs",
+  "src/tooling/todoDebtScoreboard.js",
+  "src/tooling/todoDebtScoreboard.test.mjs"
 ]
