@@ -1088,5 +1088,8 @@
   "src/data/esriJsonImport.js",
   "src/data/esriJsonImport.test.mjs",
   "src/data/spaceWeatherScales.js",
-  "src/data/spaceWeatherScales.test.mjs"
+  "src/data/spaceWeatherScales.test.mjs",
+  "scripts/scoreboard-todo-debt.mjs",
+  "scripts/todoDebtScoreboard.mjs",
+  "src/tooling/todoDebtScoreboard.test.mjs"
 ]
