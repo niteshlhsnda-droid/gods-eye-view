@@ -5,6 +5,8 @@ import {
   normalizeHeading,
 } from './facing.js';
 import { pickFacingImage } from './facing.js';
+import { nearestPosition } from './position.js';
+export { nearestPosition } from './position.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -73,33 +75,6 @@ function createProviderState(context) {
   };
 }
 
-/**
- * Resolve the position a nearest lookup ranks a Graph record by: the first
- * usable of `computed_geometry`, then `geometry`. Returns `undefined` when
- * the record claims no coordinates at all — it stays eligible as a
- * last-resort Infinity-distance hit, as before — and `null` when a position
- * was claimed but is unusable: non-finite, out of range, or [0, 0], a
- * receiver with no fix, not a photo in the Gulf of Guinea. A claimed-but-bad
- * `computed_geometry` falls back to `geometry`, so a photo with a real GPS
- * fix is not lost to a bad computed position. Same validity rule as
- * KartaView's `normalizePhoto` and the sequence cones'
- * `normalizeSequenceImage`.
- */
-export function nearestPosition(record) {
-  let claimed = false;
-  for (const key of ['computed_geometry', 'geometry']) {
-    const coordinates = record?.[key]?.coordinates;
-    if (!Array.isArray(coordinates) || coordinates.length < 2) continue;
-    claimed = true;
-    const lon = Number(coordinates[0]);
-    const lat = Number(coordinates[1]);
-    if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
-    if (lon === 0 && lat === 0) continue;
-    if (Math.abs(lon) > 180 || Math.abs(lat) > 90) continue;
-    return { lon, lat };
-  }
-  return claimed ? null : undefined;
-}
 
 /**
  * Composed nearest-image pick (Cycle 5 freshest-first + Cycle 8 pano
@@ -281,7 +256,9 @@ export function createMapillaryProvider({ source }) {
           // pano preference, composed: the freshest flat and the freshest
           // pano are picked separately, then the 2× pano-distance rule
           // decides between the two winners. Position-less records stay
-          // eligible as last-resort hits.
+          // eligible as last-resort hits. Positions come from the shared
+          // ./position.js module (Cycle 11: SfM-refined fix when usable,
+          // else GPS).
           const ranked = [];
           for (const record of images) {
             const position = nearestPosition(record);
