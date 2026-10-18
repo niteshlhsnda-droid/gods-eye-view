@@ -1154,5 +1154,7 @@
   "scripts/scoreboard-magic-numbers.mjs",
   "src/tooling/magicNumbers.js",
   "src/tooling/magicNumbers.test.mjs",
-  "src/app/errors.test.mjs"
+  "src/app/errors.test.mjs",
+  "src/data/positionProvenance.js",
+  "src/data/positionProvenance.test.mjs"
 ]
