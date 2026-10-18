@@ -139,7 +139,9 @@ export const DATA_CREDITS = [
     html:
       'Satellites (TLEs): CelesTrak ' +
       '(<a href="https://celestrak.org" target="_blank" rel="noopener">celestrak.org</a>), ' +
-      'Dr. T.S. Kelso',
+      'Dr. T.S. Kelso. ' +
+      'Positions are SGP4 predictions propagated from each TLE\u2019s epoch, ' +
+      'not live observations; accuracy degrades as the element set ages.',
   },
   {
     key: 'launch-library-2',

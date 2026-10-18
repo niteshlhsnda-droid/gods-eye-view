@@ -74,3 +74,34 @@ export function tleIsStale(
   const age = tleAgeMs(line1, nowMs);
   return age == null || age < 0 ? true : age > maxAgeMs;
 }
+
+/**
+ * Compact age for a TLE epoch age in ms: minutes below an hour, whole
+ * hours below two days, whole days above that. Non-finite/negative ages
+ * are not an age at all — callers must handle them before formatting.
+ */
+export function formatTleAge(ageMs) {
+  if (ageMs < 3600_000) return `${Math.floor(ageMs / 60000)} min`;
+  if (ageMs < 48 * 3600_000) return `${Math.floor(ageMs / 3600_000)} h`;
+  return `${Math.floor(ageMs / 86400_000)} d`;
+}
+
+/**
+ * User-facing honesty label for a satellite position derived from a TLE.
+ *
+ * Satellite dots are SGP4 predictions propagated from the TLE epoch, not
+ * live observations of the satellite — so every position carries PREDICTED
+ * plus the age of the element set it was propagated from. A fresh fetch of
+ * a stale TLE still propagates a stale prediction, which is why the label
+ * reports the epoch age, never the fetch time. Element sets older than
+ * TLE_MAX_AGE_MS get an explicit STALE qualifier (SGP4 error grows with
+ * epoch age); a missing, malformed, or future epoch reports unknown rather
+ * than inventing an age.
+ */
+export function satellitePredictionLabel(line1, { nowMs = Date.now() } = {}) {
+  const age = tleAgeMs(line1, nowMs);
+  if (age == null || age < 0) return 'PREDICTED · TLE age unknown';
+  const ageText = formatTleAge(age);
+  if (age > TLE_MAX_AGE_MS) return `PREDICTED · TLE ${ageText} old · STALE`;
+  return `PREDICTED · TLE ${ageText} old`;
+}
