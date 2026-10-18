@@ -57,7 +57,15 @@ test('ringAreaM2 halves the area at latitude 60 (cosine longitude scale)', () =>
 });
 
 test('ringAreaM2 needs no closing point: an unclosed triangle is half the square', () => {
-  approx(ringAreaM2([[0, 0], [0.01, 0], [0, 0.01]]), SQUARE_M2 / 2, 0.01);
+  approx(
+    ringAreaM2([
+      [0, 0],
+      [0.01, 0],
+      [0, 0.01],
+    ]),
+    SQUARE_M2 / 2,
+    0.01,
+  );
 });
 
 test('ringAreaM2 is winding-independent', () => {
@@ -70,9 +78,22 @@ test('ringAreaM2 returns 0 for degenerate and missing rings', () => {
   assert.equal(ringAreaM2(null), 0);
   assert.equal(ringAreaM2(undefined), 0);
   assert.equal(ringAreaM2([]), 0);
-  assert.equal(ringAreaM2([[0, 0], [1, 1]]), 0);
+  assert.equal(
+    ringAreaM2([
+      [0, 0],
+      [1, 1],
+    ]),
+    0,
+  );
   // Collinear: zero enclosed area.
-  assert.equal(ringAreaM2([[0, 0], [0.01, 0], [0.02, 0]]), 0);
+  assert.equal(
+    ringAreaM2([
+      [0, 0],
+      [0.01, 0],
+      [0.02, 0],
+    ]),
+    0,
+  );
 });
 
 test('approximateDistanceM: one degree of latitude is exactly 111320 m', () => {
@@ -177,7 +198,10 @@ test('perpDistance of a degenerate segment is the Euclidean distance', () => {
 });
 
 test('douglasPeucker returns a copy, never the input, for fewer than 3 points', () => {
-  const points = [[0, 0], [1, 1]];
+  const points = [
+    [0, 0],
+    [1, 1],
+  ];
   const out = douglasPeucker(points, 1);
   assert.deepEqual(out, points);
   assert.notEqual(out, points);
@@ -185,66 +209,141 @@ test('douglasPeucker returns a copy, never the input, for fewer than 3 points', 
 
 test('douglasPeucker collapses a collinear run to its endpoints', () => {
   assert.deepEqual(
-    douglasPeucker([[0, 0], [0.5, 0], [1, 0], [1.5, 0], [2, 0]], 0.1),
-    [[0, 0], [2, 0]],
+    douglasPeucker(
+      [
+        [0, 0],
+        [0.5, 0],
+        [1, 0],
+        [1.5, 0],
+        [2, 0],
+      ],
+      0.1,
+    ),
+    [
+      [0, 0],
+      [2, 0],
+    ],
   );
 });
 
 test('douglasPeucker keeps a bump above tolerance and drops one below it', () => {
-  assert.deepEqual(douglasPeucker([[0, 0], [0.5, 1], [1, 0]], 0.1), [
-    [0, 0],
-    [0.5, 1],
-    [1, 0],
-  ]);
-  assert.deepEqual(douglasPeucker([[0, 0], [0.5, 0.01], [1, 0]], 0.1), [
-    [0, 0],
-    [1, 0],
-  ]);
+  assert.deepEqual(
+    douglasPeucker(
+      [
+        [0, 0],
+        [0.5, 1],
+        [1, 0],
+      ],
+      0.1,
+    ),
+    [
+      [0, 0],
+      [0.5, 1],
+      [1, 0],
+    ],
+  );
+  assert.deepEqual(
+    douglasPeucker(
+      [
+        [0, 0],
+        [0.5, 0.01],
+        [1, 0],
+      ],
+      0.1,
+    ),
+    [
+      [0, 0],
+      [1, 0],
+    ],
+  );
 });
 
 test('douglasPeucker does not mutate its input', () => {
-  const points = [[0, 0], [0.5, 1], [1, 0]];
+  const points = [
+    [0, 0],
+    [0.5, 1],
+    [1, 0],
+  ];
   const before = JSON.stringify(points);
   douglasPeucker(points, 0.1);
   assert.equal(JSON.stringify(points), before);
 });
 
 test('closeRing appends the first point and mutates the input in place', () => {
-  const ring = [[0, 0], [1, 0], [1, 1]];
+  const ring = [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+  ];
   const out = closeRing(ring);
   assert.equal(out, ring);
-  assert.deepEqual(ring, [[0, 0], [1, 0], [1, 1], [0, 0]]);
+  assert.deepEqual(ring, [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 0],
+  ]);
 });
 
 test('closeRing leaves an already-closed ring and a short ring untouched', () => {
-  const closed = [[0, 0], [1, 0], [0, 0]];
+  const closed = [
+    [0, 0],
+    [1, 0],
+    [0, 0],
+  ];
   assert.equal(closeRing(closed), closed);
   assert.equal(closed.length, 3);
-  const short = [[0, 0], [1, 1]];
+  const short = [
+    [0, 0],
+    [1, 1],
+  ];
   assert.equal(closeRing(short), short);
   assert.equal(short.length, 2);
 });
 
 test('ringCentroid averages the vertices as given', () => {
-  assert.deepEqual(ringCentroid([[0, 0], [2, 0], [2, 2], [0, 2]]), {
-    lat: 1,
-    lon: 1,
-  });
+  assert.deepEqual(
+    ringCentroid([
+      [0, 0],
+      [2, 0],
+      [2, 2],
+      [0, 2],
+    ]),
+    {
+      lat: 1,
+      lon: 1,
+    },
+  );
 });
 
 test('ringCentroid counts a closing duplicate vertex twice', () => {
   // The closed square repeats [0,0], so the origin gets double weight and
   // the centroid shifts from (1,1) to (0.8,0.8). Callers that close rings
   // before taking the centroid inherit this bias.
-  assert.deepEqual(ringCentroid([[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]), {
-    lat: 0.8,
-    lon: 0.8,
-  });
+  assert.deepEqual(
+    ringCentroid([
+      [0, 0],
+      [2, 0],
+      [2, 2],
+      [0, 2],
+      [0, 0],
+    ]),
+    {
+      lat: 0.8,
+      lon: 0.8,
+    },
+  );
 });
 
 test('ringCentroid returns null for missing or short rings', () => {
   assert.equal(ringCentroid(null), null);
-  assert.equal(ringCentroid([[0, 0], [1, 1]]), null);
+  assert.equal(
+    ringCentroid([
+      [0, 0],
+      [1, 1],
+    ]),
+    null,
+  );
 });
 
 test('endpointGapM is 0 for a closed chain and Infinity for a missing one', () => {
@@ -503,65 +602,202 @@ test('stitchLine returns undefined for no segments', () => {
 });
 
 test('stitchLine returns a lone segment untouched', () => {
-  assert.deepEqual(stitchLine([[[0, 0], [1, 0]]]), [[0, 0], [1, 0]]);
+  assert.deepEqual(
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+    ],
+  );
 });
 
 test('stitchLine chains segments in any orientation', () => {
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[1, 0], [2, 0]], [[2, 0], [3, 0]]]),
-    [[0, 0], [1, 0], [2, 0], [3, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [1, 0],
+        [2, 0],
+      ],
+      [
+        [2, 0],
+        [3, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+    ],
   );
   // Reversed tail join.
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[2, 0], [1, 0]]]),
-    [[0, 0], [1, 0], [2, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [2, 0],
+        [1, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   );
   // Head prepend, both orientations.
   assert.deepEqual(
-    stitchLine([[[1, 0], [2, 0]], [[0, 0], [1, 0]]]),
-    [[0, 0], [1, 0], [2, 0]],
+    stitchLine([
+      [
+        [1, 0],
+        [2, 0],
+      ],
+      [
+        [0, 0],
+        [1, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   );
   assert.deepEqual(
-    stitchLine([[[1, 0], [2, 0]], [[1, 0], [0, 0]]]),
-    [[0, 0], [1, 0], [2, 0]],
+    stitchLine([
+      [
+        [1, 0],
+        [2, 0],
+      ],
+      [
+        [1, 0],
+        [0, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   );
 });
 
 test('stitchLine joins endpoints within 2 m and refuses a 3.3 m gap', () => {
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[1.00001, 0], [2, 0]]]),
-    [[0, 0], [1, 0], [2, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [1.00001, 0],
+        [2, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   );
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[1.00003, 0], [2, 0]]]),
-    [[0, 0], [1, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [1.00003, 0],
+        [2, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+    ],
   );
 });
 
 test('stitchLine skips an unjoinable segment and keeps chaining past it', () => {
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[9, 9], [10, 9]], [[1, 0], [2, 0]]]),
-    [[0, 0], [1, 0], [2, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [9, 9],
+        [10, 9],
+      ],
+      [
+        [1, 0],
+        [2, 0],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+      [2, 0],
+    ],
   );
 });
 
 test('stitchLine silently drops a disjoint trailing segment', () => {
   // The second segment never joins, and no error is raised: it just vanishes.
   assert.deepEqual(
-    stitchLine([[[0, 0], [1, 0]], [[5, 5], [6, 5]]]),
-    [[0, 0], [1, 0]],
+    stitchLine([
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [5, 5],
+        [6, 5],
+      ],
+    ]),
+    [
+      [0, 0],
+      [1, 0],
+    ],
   );
 });
 
 test('stitchLine does not mutate its input segments', () => {
-  const segments = [[[0, 0], [1, 0]], [[1, 0], [2, 0]]];
+  const segments = [
+    [
+      [0, 0],
+      [1, 0],
+    ],
+    [
+      [1, 0],
+      [2, 0],
+    ],
+  ];
   const before = JSON.stringify(segments);
   stitchLine(segments);
   assert.equal(JSON.stringify(segments), before);
 });
 
 test('bufferCorridor closes a two-point line with a five-point ring', () => {
-  const ring = bufferCorridor([[0, 0], [0.01, 0]], 100);
+  const ring = bufferCorridor(
+    [
+      [0, 0],
+      [0.01, 0],
+    ],
+    100,
+  );
   assert.equal(ring.length, 5);
   // Closed by value: the final map() rebuilds every point, so first and last
   // are distinct arrays with equal coordinates, not the same reference.
@@ -573,11 +809,27 @@ test('bufferCorridor closes a two-point line with a five-point ring', () => {
 });
 
 test('bufferCorridor yields 2n+1 points for an n-point line', () => {
-  assert.equal(bufferCorridor([[0, 0], [0.01, 0], [0.01, 0.01]], 100).length, 7);
+  assert.equal(
+    bufferCorridor(
+      [
+        [0, 0],
+        [0.01, 0],
+        [0.01, 0.01],
+      ],
+      100,
+    ).length,
+    7,
+  );
 });
 
 test('bufferCorridor with zero width collapses to the centre line', () => {
-  const ring = bufferCorridor([[0, 0], [0.01, 0]], 0);
+  const ring = bufferCorridor(
+    [
+      [0, 0],
+      [0.01, 0],
+    ],
+    0,
+  );
   assert.equal(ring.length, 5);
   assert.deepEqual(ring[0], ring[ring.length - 1]);
   approx(ring[0][0], 0);
@@ -585,7 +837,11 @@ test('bufferCorridor with zero width collapses to the centre line', () => {
 });
 
 test('bufferCorridor of a single point is three identical points', () => {
-  assert.deepEqual(bufferCorridor([[0, 0]], 100), [[0, 0], [0, 0], [0, 0]]);
+  assert.deepEqual(bufferCorridor([[0, 0]], 100), [
+    [0, 0],
+    [0, 0],
+    [0, 0],
+  ]);
 });
 
 test('bufferCorridor throws on an empty line instead of returning nothing', () => {
