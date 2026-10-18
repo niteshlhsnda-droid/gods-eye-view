@@ -60,6 +60,7 @@
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "qa:transit": "node scripts/qa-transit.mjs",
     "scoreboard:layers": "node scripts/scoreboard-layers.mjs",
+    "scoreboard:long-params": "node scripts/scoreboard-long-params.mjs",
     "scoreboard:test-hygiene": "node scripts/scoreboard-test-hygiene.mjs",
     "scoreboard:test-runner-coverage": "node scripts/scoreboard-test-runner-coverage.mjs",
     "scoreboard:untested-sources": "node scripts/scoreboard-untested-sources.mjs",

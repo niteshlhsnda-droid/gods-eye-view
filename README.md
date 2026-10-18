@@ -416,6 +416,16 @@ src/
 
 See [`docs/CURRENT-STATE.md`](docs/CURRENT-STATE.md) for the authoritative runtime reference.
 
+### 📏 Why long parameter lists get their own scoreboard
+
+`npm run scoreboard:long-params` (report-only; `--json` for machine reading)
+scans `src/` for functions and methods with more than 5 parameters, worst
+offenders first. A long positional parameter list is a defect risk, not just
+a style nit: callers must memorize argument order, a transposed pair of
+same-typed arguments still runs, and every new flag makes each call site
+harder to audit. The usual fix is a named parameter object (or splitting the
+function). Findings are advisory triage, not a gate.
+
 ---
 
 ## 🔑 API Keys
