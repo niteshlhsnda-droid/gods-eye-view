@@ -9,6 +9,7 @@ import {
 } from './decode.js';
 import { createKartaViewSource } from './source.js';
 import { createKartaViewViewer } from './viewer.js';
+import { preferPano } from './pano.js';
 import {
   ARCHIVED_MESSAGE,
   COLORS,
@@ -652,9 +653,15 @@ export function createKartaViewProvider({
             );
             const showableCandidates = candidates.filter((_, i) => answers[i]);
             if (showableCandidates.length)
-              // Freshness decides among the nearest showable photos: the
-              // newest shotDate wins, distance breaks ties.
-              return { hit: freshestFirst(showableCandidates)[0].photo.id };
+              // A 360° photo within twice the nearest flat photo's
+              // distance wins over a flat one (see `preferPano`): it
+              // covers every heading, so the viewer can look around
+              // instead of staring one fixed way. Freshness still
+              // decides within the narrowed pool, and among flats
+              // when no pano qualifies.
+              return {
+                hit: freshestFirst(preferPano(showableCandidates))[0].photo.id,
+              };
             if (near.length) return { status: 'archived' };
             if (filteredOut) return { status: 'filtered' };
             return { status: records.length === 0 ? 'empty' : 'out-of-range' };
