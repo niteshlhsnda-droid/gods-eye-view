@@ -1168,5 +1168,7 @@
   "src/tooling/longParams.test.mjs",
   "src/data/sphericalClipMath.js",
   "src/data/sphericalClipMath.test.mjs",
-  "src/data/aircraftIcons.test.mjs"
+  "src/data/aircraftIcons.test.mjs",
+  "src/data/sphericalBooleanMath.js",
+  "src/data/sphericalBooleanMath.test.mjs"
 ]
