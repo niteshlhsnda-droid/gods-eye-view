@@ -1075,4 +1075,7 @@
   "src/data/gmlImport.test.mjs"
   "src/data/enhancedFujita.js",
   "src/data/enhancedFujita.test.mjs"
+  "scripts/scoreboard-suppressions.mjs",
+  "scripts/suppressionScoreboard.mjs",
+  "src/tooling/suppressionScoreboard.test.mjs"
 ]
