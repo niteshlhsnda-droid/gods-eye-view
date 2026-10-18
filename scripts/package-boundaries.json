@@ -1645,6 +1645,7 @@
       "src/data/geoImportImages.js",
       "src/data/geoImportPins.js",
       "src/data/geoid.js",
+      "src/data/gmlImport.js",
       "src/data/groundFloor.js",
       "src/data/groundSnap.js",
       "src/data/gtfsRealtime.js",
