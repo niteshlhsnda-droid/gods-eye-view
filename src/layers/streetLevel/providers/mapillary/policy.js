@@ -61,6 +61,68 @@ export const IMAGE_CONE_MIN_SPACING_M = 3;
 /** Images asked for in a nearest-image search (radius: NEAREST_RADIUS_M). */
 export const NEAREST_LIMIT = 8;
 
+/**
+ * How much farther a candidate with a same-sequence companion may be than
+ * the nearest candidate and still win the nearest-image pick: twice its
+ * distance. A companion a few steps away beats the lone shot at the kerb —
+ * but a companion halfway down the street does not beat the lone shot of
+ * the doorway asked about.
+ */
+export const NEAREST_COMPANION_REACH = 2;
+
+/**
+ * The sequence id of a Mapillary image record, or null when it has none.
+ * The Graph API's `sequence` field is the sequence's string id (already
+ * requested in IMAGE_FIELDS); an object with an `id` is accepted
+ * defensively, and a blank id counts as none — a record without a sequence
+ * id can never prove a companion.
+ * @param {object} record a Mapillary graph image record
+ */
+export function sequenceIdOf(record) {
+  const value = record?.sequence;
+  const raw = typeof value === 'object' && value !== null ? value.id : value;
+  if (raw == null) return null;
+  const id = String(raw).trim();
+  return id === '' ? null : id;
+}
+
+/** True when `entry` shares its sequence with another placed entry. */
+function hasCompanion(entry, placed) {
+  if (entry.sequenceId == null) return false;
+  return placed.some(
+    (other) => other !== entry && other.sequenceId === entry.sequenceId,
+  );
+}
+
+/**
+ * The nearest-image pick with a same-sequence-companion preference: the
+ * nearest entry wins, unless it is the only image of its sequence in the
+ * set and a companion-bearing entry lies within
+ * `NEAREST_COMPANION_REACH` times its distance — then the nearest such
+ * entry wins. A lone uploaded photo opens a dead end (no ‹ › stepping
+ * along its sequence), while a photo with a same-sequence neighbour in the
+ * set opens a run the viewer can walk. Companion-in-set is a proxy, not
+ * sequence length: a long drive whose next shot falls outside the set
+ * looks lone here, and the reach bound keeps that misread cheap. Entries
+ * without a finite distance are ignored (the caller keeps them as
+ * last-resort API-order hits); an empty set picks nothing.
+ * @param {Array<{sequenceId: string|null, metres: number}>} entries
+ */
+export function preferCompanion(entries) {
+  const placed = entries.filter(({ metres }) => Number.isFinite(metres));
+  if (!placed.length) return undefined;
+  const byDistance = [...placed].sort((a, b) => a.metres - b.metres);
+  const nearest = byDistance[0];
+  if (hasCompanion(nearest, placed)) return nearest;
+  return (
+    byDistance.find(
+      (entry) =>
+        hasCompanion(entry, placed) &&
+        entry.metres <= nearest.metres * NEAREST_COMPANION_REACH,
+    ) || nearest
+  );
+}
+
 /** On-globe credit: Mapillary imagery is CC BY-SA 4.0 and needs attribution. */
 export const MAPILLARY_CREDIT_HTML =
   'Street Level: imagery © <a href="https://www.mapillary.com" target="_blank" rel="noopener">Mapillary</a> contributors, CC BY-SA 4.0';
