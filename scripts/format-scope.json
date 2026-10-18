@@ -1160,5 +1160,7 @@
   "src/data/positionProvenance.js",
   "src/data/positionProvenance.test.mjs",
   "src/data/greatCircleMath.js",
-  "src/data/greatCircleMath.test.mjs"
+  "src/data/greatCircleMath.test.mjs",
+  "src/data/tcxGeoImport.js",
+  "src/data/tcxGeoImport.test.mjs"
 ]
