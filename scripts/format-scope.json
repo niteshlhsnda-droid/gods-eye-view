@@ -1128,5 +1128,7 @@
   "src/data/humidityMath.js",
   "src/data/humidityMath.test.mjs",
   "src/layers/gnss/deadReckoning.js",
-  "src/layers/gnss/deadReckoning.test.mjs"
+  "src/layers/gnss/deadReckoning.test.mjs",
+  "src/layers/streetLevel/providers/kartaview/companion.js",
+  "src/layers/streetLevel/providers/kartaview/companion.test.mjs"
 ]

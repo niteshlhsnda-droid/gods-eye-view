@@ -352,6 +352,84 @@ test('a 360° photo within twice the nearest flat distance beats a newer flat sh
   );
 });
 
+test('a lone nearest shot yields to a paired shot within twice its distance', async () => {
+  // The lone shot is newer (2024); the pair (2016) still opens, because
+  // a lone photo is a dead end for ‹ › stepping while a pair opens a run.
+  // The 11 m companion is past the bound itself but proves the 9 m shot
+  // has company.
+  const { instance } = setup({
+    nearest: [
+      {
+        ...photoRecord('lone', { metres: 5, seq: 'seq-lone' }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+      photoRecord('pair-near', { metres: 9, seq: 'seq-run' }),
+      photoRecord('pair-far', { metres: 11, seq: 'seq-run' }),
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'pair-near',
+  );
+});
+
+test('among companion-bearing shots within reach the newest shotDate wins', async () => {
+  const { instance } = setup({
+    nearest: [
+      {
+        ...photoRecord('lone', { metres: 5, seq: 'seq-lone' }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+      photoRecord('pair-old', { metres: 9, seq: 'seq-run' }),
+      {
+        ...photoRecord('pair-new', { metres: 9.5, seq: 'seq-run' }),
+        shotDate: '2020-03-01 10:00:00.000',
+      },
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'pair-new',
+  );
+});
+
+test('a pair past twice the nearest distance does not displace the lone shot', async () => {
+  const { instance } = setup({
+    nearest: [
+      {
+        ...photoRecord('lone', { metres: 5, seq: 'seq-lone' }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+      photoRecord('pair-near', { metres: 11, seq: 'seq-run' }),
+      photoRecord('pair-far', { metres: 12, seq: 'seq-run' }),
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'lone',
+  );
+});
+
+test('when the nearest shot already has company, freshness still decides among all', async () => {
+  // The nearest pair does not narrow the pool: the newer lone shot at
+  // 40 m still opens, exactly as before this rule.
+  const { instance } = setup({
+    nearest: [
+      photoRecord('pair-near', { metres: 5, seq: 'seq-run' }),
+      photoRecord('pair-far', { metres: 9, seq: 'seq-run' }),
+      {
+        ...photoRecord('lone-new', { metres: 40, seq: 'seq-lone' }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'lone-new',
+  );
+});
+
+
 test('a cone opens its photo; a line opens the photo nearest the click', () => {
   const { instance, actions } = setup();
   actions.instance = null;

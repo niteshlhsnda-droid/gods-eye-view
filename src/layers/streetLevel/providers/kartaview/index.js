@@ -9,6 +9,7 @@ import {
 } from './decode.js';
 import { createKartaViewSource } from './source.js';
 import { createKartaViewViewer } from './viewer.js';
+import { preferCompanion } from './companion.js';
 import { preferPano } from './pano.js';
 import {
   ARCHIVED_MESSAGE,
@@ -653,14 +654,16 @@ export function createKartaViewProvider({
             );
             const showableCandidates = candidates.filter((_, i) => answers[i]);
             if (showableCandidates.length)
-              // A 360° photo within twice the nearest flat photo's
-              // distance wins over a flat one (see `preferPano`): it
-              // covers every heading, so the viewer can look around
-              // instead of staring one fixed way. Freshness still
-              // decides within the narrowed pool, and among flats
-              // when no pano qualifies.
+              // True combination (Cycles 14 + 15): a 360° photo within
+              // twice the nearest flat photo's distance wins over a
+              // flat one (see `preferPano`), then a lone nearest shot
+              // yields to a companion-bearing shot nearby (see
+              // `preferCompanion`) so ‹ › stepping has a sequence to
+              // walk. Freshness still decides within the narrowed pool.
               return {
-                hit: freshestFirst(preferPano(showableCandidates))[0].photo.id,
+                hit: freshestFirst(
+                  preferCompanion(preferPano(showableCandidates)),
+                )[0].photo.id,
               };
             if (near.length) return { status: 'archived' };
             if (filteredOut) return { status: 'filtered' };
