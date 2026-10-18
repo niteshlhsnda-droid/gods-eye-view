@@ -60,6 +60,7 @@
     "check:boundaries": "node scripts/check-import-directions.mjs && node scripts/check-package-boundaries.mjs",
     "scoreboard:todo-debt": "node scripts/scoreboard-todo-debt.mjs",
     "scoreboard:duplicate-literals": "node scripts/scoreboard-duplicate-literals.mjs",
+    "scoreboard:unused-exports": "node scripts/scoreboard-unused-exports.mjs",
     "qa:transit": "node scripts/qa-transit.mjs",
     "scoreboard:layers": "node scripts/scoreboard-layers.mjs",
     "scoreboard:slowest-tests": "node scripts/slowest-tests.mjs --run",

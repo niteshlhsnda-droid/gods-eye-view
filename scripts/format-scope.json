@@ -1118,5 +1118,8 @@
   "src/layers/streetLevel/providers/kartaview/pano.js",
   "src/layers/streetLevel/providers/kartaview/pano.test.mjs",
   "src/data/presentWeather.js",
-  "src/data/presentWeather.test.mjs"
+  "src/data/presentWeather.test.mjs",
+  "scripts/scoreboard-unused-exports.mjs",
+  "scripts/unusedExportScoreboard.mjs",
+  "src/tooling/unusedExportScoreboard.test.mjs"
 ]
