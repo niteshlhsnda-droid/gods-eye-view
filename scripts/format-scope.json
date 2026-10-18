@@ -1138,5 +1138,7 @@
   "scripts/scoreboard-unreachable-code.mjs",
   "scripts/unreachableCodeScoreboard.mjs",
   "src/tooling/unreachableCodeScoreboard.test.mjs",
-  "src/sources/featureGeometry.test.mjs"
+  "src/sources/featureGeometry.test.mjs",
+  "src/data/altitudeLabel.js",
+  "src/data/altitudeLabel.test.mjs"
 ]
