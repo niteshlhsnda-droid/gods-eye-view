@@ -1,4 +1,10 @@
 import { createCoverage, sequenceIdFromPick } from './coverage.js';
+import {
+  FACING_MAX_EXTRA_M,
+  facesHeading,
+  normalizeHeading,
+} from './facing.js';
+import { pickFacingImage } from './facing.js';
 import { createSequences } from './sequences.js';
 import { createMapillaryViewer } from './viewer.js';
 import { passesImageryFilter } from '../../filter.js';
@@ -258,10 +264,13 @@ export function createMapillaryProvider({ source }) {
          * a sharp one just past it — but quality never overrides the
          * filter, never sends the viewer across the radius, and never
          * loses the hit when every candidate is low-quality or unscored.
+         * With a `heading` (degrees clockwise from north) the pick then
+         * prefers a shot facing that way when one is close by (see
+         * `facesHeading`); without one the winner stands, as before.
          * Position-less records stay eligible as
          * last-resort hits in API order, as before.
          */
-        async nearestImage({ lat, lon }, { signal } = {}) {
+        async nearestImage({ lat, lon }, { signal, heading } = {}) {
           const images = await source.nearestImages(
             { lat, lon, radius: NEAREST_RADIUS_M, limit: NEAREST_LIMIT },
             { signal },
@@ -316,6 +325,23 @@ export function createMapillaryProvider({ source }) {
               decent.metres <= NEAREST_QUALITY_REACH * hit.metres
             ) {
               hit = decent;
+            }
+          }
+          // Heading-aware pick: with a heading, prefer the nearest shot
+          // facing within 60° of it when one is at most 15 m farther than
+          // the winner; panos face every way. Without a heading the winner
+          // stands, as before.
+          const target = normalizeHeading(heading);
+          if (hit && target !== null) {
+            const facing = placed
+              .filter(({ record }) => facesHeading(record, target))
+              .sort((a, b) => a.metres - b.metres)[0];
+            if (
+              facing &&
+              facing !== hit &&
+              facing.metres <= hit.metres + FACING_MAX_EXTRA_M
+            ) {
+              hit = facing;
             }
           }
           return hit ? String(hit.record.id) : null;

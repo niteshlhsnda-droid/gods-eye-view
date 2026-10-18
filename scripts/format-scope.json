@@ -939,6 +939,8 @@
   "src/layers/streetLevel/meshSampler.test.mjs",
   "src/layers/streetLevel/view.test.mjs",
   "src/layers/streetLevel/providers/mapillary/provider.test.mjs",
+  "src/layers/streetLevel/providers/mapillary/facing.js",
+  "src/layers/streetLevel/providers/mapillary/facing.test.mjs",
   "src/layers/streetLevel/providers/mapillary/decode.test.mjs",
   "src/layers/streetLevel/providers/mapillary/coverage.test.mjs",
   "src/layers/streetLevel/providers/mapillary/coverageFixture.mjs",
