@@ -294,6 +294,64 @@ test('among the nearest showable photos the newest shotDate wins, not the neares
   );
 });
 
+test('a 360° photo within twice the nearest flat distance beats a newer flat shot', async () => {
+  const pano = (id, metres, shotDate) => ({
+    ...photoRecord(id, { metres }),
+    projection: 'SPHERE',
+    fieldOfView: '360',
+    shotDate,
+  });
+  // The flat shot is newer (2024) and nearer (5 m); the pano (2016) at
+  // 9 m is within 2× the flat's distance, so the pano opens: it covers
+  // every heading.
+  const { instance } = setup({
+    nearest: [
+      {
+        ...photoRecord('flat', { metres: 5 }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+      pano('pano', 9, '2016-08-23 20:17:47.000'),
+    ],
+  });
+  assert.equal(
+    await instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'pano',
+  );
+  // Past twice the flat's distance (11 m > 2× 5 m) the pano does not
+  // displace it: freshness decides, and the newer flat wins.
+  const far = setup({
+    nearest: [
+      {
+        ...photoRecord('flat', { metres: 5 }),
+        shotDate: '2024-05-01 10:00:00.000',
+      },
+      pano('pano', 11, '2016-08-23 20:17:47.000'),
+    ],
+  });
+  assert.equal(
+    await far.instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'flat',
+  );
+  // A flat-only filter decides first: the nearby pano is never a
+  // candidate, so the flat opens.
+  const flatOnly = setup(
+    {
+      nearest: [
+        {
+          ...photoRecord('flat', { metres: 5 }),
+          shotDate: '2024-05-01 10:00:00.000',
+        },
+        pano('pano', 9, '2016-08-23 20:17:47.000'),
+      ],
+    },
+    { filter: { pano: 'flat', sinceMs: null } },
+  );
+  assert.equal(
+    await flatOnly.instance.nearestImage({ lat: 42.3314, lon: -83.0458 }),
+    'flat',
+  );
+});
+
 test('a cone opens its photo; a line opens the photo nearest the click', () => {
   const { instance, actions } = setup();
   actions.instance = null;

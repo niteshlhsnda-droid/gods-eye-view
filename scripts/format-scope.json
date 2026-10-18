@@ -1112,5 +1112,7 @@
   "src/data/dateMath.js",
   "src/data/dateMath.test.mjs",
   "src/layers/gnss/verticalRate.js",
-  "src/layers/gnss/verticalRate.test.mjs"
+  "src/layers/gnss/verticalRate.test.mjs",
+  "src/layers/streetLevel/providers/kartaview/pano.js",
+  "src/layers/streetLevel/providers/kartaview/pano.test.mjs"
 ]
