@@ -429,7 +429,6 @@ test('when the nearest shot already has company, freshness still decides among a
   );
 });
 
-
 test('a cone opens its photo; a line opens the photo nearest the click', () => {
   const { instance, actions } = setup();
   actions.instance = null;
