@@ -1456,7 +1456,6 @@ export async function loadGeoFile(
         geojson = parseWktToFeatureCollection(new TextDecoder().decode(bytes));
       } else if (format === 'gpx') {
         geojson = parseGpxText(decodeXml(bytes));
-
       } else {
         geojson = parseJsonGeoText(new TextDecoder().decode(bytes));
       }
