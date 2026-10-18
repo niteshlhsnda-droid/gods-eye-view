@@ -1037,5 +1037,8 @@
   "src/tooling/untestedSources.js",
   "src/tooling/untestedSources.test.mjs",
   "src/data/sunPosition.js",
-  "src/data/sunPosition.test.mjs"
+  "src/data/sunPosition.test.mjs",
+  "scripts/slowest-tests.mjs",
+  "src/tooling/slowestTests.js",
+  "src/tooling/slowestTests.test.mjs"
 ]
