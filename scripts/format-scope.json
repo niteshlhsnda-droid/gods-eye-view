@@ -1134,5 +1134,8 @@
   "src/data/georssImport.js",
   "src/data/georssImport.test.mjs",
   "src/data/modifiedMercalli.js",
-  "src/data/modifiedMercalli.test.mjs"
+  "src/data/modifiedMercalli.test.mjs",
+  "scripts/scoreboard-unreachable-code.mjs",
+  "scripts/unreachableCodeScoreboard.mjs",
+  "src/tooling/unreachableCodeScoreboard.test.mjs"
 ]
