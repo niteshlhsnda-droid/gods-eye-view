@@ -1108,5 +1108,7 @@
   "scripts/duplicateLiteralScoreboard.mjs",
   "src/tooling/duplicateLiteralScoreboard.test.mjs",
   "src/layers/earthquakes/magnitudeType.js",
-  "src/layers/earthquakes/magnitudeType.test.mjs"
+  "src/layers/earthquakes/magnitudeType.test.mjs",
+  "src/data/dateMath.js",
+  "src/data/dateMath.test.mjs"
 ]
