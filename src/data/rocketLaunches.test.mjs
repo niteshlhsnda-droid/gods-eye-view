@@ -15,6 +15,7 @@ import rocketLaunchesLayer, {
   createRocketMissionElementOverlayEntry,
   createRocketMissionMarkerOverlayEntry,
   formatMissionEventTime,
+  formatLaunchTimeLabel,
   LAUNCH_PAD_ZONE_RADIUS_M,
   launchPadZoneVisible,
   launchStatusAllowsOrbit,
@@ -754,6 +755,112 @@ test('accepts an array payload for proxy and fixture flexibility', () => {
     { id: 'array-1', net: '2026-07-01T00:00:00Z', pad: { location: { coordinates: '2,3' } } },
   ], NOW);
   assert.equal(launches[0].id, 'array-1');
+});
+
+test('labels NET times and preserves the launch window', () => {
+  const launches = normalizeRocketLaunches({ results: [{
+    id: 'net-window',
+    net: '2026-07-20T10:00:00Z',
+    window_start: '2026-07-20T10:00:00Z',
+    window_end: '2026-07-20T14:00:00Z',
+    pad: { latitude: 1, longitude: 2 },
+  }] }, NOW);
+  assert.equal(launches.length, 1);
+  // Machine field unchanged: bare ISO for sorting / countdown math.
+  assert.equal(launches[0].launchTime, '2026-07-20T10:00:00.000Z');
+  assert.equal(launches[0].timeKind, 'net');
+  assert.equal(launches[0].windowStart, '2026-07-20T10:00:00.000Z');
+  assert.equal(launches[0].windowEnd, '2026-07-20T14:00:00.000Z');
+  assert.equal(
+    launches[0].launchTimeLabel,
+    'NET · 2026-07-20T10:00:00.000Z · window until 2026-07-20T14:00:00.000Z',
+  );
+});
+
+test('labels a NET time without a window', () => {
+  const launches = normalizeRocketLaunches({ results: [{
+    id: 'net-only',
+    net: '2026-07-20T10:00:00Z',
+    pad: { latitude: 1, longitude: 2 },
+  }] }, NOW);
+  assert.equal(launches[0].timeKind, 'net');
+  assert.equal(launches[0].windowEnd, null);
+  assert.equal(
+    launches[0].launchTimeLabel,
+    'NET · 2026-07-20T10:00:00.000Z',
+  );
+});
+
+test('falls back to window_start when net is missing or unparseable', () => {
+  const launches = normalizeRocketLaunches({ results: [
+    {
+      id: 'no-net',
+      window_start: '2026-07-20T10:00:00Z',
+      window_end: '2026-07-20T12:00:00Z',
+      pad: { latitude: 1, longitude: 2 },
+    },
+    {
+      id: 'garbage-net',
+      net: 'soon',
+      window_start: '2026-07-21T10:00:00Z',
+      pad: { latitude: 1, longitude: 2 },
+    },
+  ] }, NOW);
+  assert.equal(launches.length, 2);
+  assert.equal(launches[0].timeKind, 'window_start');
+  assert.equal(launches[0].launchTime, '2026-07-20T10:00:00.000Z');
+  assert.equal(
+    launches[0].launchTimeLabel,
+    'Window opens 2026-07-20T10:00:00.000Z · closes 2026-07-20T12:00:00.000Z',
+  );
+  assert.equal(launches[1].timeKind, 'window_start');
+  assert.equal(launches[1].launchTime, '2026-07-21T10:00:00.000Z');
+  assert.equal(
+    launches[1].launchTimeLabel,
+    'Window opens 2026-07-21T10:00:00.000Z',
+  );
+});
+
+test('never treats a place name as a launch time', () => {
+  const launches = normalizeRocketLaunches({ results: [{
+    id: 'place-only',
+    pad: {
+      latitude: 1,
+      longitude: 2,
+      location: { name: 'Kennedy Space Center' },
+    },
+  }] }, NOW);
+  assert.deepEqual(launches, []);
+});
+
+test('formatLaunchTimeLabel handles degenerate windows and missing times', () => {
+  // Window end at/before the start is not a window — no suffix.
+  assert.equal(
+    formatLaunchTimeLabel({
+      launchTime: '2026-07-20T10:00:00.000Z',
+      timeKind: 'net',
+      windowEnd: '2026-07-20T10:00:00.000Z',
+    }),
+    'NET · 2026-07-20T10:00:00.000Z',
+  );
+  assert.equal(
+    formatLaunchTimeLabel({
+      launchTime: '2026-07-20T10:00:00.000Z',
+      timeKind: 'net',
+      windowEnd: 'not-a-date',
+    }),
+    'NET · 2026-07-20T10:00:00.000Z',
+  );
+  assert.equal(formatLaunchTimeLabel({ launchTime: null }), 'Time unavailable');
+  assert.equal(formatLaunchTimeLabel({}), 'Time unavailable');
+  assert.equal(
+    formatLaunchTimeLabel({
+      launchTime: '2026-07-20T10:00:00.000Z',
+      timeKind: 'window_start',
+      windowEnd: null,
+    }),
+    'Window opens 2026-07-20T10:00:00.000Z',
+  );
 });
 
 test('builds a surface-safe ascent that meets the orbit without a phase jump', () => {

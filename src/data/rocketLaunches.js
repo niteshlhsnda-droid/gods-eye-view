@@ -68,6 +68,7 @@ export const replayOrbitCameraPose = layer.replayOrbitCameraPose;
 export const replayOrbitFrameSphere = layer.replayOrbitFrameSphere;
 export const replayOrbitGlobeRange = layer.replayOrbitGlobeRange;
 export const missionMarkerColor = layer.missionMarkerColor;
+export const formatLaunchTimeLabel = layer.formatLaunchTimeLabel;
 export const normalizeRocketLaunches = layer.normalizeRocketLaunches;
 export const _setRocketMissionOverlayHostForTest =
   layer._setRocketMissionOverlayHostForTest;
