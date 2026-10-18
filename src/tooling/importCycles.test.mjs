@@ -17,7 +17,7 @@ import {
   resolveImport,
   scanSource,
   summarizeResults,
-} from './importCycles.js';
+} from '../../scripts/importCycles.mjs';
 
 // Build an in-memory filesystem: `files` maps path -> source. Returns
 // the `readFile` / `hasFile` pair analyzeFiles expects.

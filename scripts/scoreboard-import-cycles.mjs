@@ -23,7 +23,7 @@ import {
   limitCycles,
   parseCliArgs,
   summarizeResults,
-} from '../src/tooling/importCycles.js';
+} from './importCycles.mjs';
 
 const USAGE = `Usage:
   node scripts/scoreboard-import-cycles.mjs [--json] [--limit N] [--strict] [file ...]

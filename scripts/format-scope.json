@@ -1043,6 +1043,6 @@
   "src/tooling/slowestTests.js",
   "src/tooling/slowestTests.test.mjs",
   "scripts/scoreboard-import-cycles.mjs",
-  "src/tooling/importCycles.js",
+  "scripts/importCycles.mjs",
   "src/tooling/importCycles.test.mjs"
 ]
