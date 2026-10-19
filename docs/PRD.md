@@ -48,10 +48,15 @@ annotate, DISPLAY panel, visual styles.
   look like a healthy empty layer. Never present old data as current.
 - **FR-HONEST-003:** predicted positions (satellites) are labelled
   PROPAGATED/SIMULATED, never observed.
-- **FR-CITYDRIVE-001:** selecting a city flies the camera there and
-  opens the city card: Drive tab (recorded drive-through, always
-  labelled "Recorded drive-through (not live)") + Live Radio tab
-  (live stream or "No live stream found"). Credits shown in the panel.
+- **FR-CITYDRIVE-001:** after a location search, tapping 🚗 starts the
+  drive at once: the searched location is matched to a drive city (name
+  match first, else nearest catalog city within 150 km of the camera),
+  the camera flies there, and the city card opens in player mode. The
+  card carries a Drive tab (recorded drive-through, always labelled
+  "Recorded drive-through (not live)") + Live Radio tab (live stream or
+  "No live stream found"). No searched location, or no matching drive,
+  falls back to the browse panel (179-city list) with a toast. Credits
+  shown in the panel.
 - **FR-STREET-001:** street-level cascade Mapillary → Google →
   KartaView; freshness by `shotDate`/`capturedAt`; upload-date vs
   capture-date distinguished (OQ-1: `startDate` = upload date).

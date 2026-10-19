@@ -46,10 +46,15 @@ camera. Rapid place-hopping without per-stop labels is an anti-pattern
 
 ## City Drives (distinct experience)
 
-Panel (search + 179-city list) → tap city → camera flies → card opens
-with Drive / Live Radio tabs. Drive = recorded iframe embed (16:9,
-with "Open on driveandlisten.app ↗" fallback if framing fails).
-Radio = live stream, stops on panel close or city switch. Credits
+Direct-drive flow: search a location → tap 🚗 → the drive starts at
+once (no city list). The searched location is matched to a drive city
+by name first, else the nearest catalog city within 150 km of the
+camera; on match the camera flies and the card opens in player mode
+(list hidden) with Drive / Live Radio tabs. Drive = recorded iframe
+embed (16:9, with "Open on driveandlisten.app ↗" fallback if framing
+fails). Radio = live stream, stops on panel close or city switch.
+No searched location, or no matching drive, falls back to the browse
+panel (search + 179-city list) with an explanatory toast. Credits
 always visible in the panel footer.
 
 ## Mobile
