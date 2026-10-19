@@ -86,6 +86,7 @@ export class StreetLevelControls {
       imageStale: byId('sl-image-stale'),
       imageLink: byId('sl-image-link'),
       imageCredit: byId('sl-image-credit'),
+      imageFreshness: byId('sl-image-freshness'),
       coverageMeta: byId('sl-coverage-meta'),
       panoButtons: all('[data-sl-pano]'),
       // Held, not re-queried: EXPAND moves them to <body> with the viewer.
@@ -627,6 +628,21 @@ export class StreetLevelControls {
         el.imageCredit.dataset.slCreditHtml = html;
         el.imageCredit.innerHTML = html;
       }
+    }
+    // The honest freshness label (photoStaleness.js): plain text, never
+    // HTML — the label is module-generated, not provider markup. The
+    // bucket rides a data attribute so stale/unknown photos warn in
+    // amber while fresh ones stay quiet.
+    if (el.imageFreshness) {
+      const freshness = viewer.captionStaleness || '';
+      setProp(el.imageFreshness, 'hidden', !freshness);
+      if (el.imageFreshness.dataset.slFreshnessText !== freshness) {
+        el.imageFreshness.dataset.slFreshnessText = freshness;
+        setProp(el.imageFreshness, 'textContent', freshness);
+      }
+      const bucket = viewer.stalenessBucket || '';
+      if (el.imageFreshness.dataset.slFreshnessBucket !== bucket)
+        el.imageFreshness.dataset.slFreshnessBucket = bucket;
     }
   }
 

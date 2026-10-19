@@ -20,6 +20,13 @@ export function freshStreet() {
     capturedAt: null,
     /** 'day', or 'month' for providers that date images by month (Google). */
     capturedAtPrecision: 'day',
+    /**
+     * Upload time when the provider reports no capture time (KartaView
+     * pick records carry it); the freshness label says "uploaded" then.
+     * No current viewer pose supplies it — the presenter reads it when a
+     * future pose does, never guessing.
+     */
+    uploadedAt: null,
     /** A place name for the caption (Google's address), or null. */
     title: null,
     /**

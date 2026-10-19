@@ -42,6 +42,9 @@ export function createViewerHost({ state, parts }) {
       capturedAt: pose.capturedAt ?? null,
       capturedAtPrecision:
         pose.capturedAtPrecision === 'month' ? 'month' : 'day',
+      // Upload-time fallback for the freshness label (photoStaleness.js):
+      // poses that carry it say "uploaded", poses that don't stay null.
+      uploadedAt: pose.uploadedAt ?? null,
       title: pose.title || null,
       sequenceId: pose.sequenceId ?? null,
       creator: pose.creator || null,

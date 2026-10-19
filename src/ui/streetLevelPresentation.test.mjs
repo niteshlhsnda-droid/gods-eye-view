@@ -733,3 +733,82 @@ test('a future or invalid capture date on the card reads Unknown date', () => {
   assert.equal(invalid.viewer.captionRight, 'Unknown date');
   assert.equal(invalid.viewer.captureStale, false);
 });
+
+test('an open photo card carries an honest freshness label and bucket', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        capturedAt: Date.UTC(2024, 6, 1),
+      },
+    }),
+    { now: Date.UTC(2024, 9, 1) },
+  );
+  assert.equal(view.viewer.stalenessBucket, 'fresh');
+  assert.ok(view.viewer.captionStaleness.includes('Photo taken'));
+  assert.ok(view.viewer.captionStaleness.includes('less than a year old'));
+});
+
+test('a years-old photo warns it may not show the current street', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        capturedAt: Date.UTC(2018, 2, 10),
+      },
+    }),
+    { now: Date.UTC(2024, 9, 1) },
+  );
+  assert.equal(view.viewer.stalenessBucket, 'stale');
+  assert.ok(
+    view.viewer.captionStaleness.includes('may not reflect the current street'),
+  );
+  assert.ok(
+    !/is current|as of today|\blive\b/i.test(view.viewer.captionStaleness),
+  );
+});
+
+test('a photo with no dates says the date is unknown, never current', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({ street: { open: true, imageId: '1', capturedAt: null } }),
+    { now: Date.UTC(2024, 9, 1) },
+  );
+  assert.equal(view.viewer.stalenessBucket, 'unknown');
+  assert.equal(
+    view.viewer.captionStaleness,
+    'Photo date unknown — treat as possibly outdated',
+  );
+});
+
+test('an upload date without a capture date labels the fallback honestly', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        capturedAt: null,
+        uploadedAt: Date.UTC(2022, 9, 1),
+      },
+    }),
+    { now: Date.UTC(2024, 9, 1) },
+  );
+  assert.equal(view.viewer.stalenessBucket, 'aging');
+  assert.ok(view.viewer.captionStaleness.includes('Photo uploaded'));
+  assert.ok(!view.viewer.captionStaleness.includes('taken'));
+});
+
+test('a future capture date never reads fresh on the card', () => {
+  const view = presentStreetLevelPanel(
+    snapshot({
+      street: {
+        open: true,
+        imageId: '1',
+        capturedAt: Date.UTC(2025, 0, 1),
+      },
+    }),
+    { now: Date.UTC(2024, 9, 1) },
+  );
+  assert.equal(view.viewer.stalenessBucket, 'unknown');
+});

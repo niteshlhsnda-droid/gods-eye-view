@@ -2,6 +2,10 @@ import {
   keySetupRequirement,
   keySetupWithAlternatives,
 } from '../keySetupCore.mjs';
+import {
+  photoStalenessOf,
+  stalenessLabel,
+} from '../layers/streetLevel/photoStaleness.js';
 
 // Street Level UI state to panel strings and flags. Pure, so it is testable.
 
@@ -180,6 +184,13 @@ function presentViewer(state, now = Date.now()) {
     street.capturedAtPrecision,
     now,
   );
+  // Honest freshness, wired from photoStaleness.js (Cycle 20): the bucket
+  // drives the label's tone and the label says the photo's age in words —
+  // stale and unknown photos warn they may not show the current street.
+  const freshness = photoStalenessOf(
+    { capturedAt: street.capturedAt, uploadedAt: street.uploadedAt ?? null },
+    now,
+  );
   const right = [];
   if (street.isPano) right.push('360°');
   if (Number.isFinite(street.bearing))
@@ -197,6 +208,14 @@ function presentViewer(state, now = Date.now()) {
     captionRight: right.join(' · '),
     /** True when the open photo's capture is older than 2 years. */
     captureStale: capture.stale,
+    /**
+     * Honest freshness label for the photo card ("Photo taken Mar 2019 ·
+     * about 6 years old — may not reflect the current street"); always
+     * present, and the unknown-date case says so explicitly.
+     */
+    captionStaleness: stalenessLabel(freshness),
+    /** 'fresh'|'aging'|'stale'|'unknown': tone for the freshness label. */
+    stalenessBucket: freshness.staleness,
     /** License attribution line for the photo card; never empty when open. */
     captionAttribution: street.attributionHtml || null,
     link: street.externalUrl || null,
