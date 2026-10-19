@@ -78,6 +78,7 @@
     "scoreboard:test-async-gap": "node scripts/scoreboard-test-async-gap.mjs",
     "scoreboard:error-swallowing": "node scripts/scoreboard-error-swallowing.mjs",
     "scoreboard:no-op-promise": "node scripts/scoreboard-no-op-promise.mjs",
+    "scoreboard:no-op-promise:strict": "node scripts/scoreboard-no-op-promise.mjs --strict",
     "mcp": "node server/mcp/stdio.js"
   },
   "dependencies": {
