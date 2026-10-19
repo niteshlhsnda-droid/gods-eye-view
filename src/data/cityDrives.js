@@ -1478,3 +1478,56 @@ export function driveUrlFor(city) {
 export function cityDriveById(id) {
   return CITY_DRIVES.find((city) => city.id === id) ?? null;
 }
+
+/** Great-circle distance in kilometres between two lat/lon points. */
+export function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Match a searched location to a drive-through city.
+ *
+ * Name match wins (case-insensitive substring either way, so "New Delhi" or
+ * "Delhi, India" both hit Delhi). Otherwise the nearest catalog city within
+ * `maxKm` of the given coordinates. Returns the city object or null.
+ */
+export function matchDriveCity(
+  cities,
+  { label = '', lat = NaN, lon = NaN, maxKm = 150 } = {},
+) {
+  const list = Array.isArray(cities) ? cities : [];
+  const needle = String(label || '')
+    .toLowerCase()
+    .trim();
+  if (needle) {
+    const byName = list.find((city) => {
+      const name = String(city?.name || '').toLowerCase();
+      const country = String(city?.country || '').toLowerCase();
+      return (
+        name.length > 2 &&
+        (needle.includes(name) || `${name} ${country}`.includes(needle))
+      );
+    });
+    if (byName) return byName;
+  }
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    let best = null;
+    let bestKm = Infinity;
+    for (const city of list) {
+      if (!Number.isFinite(city?.lat) || !Number.isFinite(city?.lon)) continue;
+      const km = haversineKm(lat, lon, city.lat, city.lon);
+      if (km < bestKm) {
+        bestKm = km;
+        best = city;
+      }
+    }
+    if (best && bestKm <= maxKm) return best;
+  }
+  return null;
+}

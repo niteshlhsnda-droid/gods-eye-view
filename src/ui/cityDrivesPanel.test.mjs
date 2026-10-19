@@ -268,3 +268,37 @@ test('close() stops audio and switching cities drops the old audio', async () =>
     .click();
   assert.equal(findAudios(root).length, 0, 'old audio removed on city switch');
 });
+
+test('playCity(id) selects the city and switches the panel to player mode', () => {
+  const { panel, root, calls } = makePanel();
+  const ok = panel.playCity('delhi');
+  assert.equal(ok, true);
+  assert.equal(panel.selectedId, 'delhi');
+  assert.ok(calls.flyTo.length > 0, 'camera flew to the city');
+  assert.ok(
+    root.classList.contains('city-drives-player-mode'),
+    'player-mode class applied',
+  );
+  const iframes = findIframes(root);
+  assert.ok(iframes.length > 0, 'drive iframe rendered');
+  assert.ok(
+    String(iframes[0].src || iframes[0].getAttribute('src')).includes(
+      'driveandlisten.app/city/delhi',
+    ),
+    'iframe points at the Delhi drive',
+  );
+});
+
+test('playCity(unknown) returns false and leaves player mode off', () => {
+  const { panel, root } = makePanel();
+  assert.equal(panel.playCity('no-such-city'), false);
+  assert.ok(!root.classList.contains('city-drives-player-mode'));
+});
+
+test('browseMode() drops the player-mode class, restoring the list', () => {
+  const { panel, root } = makePanel();
+  panel.playCity('delhi');
+  assert.ok(root.classList.contains('city-drives-player-mode'));
+  panel.browseMode();
+  assert.ok(!root.classList.contains('city-drives-player-mode'));
+});

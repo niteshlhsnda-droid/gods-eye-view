@@ -163,3 +163,16 @@
   color: inherit;
   text-decoration: underline;
 }
+
+/* ── Player mode: search → tap 🚗 → drive starts, no city list ────
+   The card leads; the browse list, search box and count are hidden. */
+#city-drives-panel.city-drives-player-mode .city-drives-search,
+#city-drives-panel.city-drives-player-mode .city-drives-count,
+#city-drives-panel.city-drives-player-mode .city-drives-list {
+  display: none;
+}
+
+#city-drives-panel.city-drives-player-mode .city-drives-card {
+  border-top: 0;
+  padding-top: 0;
+}

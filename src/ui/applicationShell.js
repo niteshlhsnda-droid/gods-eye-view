@@ -17,6 +17,7 @@ import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { StreetLevelControls } from './streetLevelControls.js';
 import { CityDrivesPanel } from './cityDrivesPanel.js';
+import { CITY_DRIVES, matchDriveCity } from '../data/cityDrives.js';
 import { RadioControls } from './radio.js';
 import { LocalSdrControls } from './localSdrControls.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -1017,36 +1018,82 @@ export class StyleManager extends ShellFacade {
     }
   }
 
-  /** Open the City Drives panel; safe to call even if init was skipped. */
+  /**
+   * City Drives, direct-drive flow: search a location, tap 🚗, the drive
+   * starts — no city list in the happy path.
+   *
+   * - No searched location yet → toast + browse list (fallback).
+   * - Searched location matches a drive city (name, else nearest within
+   *   150 km of the camera) → playCity: camera flies, Drive tab shows.
+   * - No match → toast naming the miss + browse list (fallback).
+   */
   _openCityDrives() {
     try {
-      // Visible signal: if the user sees this toast, the tap registered and
-      // any remaining problem is panel visibility, not the wiring.
-      try {
-        this._showToast?.('Opening City Drives…');
-      } catch {
-        /* toast is diagnostic only */
-      }
       const panelEl = document.getElementById('city-drives-panel');
       if (!panelEl) return;
       // Lazily build the controls if init never ran (e.g. partial boot).
       if (!this._cityDrivesControls) this._initCityDrivesPanel();
-      this.setPanelCollapsed('city-drives-panel', false, { explicit: true });
-      this._cityDrivesControls?.open();
-      // Belt and braces: no collapse class may keep the panel hidden.
-      panelEl.classList.remove(
-        'collapsed',
-        'layout-auto-collapsed',
-        'cyber-accordion-collapsed',
-      );
-      panelEl.removeAttribute('hidden');
-      if (typeof panelEl.scrollIntoView === 'function') {
-        try {
-          panelEl.scrollIntoView({ block: 'nearest' });
-        } catch {
-          /* best effort */
+      const controls = this._cityDrivesControls;
+      const showPanel = () => {
+        this.setPanelCollapsed('city-drives-panel', false, { explicit: true });
+        controls?.open();
+        panelEl.classList.remove(
+          'collapsed',
+          'layout-auto-collapsed',
+          'cyber-accordion-collapsed',
+        );
+        panelEl.removeAttribute('hidden');
+        if (typeof panelEl.scrollIntoView === 'function') {
+          try {
+            panelEl.scrollIntoView({ block: 'nearest' });
+          } catch {
+            /* best effort */
+          }
         }
+      };
+      const browseFallback = (toastMsg) => {
+        try {
+          this._showToast?.(toastMsg);
+        } catch {
+          /* toast is diagnostic only */
+        }
+        controls?.browseMode();
+        showPanel();
+      };
+
+      const label =
+        this._locationNavigation?._searchedLocationLabel?.trim() || '';
+      if (!label) {
+        browseFallback('Search a location first, then tap 🚗');
+        return;
       }
+      let camLat = NaN;
+      let camLon = NaN;
+      try {
+        const carto = this.viewer?.camera?.positionCartographic;
+        if (carto) {
+          camLat = Cesium.Math.toDegrees(carto.latitude);
+          camLon = Cesium.Math.toDegrees(carto.longitude);
+        }
+      } catch {
+        /* camera unreadable — name match can still hit */
+      }
+      const city = matchDriveCity(CITY_DRIVES, {
+        label,
+        lat: camLat,
+        lon: camLon,
+      });
+      if (!city) {
+        browseFallback(`No drive-through for "${label}" yet`);
+        return;
+      }
+      try {
+        this._showToast?.(`Driving through ${city.name}…`);
+      } catch {
+        /* toast is diagnostic only */
+      }
+      showPanel();
+      controls?.playCity(city.id);
     } catch (err) {
       console.error('[city-drives] open failed', err);
     }

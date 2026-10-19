@@ -91,3 +91,50 @@ test('SOURCE_CREDITS carries all four sources with https URLs', () => {
   assert.equal(urls.radioGarden, 'https://radio.garden/');
   assert.equal(urls.radioBrowser, 'https://www.radio-browser.info/');
 });
+
+test('haversineKm: Delhi–Mumbai is roughly 1,150 km', async () => {
+  const { haversineKm } = await import('./cityDrives.js');
+  const km = haversineKm(28.6139, 77.209, 19.076, 72.8777);
+  assert.ok(km > 1000 && km < 1300, `got ${km}`);
+  assert.equal(haversineKm(28.6, 77.2, 28.6, 77.2), 0);
+});
+
+test('matchDriveCity: name match wins, case-insensitive', async () => {
+  const { matchDriveCity } = await import('./cityDrives.js');
+  assert.equal(matchDriveCity(CITY_DRIVES, { label: 'Delhi' })?.id, 'delhi');
+  assert.equal(matchDriveCity(CITY_DRIVES, { label: 'MUMBAI' })?.id, 'mumbai');
+  assert.equal(
+    matchDriveCity(CITY_DRIVES, { label: 'New Delhi, India' })?.id,
+    'delhi',
+  );
+});
+
+test('matchDriveCity: proximity fallback within 150 km', async () => {
+  const { matchDriveCity } = await import('./cityDrives.js');
+  // ~50 km north of Delhi: no name to match, nearest city wins.
+  const hit = matchDriveCity(CITY_DRIVES, {
+    label: 'Somewhere Haryana',
+    lat: 29.1,
+    lon: 77.2,
+  });
+  assert.equal(hit?.id, 'delhi');
+});
+
+test('matchDriveCity: too far, or nothing to match, returns null', async () => {
+  const { matchDriveCity } = await import('./cityDrives.js');
+  assert.equal(
+    matchDriveCity(CITY_DRIVES, { label: 'Ocean', lat: 0, lon: -150 }),
+    null,
+  );
+  assert.equal(matchDriveCity(CITY_DRIVES, {}), null);
+  assert.equal(matchDriveCity(CITY_DRIVES, { label: '' }), null);
+});
+
+test('matchDriveCity: name match ignores camera distance', async () => {
+  const { matchDriveCity } = await import('./cityDrives.js');
+  // Label says Paris even though the camera is over Delhi.
+  assert.equal(
+    matchDriveCity(CITY_DRIVES, { label: 'Paris', lat: 28.6, lon: 77.2 })?.id,
+    'paris',
+  );
+});

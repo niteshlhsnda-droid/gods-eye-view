@@ -106,6 +106,31 @@ export class CityDrivesPanel {
     this._root?.classList?.add('collapsed');
   }
 
+  /**
+   * Direct-drive mode: search → tap 🚗 → the drive starts, no city list.
+   * Selects the city (fly + Drive tab) and switches the panel to player
+   * mode, where the card leads and the browse list is hidden.
+   */
+  playCity(id) {
+    const ok = this.selectCity(id);
+    if (!ok) return false;
+    this._root?.classList?.add('city-drives-player-mode');
+    const card = this._nodes?.card;
+    if (card && typeof card.scrollIntoView === 'function') {
+      try {
+        card.scrollIntoView({ block: 'nearest' });
+      } catch {
+        /* best effort */
+      }
+    }
+    return true;
+  }
+
+  /** Back to the browse list (fallback when no drive matches). */
+  browseMode() {
+    this._root?.classList?.remove('city-drives-player-mode');
+  }
+
   /** Pick a city: fly the camera, reset audio, show the Drive tab. */
   selectCity(id) {
     const city = cityDriveById(id) ?? this._cities.find((c) => c.id === id);
