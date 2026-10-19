@@ -93,6 +93,7 @@
   "server/providers/places/google.js",
   "server/providers/places/routes.js",
   "src/data/placeProviderPayloads.js",
+  "src/data/placeProviderPayloads.test.mjs",
   "src/tooling/placeProviders.test.mjs",
   "server/providers/common/same-site.js",
   "server/providers/space.js",
