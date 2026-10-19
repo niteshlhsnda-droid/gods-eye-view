@@ -61,6 +61,11 @@ import {
   PolylineGeoImportError,
   encodedPolylineToGeoJson,
 } from './polylineGeoImport.js';
+import {
+  detectMvtTileCoords,
+  isMvtBytes,
+  parseMvtTileToGeoJson,
+} from './mvtGeoImport.js';
 
 /** Largest file accepted, in bytes. */
 export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -83,7 +88,8 @@ export const MAX_IMPORT_NAME_LENGTH = 120;
 /** What the file picker offers. */
 export const GEO_FILE_ACCEPT =
   '.geojson,.json,.geojsonl,.jsonl,.ndjson,.topojson,.kml,.kmz,.gpx,.wkt,.osm,' +
-  '.wkb,.esrijson,.shp,.gml,.rss,.atom,.dxf,.mif,.tcx,.igc,.nmea,.csv,.polyline';
+  '.wkb,.esrijson,.shp,.gml,.rss,.atom,.dxf,.mif,.tcx,.igc,.nmea,.csv,' +
+  '.polyline,.mvt,.pbf';
 
 /**
  * Every format the loader parses to GeoJSON (the KML/KMZ branch is the
@@ -108,6 +114,7 @@ const GEOJSON_LOADER_FORMATS = new Set([
   'nmea',
   'csv',
   'polyline',
+  'mvt',
 ]);
 
 const GEOJSON_TYPES = new Set([
@@ -165,7 +172,7 @@ export class GeoImportError extends Error {
  * @param {Uint8Array} [head] The first bytes of the file.
  * @returns {'geojson'|'geojsonl'|'topojson'|'kml'|'kmz'|'gpx'|'wkt'|'osm'|
  *   'wkb'|'esrijson'|'shapefile'|'gml'|'georss'|'dxf'|'mif'|'tcx'|'igc'|
- *   'nmea'|'csv'|'polyline'|null}
+ *   'nmea'|'csv'|'polyline'|'mvt'|null}
  */
 export function detectGeoFileFormat(name, head) {
   const ext = /\.([a-z0-9]+)$/i.exec(String(name || ''))?.[1]?.toLowerCase();
@@ -191,13 +198,17 @@ export function detectGeoFileFormat(name, head) {
     ext === 'igc' ||
     ext === 'nmea' ||
     ext === 'csv' ||
-    ext === 'polyline'
+    ext === 'polyline' ||
+    ext === 'mvt' ||
+    ext === 'pbf'
   )
     return ext === 'shp'
       ? 'shapefile'
       : ext === 'rss' || ext === 'atom'
         ? 'georss'
-        : ext;
+        : ext === 'pbf'
+          ? 'mvt'
+          : ext;
 
   if (!head?.length) return ext === 'json' ? 'geojson' : null;
   if (
@@ -1565,8 +1576,8 @@ export async function loadGeoFile(
   if (!format)
     throw new GeoImportError(
       'Only GeoJSON, GeoJSONL, TopoJSON, KML, KMZ, GPX, WKT, OSM, WKB, ' +
-        'Esri JSON, Shapefile, GML, GeoRSS, DXF, MIF, TCX, IGC, NMEA, CSV ' +
-        'and encoded-polyline files can be imported.',
+        'Esri JSON, Shapefile, GML, GeoRSS, DXF, MIF, TCX, IGC, NMEA, CSV, ' +
+        'MVT and encoded-polyline files can be imported.',
     );
   const stroke = Cesium.Color.fromCssColorString(color);
   const urls = [];
@@ -1678,6 +1689,28 @@ export async function loadGeoFile(
           .filter(Boolean);
         geojson = encodedPolylineToGeoJson(lines);
         crsAssumed = true;
+      } else if (format === 'mvt') {
+        // A vector tile is tile-local integers until projected onto a
+        // z/x/y tile address: without tile coordinates in the file name
+        // it has no place on the globe, so it is refused rather than
+        // drawn somewhere wrong. The decoder converts Web Mercator tile
+        // space to WGS 84, so nothing is assumed and no warning is needed.
+        const coords = detectMvtTileCoords(file.name);
+        if (!coords)
+          throw new GeoImportError(
+            'That vector tile has no tile coordinates in its name. ' +
+              'Name it like 14-8801-5371.mvt (z-x-y) or keep it in a z/x/y folder.',
+          );
+        geojson = parseMvtTileToGeoJson(bytes, coords);
+        if (!geojson) {
+          if (isMvtBytes(bytes))
+            // A structurally valid tile the decoder refused: past the
+            // feature/position caps, or geometry the decoder rejects.
+            throw new GeoImportError(
+              `That vector tile is over the import limits (${MAX_IMPORT_ENTITIES.toLocaleString()} features, ${MAX_IMPORT_POSITIONS.toLocaleString()} points) or has geometry that cannot be decoded.`,
+            );
+          throw new GeoImportError('That vector tile could not be decoded.');
+        }
       } else {
         geojson = parseJsonGeoText(new TextDecoder().decode(bytes));
       }

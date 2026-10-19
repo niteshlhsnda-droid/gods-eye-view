@@ -1646,6 +1646,7 @@
       "src/data/dxfGeoImport.js",
       "src/data/igcGeoImport.js",
       "src/data/mifImport.js",
+      "src/data/mvtGeoImport.js",
       "src/data/nmeaGeoImport.js",
       "src/data/polylineGeoImport.js",
       "src/data/speedLabel.js",

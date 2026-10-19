@@ -206,6 +206,77 @@ const csvPoints = () => 'lat,lon,name\n1,2,home\n';
 
 const polylineTrack = () => '_p~iF~ps|U_ulLnnqC_mqNvxq`@\n';
 
+// --- MVT fixtures (hand-rolled protobuf, matching src/data/mvtGeoImport.js) ---
+
+const mvtVarint = (value) => {
+  const bytes = [];
+  let v = value;
+  do {
+    let b = v & 0x7f;
+    v = Math.floor(v / 128);
+    if (v) b |= 0x80;
+    bytes.push(b);
+  } while (v);
+  return bytes;
+};
+
+// One layer, one feature:
+// Tile{ field 3: Layer{ field 1: name, field 2: Feature{...}, field 5: extent } }
+const mvtTile = (featureBytes) => {
+  const layer = [
+    0x0a,
+    0x05,
+    ...[...'layer'].map((c) => c.charCodeAt(0)), // name
+    0x12,
+    featureBytes.length,
+    ...featureBytes, // field 2: feature
+    0x28,
+    ...mvtVarint(4096), // field 5: extent
+  ];
+  return new Uint8Array([0x1a, layer.length, ...layer]);
+};
+
+// A point feature at tile-local (0, 0): MoveTo(1) with zigzag(0, 0).
+const mvtPointTile = () =>
+  mvtTile([
+    0x12,
+    0x00, // field 2 tags: empty packed
+    0x18,
+    0x01, // field 3 type: POINT
+    0x22,
+    0x03,
+    0x09,
+    0x00,
+    0x00, // field 4 geometry: [9, 0, 0]
+  ]);
+
+// A polygon whose only ring is counter-clockwise in tile space: the tile
+// parses (isMvtBytes true) but the decoder refuses it — a hole with no
+// exterior ring before it. Ring (0,0) (0,1000) (1000,0) + ClosePath.
+const mvtBadRingTile = () => {
+  const words = [
+    9,
+    0,
+    0, // MoveTo(1), (0,0)
+    18,
+    0,
+    2000,
+    2000,
+    1999, // LineTo(2), (0,1000), (1000,0)
+    15, // ClosePath(1)
+  ];
+  const payload = words.flatMap(mvtVarint);
+  return mvtTile([
+    0x12,
+    0x00, // field 2 tags: empty packed
+    0x18,
+    0x03, // field 3 type: POLYGON
+    0x22,
+    payload.length,
+    ...payload, // field 4 geometry
+  ]);
+};
+
 // --- Extension routing ---------------------------------------------------
 
 test('newly wired formats route by extension', () => {
@@ -223,6 +294,8 @@ test('newly wired formats route by extension', () => {
     ['log.nmea', 'nmea'],
     ['places.csv', 'csv'],
     ['route.polyline', 'polyline'],
+    ['tile.mvt', 'mvt'],
+    ['14-8801-5371.pbf', 'mvt'],
   ];
   for (const [name, format] of cases)
     assert.equal(detectGeoFileFormat(name), format, name);
@@ -291,6 +364,8 @@ test('GEO_FILE_ACCEPT offers every wired format', () => {
     '.nmea',
     '.csv',
     '.polyline',
+    '.mvt',
+    '.pbf',
   ])
     assert.ok(GEO_FILE_ACCEPT.includes(ext), ext);
 });
@@ -311,6 +386,7 @@ test('loadGeoFile resolves each newly wired format to its parser', async () => {
     ['log.nmea', nmeaTrack(), 'nmea', false],
     ['places.csv', csvPoints(), 'csv', true],
     ['route.polyline', polylineTrack(), 'polyline', true],
+    ['14-8801-5371.mvt', mvtPointTile(), 'mvt', false],
   ];
   for (const [name, body, format, crsIgnored] of cases) {
     const loaded = await loadFormat(name, body);
@@ -338,5 +414,34 @@ test('parser refusals keep their wording through the loader', async () => {
     (error) =>
       error instanceof GeoImportError &&
       /no B-record fixes/.test(error.message),
+  );
+});
+
+// --- MVT refusal paths ---------------------------------------------------
+
+test('MVT without tile coordinates in the name is refused, not misplaced', async () => {
+  await assert.rejects(
+    () => loadFormat('tile.mvt', mvtPointTile()),
+    (error) =>
+      error instanceof GeoImportError &&
+      /no tile coordinates in its name/.test(error.message),
+  );
+});
+
+test('corrupt bytes named .mvt are refused as undecodable', async () => {
+  await assert.rejects(
+    () => loadFormat('14-8801-5371.mvt', new Uint8Array([1, 2, 3])),
+    (error) =>
+      error instanceof GeoImportError &&
+      /could not be decoded/.test(error.message),
+  );
+});
+
+test('a structurally valid tile the decoder refuses names the limits', async () => {
+  await assert.rejects(
+    () => loadFormat('14-8801-5371.mvt', mvtBadRingTile()),
+    (error) =>
+      error instanceof GeoImportError &&
+      /over the import limits/.test(error.message),
   );
 });
