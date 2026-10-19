@@ -147,19 +147,22 @@ export class CityDrivesPanel {
         textContent: '+',
       }),
     ]);
-    const body = el(doc, 'div', { className: 'city-drives-body', 'data-rail-scroller': '' });
-    const list = el(doc, 'div', { className: 'city-drives-list', role: 'listbox', 'aria-label': 'Drive-through cities' });
+    const body = el(doc, 'div', {
+      className: 'city-drives-body',
+      'data-rail-scroller': '',
+    });
+    const list = el(doc, 'div', {
+      className: 'city-drives-list',
+      role: 'listbox',
+      'aria-label': 'Drive-through cities',
+    });
     for (const city of this._cities) {
-      const button = el(
-        doc,
-        'button',
-        {
-          className: 'city-drives-city data-toggle-chip chip-idle',
-          type: 'button',
-          role: 'option',
-          textContent: `${city.name} · ${city.country}`,
-        },
-      );
+      const button = el(doc, 'button', {
+        className: 'city-drives-city data-toggle-chip chip-idle',
+        type: 'button',
+        role: 'option',
+        textContent: `${city.name} · ${city.country}`,
+      });
       button.dataset.cityDriveId = city.id;
       button.addEventListener('click', this._onCityButton);
       list.appendChild(button);
@@ -181,7 +184,8 @@ export class CityDrivesPanel {
     const footer = el(doc, 'div', { className: 'city-drives-credits' });
     footer.appendChild(el(doc, 'span', { textContent: 'Drive footage: ' }));
     this._credits.forEach((credit, index) => {
-      if (index > 0) footer.appendChild(el(doc, 'span', { textContent: ' · ' }));
+      if (index > 0)
+        footer.appendChild(el(doc, 'span', { textContent: ' · ' }));
       const link = el(doc, 'a', {
         href: credit.url,
         target: '_blank',
@@ -199,7 +203,8 @@ export class CityDrivesPanel {
     if (!card) return;
     while (card.firstChild) card.removeChild(card.firstChild);
     const city = this._selectedId
-      ? (cityDriveById(this._selectedId) ?? this._cities.find((c) => c.id === this._selectedId))
+      ? (cityDriveById(this._selectedId) ??
+        this._cities.find((c) => c.id === this._selectedId))
       : null;
     if (!city) {
       card.setAttribute('hidden', '');
@@ -211,7 +216,10 @@ export class CityDrivesPanel {
       className: 'city-drives-card-title',
       textContent: `${city.name}, ${city.country}`,
     });
-    const tabs = el(doc, 'div', { className: 'city-drives-tabs', role: 'tablist' });
+    const tabs = el(doc, 'div', {
+      className: 'city-drives-tabs',
+      role: 'tablist',
+    });
     const driveTab = el(doc, 'button', {
       className: `city-drives-tab${this._activeTab === 'drive' ? ' active' : ''}`,
       type: 'button',
@@ -299,7 +307,10 @@ export class CityDrivesPanel {
       return;
     }
     if (state === 'failed') {
-      setText(status, `No live stream found for ${city.name}. Try another city.`);
+      setText(
+        status,
+        `No live stream found for ${city.name}. Try another city.`,
+      );
       return;
     }
     setText(status, 'Resolving a live station…');
@@ -309,7 +320,8 @@ export class CityDrivesPanel {
     Promise.resolve()
       .then(() => this._resolveStream(city.name))
       .then((result) => {
-        if (token.cancelled || this._disposed || this._selectedId !== city.id) return;
+        if (token.cancelled || this._disposed || this._selectedId !== city.id)
+          return;
         if (!result?.streamUrl) {
           this._radioState.set(city.id, 'failed');
           this._renderCard();

@@ -33,8 +33,7 @@ function isDirectStream(url) {
 function pickPlayableStation(stations) {
   if (!Array.isArray(stations)) return null;
   const direct = stations.filter(
-    (station) =>
-      station && isDirectStream(station.url_resolved || station.url),
+    (station) => station && isDirectStream(station.url_resolved || station.url),
   );
   if (direct.length === 0) return null;
   const hinted = direct.find((station) =>
