@@ -55,6 +55,25 @@ function toMs(value) {
   return Number.NaN;
 }
 
+function textOf(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+/**
+ * Audit a rendered Street Level panel: every open photo card must carry its
+ * honest freshness label. The presenter guarantees a label whenever the
+ * plumbing is wired; this audit catches the wiring breaking (a card rendered
+ * without `captionStaleness`) rather than a photo lacking a date, which the
+ * label itself reports as unknown.
+ * @param {object} view the `presentStreetLevelPanel` output
+ * @returns {Array<string>} issue strings, empty when the card is labelled
+ */
+export function auditRenderedStaleness(view) {
+  if (view?.viewer?.open && !textOf(view.viewer.captionStaleness))
+    return ['Street Level photo card is open with no freshness label'];
+  return [];
+}
+
 /**
  * The best usable date for a photo: capture time first (Cycle 14
  * capture-date honesty), upload time as a labelled fallback.

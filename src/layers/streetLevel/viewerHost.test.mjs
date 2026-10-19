@@ -705,3 +705,16 @@ test('closing the photo clears the attribution line', async () => {
   host.close();
   assert.equal(state.street.attributionHtml, null);
 });
+
+test('a pose can carry an upload date the freshness label falls back on', async () => {
+  const { state, host, google } = twoProviders();
+  await host.open('google', 'g-1');
+  google.emitPose('g-1', {
+    providerId: 'google',
+    capturedAt: null,
+    uploadedAt: Date.UTC(2022, 5, 15),
+  });
+  assert.equal(state.street.uploadedAt, Date.UTC(2022, 5, 15));
+  host.close();
+  assert.equal(state.street.uploadedAt, null, 'close resets the upload date');
+});

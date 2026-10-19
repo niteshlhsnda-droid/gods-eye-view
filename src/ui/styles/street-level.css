@@ -548,6 +548,30 @@ button.sl-status:focus-visible {
   color: var(--text-primary);
 }
 
+/* Honest freshness line for the open photo card: its own full-width row
+   like the credit. Stale and unknown photos warn in amber so an old or
+   undated photo is never mistaken for the current street; fresh and aging
+   photos stay quiet secondary text. */
+.sl-image-freshness {
+  flex: 1 1 100%;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.sl-image-freshness:empty {
+  display: none;
+}
+
+.sl-image-freshness[hidden] {
+  display: none;
+}
+
+.sl-image-freshness[data-sl-freshness-bucket='stale'],
+.sl-image-freshness[data-sl-freshness-bucket='unknown'] {
+  color: #ffb300;
+}
+
 .sl-meta {
   font-family: var(--font-mono);
   font-size: var(--sl-text-small);

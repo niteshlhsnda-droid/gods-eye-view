@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   PHOTO_STALENESS,
   STALENESS_DATE_KIND,
+  auditRenderedStaleness,
   photoDateOf,
   photoStalenessOf,
   stalenessLabel,
@@ -153,4 +154,30 @@ test('unknown label admits it and never defaults to current', () => {
     stalenessLabel({ staleness: PHOTO_STALENESS.UNKNOWN }),
     'Photo date unknown — treat as possibly outdated',
   );
+});
+
+test('auditRenderedStaleness is clean when the open card carries its freshness label', () => {
+  assert.deepEqual(
+    auditRenderedStaleness({
+      viewer: {
+        open: true,
+        captionStaleness: 'Photo taken Oct 2021 · about 5 years old',
+      },
+    }),
+    [],
+  );
+});
+
+test('auditRenderedStaleness flags an open card whose freshness label never rendered', () => {
+  const issues = auditRenderedStaleness({ viewer: { open: true } });
+  assert.equal(issues.length, 1);
+  assert.ok(issues[0].includes('freshness label'));
+  const blank = auditRenderedStaleness({
+    viewer: { open: true, captionStaleness: '   ' },
+  });
+  assert.equal(blank.length, 1, 'a whitespace-only label is not a label');
+});
+
+test('auditRenderedStaleness is clean for a closed viewer', () => {
+  assert.deepEqual(auditRenderedStaleness({ viewer: { open: false } }), []);
 });
