@@ -1020,6 +1020,13 @@ export class StyleManager extends ShellFacade {
   /** Open the City Drives panel; safe to call even if init was skipped. */
   _openCityDrives() {
     try {
+      // Visible signal: if the user sees this toast, the tap registered and
+      // any remaining problem is panel visibility, not the wiring.
+      try {
+        this._showToast?.('Opening City Drives…');
+      } catch {
+        /* toast is diagnostic only */
+      }
       const panelEl = document.getElementById('city-drives-panel');
       if (!panelEl) return;
       // Lazily build the controls if init never ran (e.g. partial boot).
