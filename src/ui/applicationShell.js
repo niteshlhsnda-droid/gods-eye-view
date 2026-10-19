@@ -979,25 +979,69 @@ export class StyleManager extends ShellFacade {
 
   /** Compose the City Drives panel: recorded drive-throughs + live local radio. */
   _initCityDrivesPanel() {
-    this._cityDrivesControls?.destroy();
+    try {
+      this._cityDrivesControls?.destroy();
+    } catch {
+      /* a dead panel must never break shell init */
+    }
     this._cityDrivesControls = null;
-    if (!this._cityDrivesPanel) return;
+    // Re-query the DOM fresh: the shell's cached element refs may predate
+    // template injection in some boot orders, which left the launcher dead.
+    const panelEl = document.getElementById('city-drives-panel');
+    const launcher = document.getElementById('city-drives-open');
+    if (!panelEl || !launcher) return;
     this._cityDrivesControls = new CityDrivesPanel({
-      root: this._cityDrivesPanel,
+      root: panelEl,
+      document,
       // Fly with the shell's own camera verb — ../locations.js lives in another
       // package's graph (it pulls capability/overpass/services) and must not be
       // imported here (package-boundary gate).
-      flyTo: (lat, lon) =>
-        this.applyCameraState({ lat, lon, alt: 15000, heading: 0, pitch: -55 }),
+      flyTo: (lat, lon) => {
+        try {
+          this.applyCameraState({
+            lat,
+            lon,
+            alt: 15000,
+            heading: 0,
+            pitch: -55,
+          });
+        } catch {
+          /* camera failures must not break the card */
+        }
+      },
     });
     this._cityDrivesControls.connect();
-    const launcher = this._cityDrivesOpen;
-    if (launcher && !launcher.dataset.cityDrivesBound) {
+    if (!launcher.dataset.cityDrivesBound) {
       launcher.dataset.cityDrivesBound = '1';
-      launcher.addEventListener('click', () => {
-        this.setPanelCollapsed('city-drives-panel', false, { origin: 'user' });
-        this._cityDrivesControls?.open();
-      });
+      launcher.addEventListener('click', () => this._openCityDrives());
+    }
+  }
+
+  /** Open the City Drives panel; safe to call even if init was skipped. */
+  _openCityDrives() {
+    try {
+      const panelEl = document.getElementById('city-drives-panel');
+      if (!panelEl) return;
+      // Lazily build the controls if init never ran (e.g. partial boot).
+      if (!this._cityDrivesControls) this._initCityDrivesPanel();
+      this.setPanelCollapsed('city-drives-panel', false, { explicit: true });
+      this._cityDrivesControls?.open();
+      // Belt and braces: no collapse class may keep the panel hidden.
+      panelEl.classList.remove(
+        'collapsed',
+        'layout-auto-collapsed',
+        'cyber-accordion-collapsed',
+      );
+      panelEl.removeAttribute('hidden');
+      if (typeof panelEl.scrollIntoView === 'function') {
+        try {
+          panelEl.scrollIntoView({ block: 'nearest' });
+        } catch {
+          /* best effort */
+        }
+      }
+    } catch (err) {
+      console.error('[city-drives] open failed', err);
     }
   }
 

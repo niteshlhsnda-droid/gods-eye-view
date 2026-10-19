@@ -14,6 +14,8 @@ function fakeElement(tag) {
     _classSet: new Set(),
     _listeners: {},
     textContent: '',
+    value: '',
+    style: {},
     src: '',
     paused: false,
     setAttribute(key, value) {
@@ -147,6 +149,31 @@ test('renders one button per city and a four-link credit footer', () => {
   assert.ok(hrefs.includes('https://drivefromhome.com/'));
   assert.ok(hrefs.includes('https://radio.garden/'));
   assert.ok(hrefs.includes('https://www.radio-browser.info/'));
+});
+
+test('search filters the city list and updates the count', () => {
+  const { root } = makePanel();
+  const search = [];
+  const walk = (node) => {
+    if (node.className.split(' ').includes('city-drives-search'))
+      search.push(node);
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(root);
+  assert.equal(search.length, 1);
+  const input = search[0];
+  input.value = 'japan';
+  for (const fn of input._listeners.input ?? []) fn();
+  const buttons = findButtons(root, 'city-drives-city');
+  const visible = buttons.filter((b) => b.style.display !== 'none');
+  assert.ok(visible.length >= 1, 'expected at least one Japan match');
+  assert.ok(
+    visible.every((b) =>
+      b.dataset.cityDriveSearch.includes('japan'),
+    ),
+    'every visible button must match the query',
+  );
+  assert.ok(buttons.length > visible.length, 'non-matches must hide');
 });
 
 test('selectCity flies the camera and shows an honestly-labeled drive pane', () => {

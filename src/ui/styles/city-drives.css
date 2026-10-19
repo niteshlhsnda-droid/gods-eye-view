@@ -1,0 +1,165 @@
+/* ── City Drives panel ────────────────────────────────────────────
+   Recorded drive-throughs (Drive & Listen) + live local radio.
+   The rail owns position and width; this file styles the content. */
+#city-drives-panel {
+  --cd-text: 0.62rem;
+  --cd-text-small: 0.58rem;
+  --cd-accent: #ffb454;
+  --cd-live: #ff5d5d;
+}
+
+#city-drives-panel .city-drives-panel-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+}
+
+#city-drives-panel .city-drives-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.15rem 0.1rem 0.4rem;
+}
+
+#city-drives-panel .city-drives-search {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: var(--cd-text);
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+}
+
+#city-drives-panel .city-drives-search::placeholder {
+  opacity: 0.55;
+}
+
+#city-drives-panel .city-drives-count {
+  font-size: var(--cd-text-small);
+  opacity: 0.6;
+}
+
+#city-drives-panel .city-drives-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+#city-drives-panel .city-drives-city {
+  font-size: var(--cd-text-small);
+  padding: 0.28rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+}
+
+#city-drives-panel .city-drives-city:hover {
+  border-color: var(--cd-accent);
+}
+
+#city-drives-panel .city-drives-city[aria-pressed='true'] {
+  border-color: var(--cd-accent);
+  background: rgba(255, 180, 84, 0.16);
+}
+
+#city-drives-panel .city-drives-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 0.5rem;
+}
+
+#city-drives-panel .city-drives-card[hidden] {
+  display: none;
+}
+
+#city-drives-panel .city-drives-card-title {
+  font-size: var(--cd-text);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#city-drives-panel .city-drives-tabs {
+  display: flex;
+  gap: 0.3rem;
+}
+
+#city-drives-panel .city-drives-tab {
+  font-size: var(--cd-text-small);
+  padding: 0.3rem 0.65rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+#city-drives-panel .city-drives-tab.active {
+  border-color: var(--cd-accent);
+  background: rgba(255, 180, 84, 0.16);
+}
+
+#city-drives-panel .city-drives-honesty-label {
+  font-size: var(--cd-text-small);
+  opacity: 0.65;
+  font-style: italic;
+}
+
+#city-drives-panel .city-drives-live-label {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--cd-live);
+  opacity: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#city-drives-panel .city-drives-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #000;
+}
+
+#city-drives-panel .city-drives-open-external {
+  font-size: var(--cd-text-small);
+  opacity: 0.8;
+}
+
+#city-drives-panel .city-drives-radio-status {
+  font-size: var(--cd-text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+#city-drives-panel .city-drives-radio-status audio {
+  width: 100%;
+}
+
+#city-drives-panel .city-drives-station {
+  font-size: var(--cd-text-small);
+  opacity: 0.8;
+}
+
+#city-drives-panel .city-drives-credits {
+  font-size: var(--cd-text-small);
+  opacity: 0.6;
+  line-height: 1.5;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+}
+
+#city-drives-panel .city-drives-credits a {
+  color: inherit;
+  text-decoration: underline;
+}

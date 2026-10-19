@@ -18,7 +18,7 @@ const EXPECTED_CITIES = [
   ['jaipur', 'Jaipur', 'India', 26.9124, 75.7873],
   ['tokyo', 'Tokyo', 'Japan', 35.6762, 139.6503],
   ['paris', 'Paris', 'France', 48.8566, 2.3522],
-  ['newyorkcity', 'New York', 'USA', 40.7128, -74.006],
+  ['newyorkcity', 'New York City', 'USA', 40.7128, -74.006],
   ['london', 'London', 'UK', 51.5074, -0.1278],
   ['istanbul', 'Istanbul', 'Turkey', 41.0082, 28.9784],
   ['berlin', 'Berlin', 'Germany', 52.52, 13.405],
@@ -30,10 +30,16 @@ const EXPECTED_CITIES = [
   ['capetown', 'Cape Town', 'South Africa', -33.9249, 18.4241],
 ];
 
-test('CITY_DRIVES has exactly the 20 specced cities with valid coordinates', () => {
-  assert.equal(CITY_DRIVES.length, 20);
+test('CITY_DRIVES carries the full driveandlisten.app catalog with valid coordinates', () => {
+  // Full catalog: 179 driveandlisten.app slugs, 20 curated first.
+  assert.ok(
+    CITY_DRIVES.length >= 170,
+    `expected the full catalog, got ${CITY_DRIVES.length}`,
+  );
   const ids = new Set(CITY_DRIVES.map((c) => c.id));
-  assert.equal(ids.size, 20, 'city ids must be unique');
+  assert.equal(ids.size, CITY_DRIVES.length, 'city ids must be unique');
+  // Curated cities lead, Delhi first.
+  assert.equal(CITY_DRIVES[0].id, 'delhi');
   for (const [id, name, country, lat, lon] of EXPECTED_CITIES) {
     const city = CITY_DRIVES.find((c) => c.id === id);
     assert.ok(city, `missing city ${id}`);
@@ -41,17 +47,19 @@ test('CITY_DRIVES has exactly the 20 specced cities with valid coordinates', () 
     assert.equal(city.country, country);
     assert.equal(city.lat, lat);
     assert.equal(city.lon, lon);
+  }
+  for (const city of CITY_DRIVES) {
     assert.ok(
       Number.isFinite(city.lat) && city.lat >= -90 && city.lat <= 90,
-      `${id} lat out of range`,
+      `${city.id} lat out of range`,
     );
     assert.ok(
       Number.isFinite(city.lon) && city.lon >= -180 && city.lon <= 180,
-      `${id} lon out of range`,
+      `${city.id} lon out of range`,
     );
-    assert.ok(city.name.length > 0, `${id} needs a name`);
-    assert.ok(city.country.length > 0, `${id} needs a country`);
-    assert.match(city.driveSlug, /^[a-z0-9]+$/, `${id} driveSlug shape`);
+    assert.ok(city.name.length > 0, `${city.id} needs a name`);
+    assert.ok(city.country.length > 0, `${city.id} needs a country`);
+    assert.match(city.driveSlug, /^[a-z0-9]+$/, `${city.id} driveSlug shape`);
   }
 });
 

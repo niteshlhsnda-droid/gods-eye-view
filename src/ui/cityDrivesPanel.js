@@ -85,6 +85,14 @@ export class CityDrivesPanel {
   destroy() {
     this._disposed = true;
     this._stopAudio();
+    if (this._inner?.parentNode) {
+      try {
+        this._inner.parentNode.removeChild(this._inner);
+      } catch {
+        /* best effort */
+      }
+    }
+    this._inner = null;
     this._root = null;
     this._nodes = {};
   }
@@ -105,6 +113,16 @@ export class CityDrivesPanel {
     this._stopAudio();
     this._selectedId = city.id;
     this._activeTab = 'drive';
+    // Mark the selected button so it stays visible against 179 siblings.
+    const { cityButtons } = this._nodes;
+    if (cityButtons) {
+      for (const button of cityButtons) {
+        button.setAttribute(
+          'aria-pressed',
+          button.dataset.cityDriveId === city.id ? 'true' : 'false',
+        );
+      }
+    }
     if (typeof this._flyTo === 'function') {
       try {
         this._flyTo(city.lat, city.lon, city);
@@ -151,31 +169,62 @@ export class CityDrivesPanel {
       className: 'city-drives-body',
       'data-rail-scroller': '',
     });
+    const search = el(doc, 'input', {
+      className: 'city-drives-search',
+      type: 'search',
+      placeholder: `Search ${this._cities.length} cities…`,
+      'aria-label': 'Search drive-through cities',
+    });
+    const count = el(doc, 'div', {
+      className: 'city-drives-count',
+      textContent: `${this._cities.length} cities`,
+    });
     const list = el(doc, 'div', {
       className: 'city-drives-list',
       role: 'listbox',
       'aria-label': 'Drive-through cities',
     });
+    const cityButtons = [];
     for (const city of this._cities) {
       const button = el(doc, 'button', {
         className: 'city-drives-city data-toggle-chip chip-idle',
         type: 'button',
         role: 'option',
+        'aria-pressed': 'false',
         textContent: `${city.name} · ${city.country}`,
       });
       button.dataset.cityDriveId = city.id;
+      button.dataset.cityDriveSearch =
+        `${city.name} ${city.country}`.toLowerCase();
       button.addEventListener('click', this._onCityButton);
       list.appendChild(button);
+      cityButtons.push(button);
     }
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      let visible = 0;
+      for (const button of cityButtons) {
+        const match = q === '' || button.dataset.cityDriveSearch.includes(q);
+        button.style.display = match ? '' : 'none';
+        if (match) visible += 1;
+      }
+      count.textContent =
+        q === ''
+          ? `${this._cities.length} cities`
+          : `${visible} of ${this._cities.length} cities`;
+    });
     const card = el(doc, 'div', { className: 'city-drives-card', hidden: '' });
     const footer = this._renderFooter();
+    body.appendChild(search);
+    body.appendChild(count);
     body.appendChild(list);
     body.appendChild(card);
     body.appendChild(footer);
     inner.appendChild(header);
     inner.appendChild(body);
     root.appendChild(inner);
-    this._nodes = { list, card, footer, body };
+    this._nodes = { list, card, footer, body, search, count, cityButtons };
+    this._inner = inner;
     this._renderCard();
   }
 
