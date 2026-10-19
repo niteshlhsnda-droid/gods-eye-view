@@ -25,13 +25,24 @@ import {
   parseCliArgs,
   summarizeResults,
 } from './noOpPromise.mjs';
+import {
+  evaluatePolicy,
+  formatPolicyReport,
+  parsePolicy,
+  policyFailsStrict,
+} from './noOpPromisePolicy.mjs';
+
+export const DEFAULT_POLICY_FILENAME = 'noOpPromise.policy.json';
 
 const USAGE = `Usage:
-  node scripts/scoreboard-no-op-promise.mjs [--json] [--limit N] [--strict] [file ...]
+  node scripts/scoreboard-no-op-promise.mjs [--json] [--limit N] [--strict] [--policy PATH | --no-policy] [file ...]
 
 Static no-op-promise scoreboard for src/. Report-only: exit 0 even
 when findings exist. --strict exits 1 on any finding
-(noop-catch-anonymous, noop-catch-named, noop-then-fulfillment).
+(noop-catch-anonymous, noop-catch-named, noop-then-fulfillment) unless
+the strict policy (scripts/noOpPromise.policy.json by default)
+allow-lists it with a live, unexpired entry; stale allowlist entries
+also fail --strict. --no-policy restores the raw pre-policy behavior.
 --limit N caps the finding list (0 means all; default ${DEFAULT_LIMIT}).
 With file arguments, only those files are shown.`;
 
@@ -68,21 +79,89 @@ export async function runNoOpPromiseScoreboard(root, argv = process.argv) {
     shown = filterFindingsByFiles(findings, wanted);
   }
 
+  // Strict-policy evaluation (Phase 1 rollout). The policy file is
+  // loaded unless --no-policy; a missing default policy keeps the old
+  // raw behavior, while an explicit --policy path must exist.
+  let policy = null;
+  let evaluation = null;
+  if (!args.noPolicy) {
+    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+    const policyPath = args.policy
+      ? path.resolve(args.policy)
+      : path.join(scriptDir, DEFAULT_POLICY_FILENAME);
+    let policyText = null;
+    try {
+      policyText = await readFile(policyPath, 'utf8');
+    } catch (error) {
+      if (args.policy) {
+        console.error(
+          `scoreboard-no-op-promise: cannot read policy: ${error.message}`,
+        );
+        return 2;
+      }
+    }
+    if (policyText !== null) {
+      try {
+        policy = parsePolicy(policyText);
+      } catch (error) {
+        console.error(`scoreboard-no-op-promise: ${error.message}`);
+        return 2;
+      }
+      evaluation = evaluatePolicy(policy, shown);
+      // Staleness is judged against the whole tree, not the shown
+      // subset: a scoped run (`--strict src/foo.js`) must not fail
+      // because bar.js's entries are out of scope. Violations are
+      // judged against the shown subset so the gate stays scoped.
+      const fullEvaluation = evaluatePolicy(policy, findings);
+      evaluation = {
+        allowlisted: evaluation.allowlisted,
+        violations: evaluation.violations,
+        staleEntries: fullEvaluation.staleEntries,
+        driftNotes: fullEvaluation.driftNotes,
+      };
+    }
+  }
+
   if (args.json) {
     console.log(
       JSON.stringify(
-        { summary: summarizeResults(stats, shown), findings: shown },
+        {
+          summary: summarizeResults(stats, shown),
+          findings: shown,
+          policy: evaluation
+            ? {
+                allowlisted: evaluation.allowlisted.length,
+                violations: evaluation.violations,
+                staleEntries: evaluation.staleEntries,
+                driftNotes: evaluation.driftNotes,
+              }
+            : null,
+        },
         null,
         2,
       ),
     );
   } else {
+    const report = formatNoOpPromiseReport(
+      { stats, findings: shown },
+      args.limit,
+    );
     console.log(
-      formatNoOpPromiseReport({ stats, findings: shown }, args.limit),
+      evaluation ? `${report}\n\n${formatPolicyReport(evaluation)}` : report,
     );
   }
 
   if (args.strict) {
+    if (evaluation) {
+      if (policyFailsStrict(evaluation)) {
+        console.error(
+          'scoreboard-no-op-promise: --strict failed the policy gate:',
+        );
+        console.error(formatPolicyReport(evaluation));
+        return 1;
+      }
+      return 0;
+    }
     const strictHits = shown.filter((finding) =>
       STRICT_CLASSES.has(finding.class),
     );

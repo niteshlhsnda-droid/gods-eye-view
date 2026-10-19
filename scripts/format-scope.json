@@ -1197,5 +1197,10 @@
   "src/tooling/noOpPromise.js",
   "src/tooling/noOpPromise.test.mjs",
   "src/sources/httpBody.test.mjs",
-  "src/layers/firms/queries.test.mjs"
+  "src/layers/firms/queries.test.mjs",
+  "scripts/noOpPromisePolicy.mjs",
+  "scripts/noOpPromise.policy.json",
+  "scripts/scoreboard-samples/no-op-promise-strict-rollout.md",
+  "src/tooling/noOpPromisePolicy.js",
+  "src/tooling/noOpPromisePolicy.test.mjs"
 ]

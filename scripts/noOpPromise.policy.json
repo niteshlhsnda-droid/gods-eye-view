@@ -1,0 +1,608 @@
+{
+  "version": 1,
+  "policy": "no-op-promise-strict",
+  "description": "Phase-1 strict-policy rollout for the no-op-promise scoreboard (Cycle 22). --strict fails on any enforced-class finding not covered by a live, unexpired allowlist entry, and on any stale allowlist entry. Report-only scoreboard is unchanged.",
+  "enforcedClasses": [
+    "noop-catch-anonymous",
+    "noop-catch-named",
+    "noop-then-fulfillment"
+  ],
+  "rules": [
+    {
+      "id": "R1-ratchet",
+      "text": "--strict fails on any enforced-class finding with no matching live allowlist entry. New code must be clean or explicitly allowlisted with a reason and review date."
+    },
+    {
+      "id": "R2-expiry",
+      "text": "Every allowlist entry carries a review date (<= 90 days out). An entry past its review date fails --strict until re-reviewed."
+    },
+    {
+      "id": "R3-no-stale",
+      "text": "An allowlist entry matching no live finding (file+class+line) fails --strict. Line-exact matching is deliberate: moving code near a swallow re-triggers review."
+    },
+    {
+      "id": "R4-empty-class-ratchet",
+      "text": "noop-catch-named and noop-then-fulfillment have zero live findings; any new one fails --strict immediately."
+    },
+    {
+      "id": "R5-pending-burndown",
+      "text": "The 10 undocumented swallows (category E) carry 30-day review dates (2026-11-18). Each must gain an in-code justification or be fixed before its review date."
+    }
+  ],
+  "allowlist": [
+    {
+      "file": "src/annotations/resolver.js",
+      "class": "noop-catch-anonymous",
+      "line": 528,
+      "reason": "admin-outline lookup falls back to null; the caller tries the next scope",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/annotations/resolver.js",
+      "class": "noop-catch-anonymous",
+      "line": 2039,
+      "reason": "natural-region lookup is one rung of a fallback ladder; null means try bundled admin",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/annotations/resolver.js",
+      "class": "noop-catch-anonymous",
+      "line": 2048,
+      "reason": "admin-area lookup is one rung of a fallback ladder; null means try the live lookup",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/annotations/resolver.js",
+      "class": "noop-catch-anonymous",
+      "line": 2079,
+      "reason": "admin-outline lookup falls back to null; the caller falls through to the next strategy",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/application.js",
+      "class": "noop-catch-anonymous",
+      "line": 123,
+      "reason": "destroy must not fail because startup did; cleanup still runs",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/embed.js",
+      "class": "noop-catch-anonymous",
+      "line": 234,
+      "reason": "initial-restore guard; the embed proceeds with defaults on failure",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/globePanelRuntime.js",
+      "class": "noop-catch-anonymous",
+      "line": 299,
+      "reason": "sendBeacon replacement: analytics fire-and-forget; no consumer for the result",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/globePanelRuntime.js",
+      "class": "noop-catch-anonymous",
+      "line": 421,
+      "reason": "file-URL lookup miss yields null; the reference stays as-is",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/globePanelRuntime.js",
+      "class": "noop-catch-anonymous",
+      "line": 624,
+      "reason": "PENDING REVIEW: display-mode request rejection ignored without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/app/startupChrome.js",
+      "class": "noop-catch-anonymous",
+      "line": 27,
+      "reason": "restoration reports its own outcome through the controls (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/app/startupChrome.js",
+      "class": "noop-catch-anonymous",
+      "line": 52,
+      "reason": "key-setup teardown is best-effort during the loading-screen reveal",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/data/geoFileImport.js",
+      "class": "noop-catch-anonymous",
+      "line": 557,
+      "reason": "reader-cancel failure during error teardown is meaningless; the GeoImportError is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/data/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 571,
+      "reason": "promise-chain guard: keeps the stored toggleChain alive so the next queued toggle always runs",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/data/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 1757,
+      "reason": "drains the settled toggleChain without rethrowing into waitForLayerSettled",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/data/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 2153,
+      "reason": "drains the toggleChain during teardown without failing the destroy path",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/data/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 2164,
+      "reason": "drains the toggleChain before intent revocation; the rejection is surfaced by the queued operation itself",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/director/packs/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 31,
+      "reason": "body-cancel failure during error teardown is meaningless; the asset-unavailable error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/director/packs/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 50,
+      "reason": "reader-cancel failure in finally teardown is meaningless; the asset outcome is already decided",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/director/sharing/lifetime.js",
+      "class": "noop-catch-anonymous",
+      "line": 10,
+      "reason": "signal already aborted; the work promise is dead by definition",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/firstRunExperience.js",
+      "class": "noop-catch-anonymous",
+      "line": 292,
+      "reason": "camera flight is framing, not mission; a stalled flight never fails the tile (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/hud.js",
+      "class": "noop-catch-anonymous",
+      "line": 331,
+      "reason": "readout falls back to the uncorrected height (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/alpr/presentation.js",
+      "class": "noop-catch-anonymous",
+      "line": 210,
+      "reason": "floor request is advisory; the resolve guard handles staleness",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/cctv/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 225,
+      "reason": "late ground priors are optional; the init geometry is already applied",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/cctv/projection.js",
+      "class": "noop-catch-anonymous",
+      "line": 413,
+      "reason": "PENDING REVIEW: video.play() rejection swallowed with no comment — likely autoplay-denial, needs an in-code note or a logged warning",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/cctv/videoPlayback.js",
+      "class": "noop-catch-anonymous",
+      "line": 27,
+      "reason": "keepalive DELETE on release is a best-effort server hint; nothing consumes the result",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/cctv/videoPlayback.js",
+      "class": "noop-catch-anonymous",
+      "line": 55,
+      "reason": "PENDING REVIEW: video.play() rejection swallowed with no comment — likely autoplay-denial, needs an in-code note or a logged warning",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/flights/enrichment.js",
+      "class": "noop-catch-anonymous",
+      "line": 67,
+      "reason": "enrichment never surfaces errors (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/flights/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 77,
+      "reason": "tracked plane stays a billboard a beat longer (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/flights/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 154,
+      "reason": "geoid grid retries later; baro path stays uncorrected (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/installations/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 257,
+      "reason": "names lookup is optional enrichment; null keeps the load path",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/localAdsb/enrichment.js",
+      "class": "noop-catch-anonymous",
+      "line": 99,
+      "reason": "enrichment never surfaces errors (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/localAdsb/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 720,
+      "reason": "baro path stays un-geoid-corrected (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/military/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 71,
+      "reason": "tracked plane stays a billboard a beat longer (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/military/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 133,
+      "reason": "geoid grid retries later; baro path stays uncorrected (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/perimeters/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 96,
+      "reason": "catalog unavailable: cards stay linkless until retry (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/perimeters/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 128,
+      "reason": "fail closed without caching: no link now, retry on reselection (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/radio/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 81,
+      "reason": "PENDING REVIEW: tuning-noise close failure swallowed without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/radio/playback.js",
+      "class": "noop-catch-anonymous",
+      "line": 129,
+      "reason": "click recording is analytics; it must never block playback",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/radio/tuningNoise.js",
+      "class": "noop-catch-anonymous",
+      "line": 83,
+      "reason": "PENDING REVIEW: AudioContext resume failure swallowed without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/radio/tuningNoise.js",
+      "class": "noop-catch-anonymous",
+      "line": 135,
+      "reason": "PENDING REVIEW: AudioContext suspend failure swallowed without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/recentImagery/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 440,
+      "reason": "lease-ready guard; a failed lease is treated as not-ready downstream",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/streetLevel/providers/kartaview/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 470,
+      "reason": "window lookup is advisory; null keeps the drawn page",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/streetLevel/providers/kartaview/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 213,
+      "reason": "reader-cancel failure during size-limit teardown is meaningless; the too-much error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/streetLevel/providers/kartaview/viewer.js",
+      "class": "noop-catch-anonymous",
+      "line": 213,
+      "reason": "PENDING REVIEW: step() rejection swallowed in checkEnds without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/layers/traffic/flow.js",
+      "class": "noop-catch-anonymous",
+      "line": 191,
+      "reason": "warm-flow guard on a stored promise; the consumer re-checks the promise itself",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/flow.js",
+      "class": "noop-catch-anonymous",
+      "line": 454,
+      "reason": "flow recolor is cosmetic; the dots stay painted",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/flow.js",
+      "class": "noop-catch-anonymous",
+      "line": 537,
+      "reason": "trace ingestion is best-effort behind the generation guard",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/ingestion.js",
+      "class": "noop-catch-anonymous",
+      "line": 372,
+      "reason": "tile-paint guard; the pass outcome is tracked through renderedSomething",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/ingestion.js",
+      "class": "noop-catch-anonymous",
+      "line": 395,
+      "reason": "snapshot guard; snapshot consumers handle rejection via the status probe",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/ingestion.js",
+      "class": "noop-catch-anonymous",
+      "line": 411,
+      "reason": "detail-roads flag is advisory; the OSM fallback path still draws",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 88,
+      "reason": "metadata prefetch is advisory; a failure just leaves the cache cold",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/traffic/source.js",
+      "class": "noop-catch-anonymous",
+      "line": 329,
+      "reason": "late OSM snapshot counts as a flow failure and falls back (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/transit/ingestion.js",
+      "class": "noop-catch-anonymous",
+      "line": 449,
+      "reason": "error-detail JSON is best-effort; the HTTP status error is still thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/transit/trails.js",
+      "class": "noop-catch-anonymous",
+      "line": 308,
+      "reason": "optional retained read; session history stays usable (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/layers/vessels/lifecycle.js",
+      "class": "noop-catch-anonymous",
+      "line": 191,
+      "reason": "anchors stay at ellipsoid 0 until the grid loads (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/maps/controller.js",
+      "class": "noop-catch-anonymous",
+      "line": 405,
+      "reason": "dispose-on-settle: a failed imagery-provider load must still be disposed",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/maps/controller.js",
+      "class": "noop-catch-anonymous",
+      "line": 410,
+      "reason": "dispose-on-settle: a failed terrain-provider load must still be disposed",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/maps/controller.js",
+      "class": "noop-catch-anonymous",
+      "line": 419,
+      "reason": "dispose-on-settle: a failed tileset load must still be disposed",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/overlays/worldOverlayDraw.js",
+      "class": "noop-catch-anonymous",
+      "line": 66,
+      "reason": "font-cache clear is advisory; stale measurements self-correct",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sdr/controller.js",
+      "class": "noop-catch-anonymous",
+      "line": 379,
+      "reason": "usb tail guard: keeps the serialized queue alive across a failed operation",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/search/http.js",
+      "class": "noop-catch-anonymous",
+      "line": 71,
+      "reason": "body-cancel failure during error teardown is meaningless; the service-unavailable error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/services/groundFloor.js",
+      "class": "noop-catch-anonymous",
+      "line": 588,
+      "reason": "best-effort: unclamped this tick, the floor lands later (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/httpBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 13,
+      "reason": "cancel failure during size-limit teardown is meaningless; the real error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/httpBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 25,
+      "reason": "cancel failure during abort teardown is meaningless; the abort reason propagates",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/httpBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 68,
+      "reason": "cancel failure during size-limit teardown is meaningless; the real error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/httpBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 80,
+      "reason": "cancel failure during abort teardown is meaningless; the abort reason propagates",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/httpBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 103,
+      "reason": "cancel failure during error teardown is meaningless; the original error is rethrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/nominatim.js",
+      "class": "noop-catch-anonymous",
+      "line": 75,
+      "reason": "body-cancel failure during error teardown is meaningless; the service-unavailable error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/transitHistory.js",
+      "class": "noop-catch-anonymous",
+      "line": 45,
+      "reason": "reader-cancel failure in finally teardown is meaningless; the read outcome is already decided",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/vectorTiles.js",
+      "class": "noop-catch-anonymous",
+      "line": 102,
+      "reason": "body-cancel failure during error teardown is meaningless; the original error is rethrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/sources/windBody.js",
+      "class": "noop-catch-anonymous",
+      "line": 13,
+      "reason": "cancel failure during abort teardown is meaningless; the abort reason propagates",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/tools/mcp/http.js",
+      "class": "noop-catch-anonymous",
+      "line": 56,
+      "reason": "reader-cancel failure during size-limit teardown is meaningless; the null result is returned",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/ui/applicationShell.js",
+      "class": "noop-catch-anonymous",
+      "line": 1572,
+      "reason": "experience lane is progressive enhancement (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/ui/geoFileImport.js",
+      "class": "noop-catch-anonymous",
+      "line": 71,
+      "reason": "queue chain guard: a failed batch must not break later queued imports",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/ui/geoFileImport.js",
+      "class": "noop-catch-anonymous",
+      "line": 264,
+      "reason": "queue chain guard: later navigation must still win after a failed batch",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/ui/mapSourceControls.js",
+      "class": "noop-catch-anonymous",
+      "line": 64,
+      "reason": "PENDING REVIEW: select() rejection from a user click swallowed silently — needs a comment or a user-visible error",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/voice/realtimeBackend.js",
+      "class": "noop-catch-anonymous",
+      "line": 37,
+      "reason": "error-body JSON is best-effort; the HTTP status error carries the failure",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/voice/realtimeBackend.js",
+      "class": "noop-catch-anonymous",
+      "line": 95,
+      "reason": "body-cancel failure during error teardown is meaningless; the SDP HTTP error is thrown",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/voice/realtimeDiagnostics.js",
+      "class": "noop-catch-anonymous",
+      "line": 24,
+      "reason": "debug logging must never affect voice control (in-code comment)",
+      "review": "2027-01-19"
+    },
+    {
+      "file": "src/voice/realtimeInput.js",
+      "class": "noop-catch-anonymous",
+      "line": 229,
+      "reason": "PENDING REVIEW: AudioContext.resume() failure swallowed without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/voice/realtimeInput.js",
+      "class": "noop-catch-anonymous",
+      "line": 352,
+      "reason": "PENDING REVIEW: AudioContext.close() failure swallowed without a note",
+      "review": "2026-11-18"
+    },
+    {
+      "file": "src/warroom/index.js",
+      "class": "noop-catch-anonymous",
+      "line": 164,
+      "reason": "leave-ack during disconnect is best-effort; the socket closes regardless",
+      "review": "2027-01-19"
+    }
+  ]
+}

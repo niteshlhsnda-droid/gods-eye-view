@@ -361,6 +361,8 @@ export function parseCliArgs(argv) {
     limit: DEFAULT_LIMIT,
     strict: false,
     help: false,
+    policy: null,
+    noPolicy: false,
     positional: [],
     error: null,
   };
@@ -378,6 +380,8 @@ export function parseCliArgs(argv) {
       args.json = true;
     } else if (arg === '--strict') {
       args.strict = true;
+    } else if (arg === '--no-policy') {
+      args.noPolicy = true;
     } else if (arg === '--help' || arg === '-h') {
       args.help = true;
     } else if (arg === '--limit') {
@@ -390,6 +394,20 @@ export function parseCliArgs(argv) {
       const value = parseLimit(raw);
       if (value === null) break;
       args.limit = value;
+    } else if (arg === '--policy') {
+      const raw = argv[i + 1];
+      if (raw === undefined) {
+        args.error = '--policy requires a value';
+        break;
+      }
+      i += 1;
+      args.policy = raw;
+    } else if (arg.startsWith('--policy=')) {
+      args.policy = arg.slice('--policy='.length);
+      if (args.policy.length === 0) {
+        args.error = '--policy requires a value';
+        break;
+      }
     } else if (arg.startsWith('--limit=')) {
       const value = parseLimit(arg.slice('--limit='.length));
       if (value === null) break;
