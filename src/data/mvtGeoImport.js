@@ -54,11 +54,13 @@
  * - Caps: 50 MB input, 20,000 features and 250,000 positions (the
  *   entity/position caps are the shared `geoImportLimits.js` ones, so
  *   they cannot drift from the file importer).
- * Wiring note: when the importer wires this in, it adds `.mvt` to
- * `GEO_FILE_ACCEPT` (leave `.pbf` routed to the OSM sniffer — the two
- * share the extension), routes those extensions here with the file name
- * for tile-coordinate sniffing, and needs no cap unification: the caps
- * already come from `geoImportLimits.js`.
+ * Wiring note (Cycle 22): wired into `geoFileImport.js` — `.mvt` and
+ * `.pbf` are in `GEO_FILE_ACCEPT`, `detectGeoFileFormat` routes both
+ * extensions here (no other importer on the shelf claims `.pbf`;
+ * non-MVT protobuf bytes are refused by `isMvtBytes`), the loader passes
+ * the file name for tile-coordinate sniffing and refuses coord-less
+ * tiles outright, and caps needed no unification: they already come
+ * from `geoImportLimits.js`.
  */
 
 import {
