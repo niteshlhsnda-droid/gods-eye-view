@@ -17,7 +17,11 @@ import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { StreetLevelControls } from './streetLevelControls.js';
 import { CityDrivesPanel } from './cityDrivesPanel.js';
-import { CITY_DRIVES, matchDriveCity } from '../data/cityDrives.js';
+import {
+  CITY_DRIVES,
+  matchDriveCity,
+  nearestDriveCity,
+} from '../data/cityDrives.js';
 import { RadioControls } from './radio.js';
 import { LocalSdrControls } from './localSdrControls.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -1025,7 +1029,8 @@ export class StyleManager extends ShellFacade {
    * - No searched location yet → toast + browse list (fallback).
    * - Searched location matches a drive city (name, else nearest within
    *   150 km of the camera) → playCity: camera flies, Drive tab shows.
-   * - No match → toast naming the miss + browse list (fallback).
+   * - No match → toast naming the miss + nearest drive city auto-plays
+   *   (fallback).
    */
   _openCityDrives() {
     try {
@@ -1084,6 +1089,21 @@ export class StyleManager extends ShellFacade {
         lon: camLon,
       });
       if (!city) {
+        // No drive for this spot: auto-advance to the nearest location
+        // that has one instead of asking the user to pick.
+        const fallback = nearestDriveCity(CITY_DRIVES, camLat, camLon);
+        if (fallback) {
+          try {
+            this._showToast?.(
+              `No drive-through for "${label}" yet — nearest drive: ${fallback.name}`,
+            );
+          } catch {
+            /* toast is diagnostic only */
+          }
+          showPanel();
+          controls?.playCity(fallback.id);
+          return;
+        }
         browseFallback(`No drive-through for "${label}" yet`);
         return;
       }

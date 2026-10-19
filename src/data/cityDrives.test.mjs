@@ -138,3 +138,43 @@ test('matchDriveCity: name match ignores camera distance', async () => {
     'paris',
   );
 });
+
+test('nearestDriveCity: unbounded nearest when maxKm is Infinity', async () => {
+  const { nearestDriveCity } = await import('./cityDrives.js');
+  // Mid-Atlantic: nearest catalog city should still resolve unbounded.
+  const hit = nearestDriveCity(CITY_DRIVES, 0, -40, { maxKm: Infinity });
+  assert.ok(hit && typeof hit.id === 'string');
+});
+
+test('nearestDriveCity: respects maxKm cap', async () => {
+  const { nearestDriveCity } = await import('./cityDrives.js');
+  assert.equal(
+    nearestDriveCity(CITY_DRIVES, 0, -150, { maxKm: 150 }),
+    null,
+  );
+});
+
+test('nearestDriveCity: skips cities flagged videoOk false', async () => {
+  const { nearestDriveCity } = await import('./cityDrives.js');
+  const cities = [
+    { id: 'dead', name: 'Dead City', lat: 10, lon: 10, videoOk: false },
+    { id: 'live', name: 'Live City', lat: 11, lon: 11 },
+  ];
+  assert.equal(nearestDriveCity(cities, 10, 10)?.id, 'live');
+});
+
+test('matchDriveCity: skips cities flagged videoOk false', async () => {
+  const { matchDriveCity } = await import('./cityDrives.js');
+  const cities = [
+    {
+      id: 'dead',
+      name: 'Dead City',
+      country: 'Nowhere',
+      lat: 10,
+      lon: 10,
+      videoOk: false,
+    },
+  ];
+  assert.equal(matchDriveCity(cities, { label: 'Dead City' }), null);
+  assert.equal(matchDriveCity(cities, { lat: 10, lon: 10 }), null);
+});

@@ -1495,13 +1495,16 @@ export function haversineKm(lat1, lon1, lat2, lon2) {
  *
  * Name match wins (case-insensitive substring either way, so "New Delhi" or
  * "Delhi, India" both hit Delhi). Otherwise the nearest catalog city within
- * `maxKm` of the given coordinates. Returns the city object or null.
+ * `maxKm` of the given coordinates. Cities flagged `videoOk: false` (known
+ * dead drive videos) are skipped. Returns the city object or null.
  */
 export function matchDriveCity(
   cities,
   { label = '', lat = NaN, lon = NaN, maxKm = 150 } = {},
 ) {
-  const list = Array.isArray(cities) ? cities : [];
+  const list = (Array.isArray(cities) ? cities : []).filter(
+    (city) => city?.videoOk !== false,
+  );
   const needle = String(label || '')
     .toLowerCase()
     .trim();
@@ -1516,18 +1519,31 @@ export function matchDriveCity(
     });
     if (byName) return byName;
   }
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    let best = null;
-    let bestKm = Infinity;
-    for (const city of list) {
-      if (!Number.isFinite(city?.lat) || !Number.isFinite(city?.lon)) continue;
-      const km = haversineKm(lat, lon, city.lat, city.lon);
-      if (km < bestKm) {
-        bestKm = km;
-        best = city;
-      }
+  return nearestDriveCity(list, lat, lon, { maxKm });
+}
+
+/**
+ * Nearest drive-through city to the given coordinates, skipping cities
+ * flagged `videoOk: false`. Unbounded when `maxKm` is Infinity.
+ */
+export function nearestDriveCity(
+  cities,
+  lat,
+  lon,
+  { maxKm = Infinity, excludeIds = [] } = {},
+) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const excluded = new Set(excludeIds);
+  let best = null;
+  let bestKm = Infinity;
+  for (const city of Array.isArray(cities) ? cities : []) {
+    if (!city || city.videoOk === false || excluded.has(city.id)) continue;
+    if (!Number.isFinite(city.lat) || !Number.isFinite(city.lon)) continue;
+    const km = haversineKm(lat, lon, city.lat, city.lon);
+    if (km < bestKm) {
+      bestKm = km;
+      best = city;
     }
-    if (best && bestKm <= maxKm) return best;
   }
-  return null;
+  return best && bestKm <= maxKm ? best : null;
 }
