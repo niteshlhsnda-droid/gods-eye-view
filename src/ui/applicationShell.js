@@ -16,6 +16,8 @@ import { CockpitCoordinator } from './cockpitCoordinator.js';
 import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { StreetLevelControls } from './streetLevelControls.js';
+import { CityDrivesPanel } from './cityDrivesPanel.js';
+import { flyToLandmark } from '../locations.js';
 import { RadioControls } from './radio.js';
 import { LocalSdrControls } from './localSdrControls.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -572,6 +574,7 @@ export class StyleManager extends ShellFacade {
     this._initRadioPanel();
     this._initCctvPanel();
     this._initStreetLevelPanel();
+    this._initCityDrivesPanel();
     this._initGlobalContextPanel();
     this._initLocationBar();
     this._initShareButton();
@@ -973,6 +976,31 @@ export class StyleManager extends ShellFacade {
       },
     });
     this._streetLevelControls.connect();
+  }
+
+  /** Compose the City Drives panel: recorded drive-throughs + live local radio. */
+  _initCityDrivesPanel() {
+    this._cityDrivesControls?.destroy();
+    this._cityDrivesControls = null;
+    if (!this._cityDrivesPanel) return;
+    this._cityDrivesControls = new CityDrivesPanel({
+      root: this._cityDrivesPanel,
+      flyTo: (lat, lon) =>
+        flyToLandmark(this.viewer, lat, lon, {
+          range: 15000,
+          pitch: -55,
+          heading: 0,
+        }),
+    });
+    this._cityDrivesControls.connect();
+    const launcher = this._cityDrivesOpen;
+    if (launcher && !launcher.dataset.cityDrivesBound) {
+      launcher.dataset.cityDrivesBound = '1';
+      launcher.addEventListener('click', () => {
+        this.setPanelCollapsed('city-drives-panel', false, { origin: 'user' });
+        this._cityDrivesControls?.open();
+      });
+    }
   }
 
   /** Compose camera panel controls from the existing camera port and application actions. */

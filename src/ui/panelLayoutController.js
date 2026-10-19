@@ -98,6 +98,7 @@ export class PanelLayoutController {
     this._weatherPanel = document.getElementById('weather-panel');
     this._recentImageryPanel = document.getElementById('recent-imagery-panel');
     this._streetLevelPanel = document.getElementById('street-level-panel');
+    this._cityDrivesPanel = document.getElementById('city-drives-panel');
     this._sliderPanel = document.getElementById('param-slider-panel');
     this._detectionBtn = document.getElementById('detection-toggle');
   }
@@ -203,6 +204,7 @@ export class PanelLayoutController {
       this._weatherPanel,
       this._recentImageryPanel,
       this._streetLevelPanel,
+      this._cityDrivesPanel,
     ]) {
       if (!panel) continue;
       // A floating window keeps its restored place and size.
@@ -235,6 +237,7 @@ export class PanelLayoutController {
         this._weatherPanel,
         this._recentImageryPanel,
         this._streetLevelPanel,
+        this._cityDrivesPanel,
         globalContextPanel,
         document.getElementById('radio-panel'),
       ]) {
