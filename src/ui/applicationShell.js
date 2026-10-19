@@ -17,7 +17,6 @@ import { ContextControls } from './context.js';
 import { CctvControls } from './cctv.js';
 import { StreetLevelControls } from './streetLevelControls.js';
 import { CityDrivesPanel } from './cityDrivesPanel.js';
-import { flyToLandmark } from '../locations.js';
 import { RadioControls } from './radio.js';
 import { LocalSdrControls } from './localSdrControls.js';
 import { LocationNavigation } from './locationNavigation.js';
@@ -985,12 +984,11 @@ export class StyleManager extends ShellFacade {
     if (!this._cityDrivesPanel) return;
     this._cityDrivesControls = new CityDrivesPanel({
       root: this._cityDrivesPanel,
+      // Fly with the shell's own camera verb — ../locations.js lives in another
+      // package's graph (it pulls capability/overpass/services) and must not be
+      // imported here (package-boundary gate).
       flyTo: (lat, lon) =>
-        flyToLandmark(this.viewer, lat, lon, {
-          range: 15000,
-          pitch: -55,
-          heading: 0,
-        }),
+        this.applyCameraState({ lat, lon, alt: 15000, heading: 0, pitch: -55 }),
     });
     this._cityDrivesControls.connect();
     const launcher = this._cityDrivesOpen;
