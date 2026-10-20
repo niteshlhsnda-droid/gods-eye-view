@@ -1,5 +1,8 @@
 import * as Cesium from 'cesium';
-import { FIRMS_OVERLAY_SOURCE_ID, accentForSeverity } from '../../data/firmsLabels.js';
+import {
+  FIRMS_OVERLAY_SOURCE_ID,
+  accentForSeverity,
+} from '../../data/firmsLabels.js';
 import { horizonOccluder } from '../../data/iconOrientation.js';
 import { LOD_LEVELS, CONTEXT_TOP_N } from './policy.js';
 

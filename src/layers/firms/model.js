@@ -143,8 +143,7 @@ export function createModel({
 
   function cellHeatPaint(cell, maxScore) {
     const score = heatScore(cell);
-    const unknown =
-      cell.count > 0 && (cell.unknownFrpCount || 0) >= cell.count;
+    const unknown = cell.count > 0 && (cell.unknownFrpCount || 0) >= cell.count;
     if (unknown)
       return {
         score,
@@ -153,7 +152,12 @@ export function createModel({
         unknown: true,
       };
     const normalized = Math.min(1, Math.sqrt(score / Math.max(1, maxScore)));
-    return { score, normalized, alpha: 0.16 + normalized * 0.5, unknown: false };
+    return {
+      score,
+      normalized,
+      alpha: 0.16 + normalized * 0.5,
+      unknown: false,
+    };
   }
 
   /**
