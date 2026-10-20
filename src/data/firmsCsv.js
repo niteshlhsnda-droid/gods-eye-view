@@ -110,7 +110,7 @@ export function parseFirmsCsv(text) {
     records.push({
       lat,
       lon,
-      frp: finiteOrZero(parts[iFrp]),
+      frp: finiteOrNull(parts[iFrp]),
       // Categorical (l/n/h) or numeric — passed through raw; display
       // normalization happens client-side (normalizeConfidence).
       confidence: cell(parts, iConfidence),
@@ -191,4 +191,17 @@ function cell(parts, index) {
 function finiteOrZero(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+/**
+ * Numeric cell → finite number, else null. A blank cell is not a
+ * measurement: Number('') === 0 must not launder "absent" into a
+ * measured-looking zero. (DS-01 / FZ-02: blank FRP → null, never 0)
+ */
+function finiteOrNull(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (text === '') return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
 }

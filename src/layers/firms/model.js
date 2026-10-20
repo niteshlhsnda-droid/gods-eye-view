@@ -482,7 +482,12 @@ export function createModel({
     return `${latPart} ${lonPart}`;
   }
 
+  /**
+   * Format an FRP value for a card title. Unreported FRP is an honest
+   * "unknown", never 0.0 — a zero is a measurement. (DS-03: this used to
+   * throw TypeError on null/undefined via null.toFixed.) */
   function formatFrp(frp) {
+    if (!Number.isFinite(frp)) return 'unknown';
     return frp >= 10 ? frp.toFixed(0) : frp.toFixed(1);
   }
 

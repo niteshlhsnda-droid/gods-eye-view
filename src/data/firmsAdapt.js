@@ -26,8 +26,11 @@ export function adaptFirmsRecords(records) {
       index: fires.length,
       lat,
       lon,
-      frp: finiteNumber(record.frp),
-      confidence: normalizeConfidence(record.confidence),
+      // DS-01: missing/unparseable FRP and confidence stay null end-to-end
+      // so the renderer (F-02) can show them as unknown — never the
+      // measured-looking 0 the old finiteNumber/normalizeConfidence produced.
+      frp: finiteOrNull(record.frp),
+      confidence: normalizeConfidenceOrNull(record.confidence),
       brightness: finiteNumber(record.brightness),
       night: record.daynight === 'N',
       acqMs: parseAcquisitionMs(record.acqDate, record.acqTime, acqCache),
@@ -109,4 +112,38 @@ function clamp01(value) {
 function finiteNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+/**
+ * Like finiteNumber, but a blank cell is not a measurement: missing or
+ * unparseable stays null instead of the measured-looking 0. Blank strings
+ * get an explicit check because Number('') === 0. (DS-01 / FZ-02)
+ * @param {*} value - Raw FRP-ish property.
+ * @returns {number|null} Finite number, or null when unreported.
+ */
+function finiteOrNull(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (text === '') return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
+}
+
+/**
+ * Normalize FIRMS confidence to 0..1, preserving unreported as null.
+ * Genuine measured 0 stays 0 (low is a claim about a measurement);
+ * missing/unparseable → null so the unknown stop can fire. (DS-01)
+ * @param {*} value - Raw confidence property.
+ * @returns {number|null} Confidence in 0..1, or null when unreported.
+ */
+export function normalizeConfidenceOrNull(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (text === '') return null;
+  const lowered = text.toLowerCase();
+  if (lowered === 'low' || lowered === 'l') return 0.3;
+  if (lowered === 'nominal' || lowered === 'n') return 0.6;
+  if (lowered === 'high' || lowered === 'h') return 0.9;
+  const numeric = Number(text);
+  return Number.isFinite(numeric) ? clamp01(numeric / 100) : null;
 }

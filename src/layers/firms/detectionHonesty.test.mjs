@@ -75,3 +75,14 @@ test('confidenceBucket calls unreported confidence unknown, not low', () => {
 test('the unknown stop has a matching card accent', () => {
   assert.equal(accentForSeverity('unknown'), '145, 164, 180');
 });
+
+test('DS-03: formatFrp never throws and never prints a measured-looking number for unreported FRP', () => {
+  assert.equal(model.formatFrp(null), 'unknown');
+  assert.equal(model.formatFrp(undefined), 'unknown');
+  assert.equal(model.formatFrp(NaN), 'unknown');
+  assert.equal(model.formatFrp(Infinity), 'unknown');
+  assert.equal(model.formatFrp('12'), 'unknown', 'strings are not numbers');
+  assert.equal(model.formatFrp(0), '0.0', 'a measured zero is still a measurement');
+  assert.equal(model.formatFrp(0.8), '0.8');
+  assert.equal(model.formatFrp(1520.27), '1520');
+});

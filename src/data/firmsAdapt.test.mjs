@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   adaptFirmsRecords,
   normalizeConfidence,
+  normalizeConfidenceOrNull,
   normalizeSensor,
   parseAcquisitionMs,
 } from './firmsAdapt.js';
@@ -92,10 +93,41 @@ test('records with non-finite lat/lon are skipped; index stays sequential', () =
   assert.deepEqual(fires.map((f) => f.index), [0, 1]);
 });
 
-test('non-finite frp/brightness → 0; empty input → []', () => {
-  const [fire] = adaptFirmsRecords([proxyRecord({ frp: 'n/a', brightness: undefined })]);
-  assert.equal(fire.frp, 0);
-  assert.equal(fire.brightness, 0);
+test('non-finite frp/confidence stay null (unreported is not 0); empty input → []', () => {
+  // Deliberately rewritten by audit DS-01: the old test pinned the buggy
+  // behaviour (missing FRP coerced to the measured-looking 0). Missing now
+  // stays null so the renderer can show "unknown".
+  const [fire] = adaptFirmsRecords([
+    proxyRecord({ frp: 'n/a', confidence: undefined, brightness: undefined }),
+  ]);
+  assert.equal(fire.frp, null);
+  assert.equal(fire.confidence, null);
+  assert.equal(fire.brightness, 0, 'brightness is display-auxiliary, not a claim');
   assert.deepEqual(adaptFirmsRecords([]), []);
   assert.deepEqual(adaptFirmsRecords(null), []);
+});
+
+test('DS-01: blank-string frp/confidence → null; genuine 0 stays 0', () => {
+  const [blank] = adaptFirmsRecords([proxyRecord({ frp: '', confidence: '   ' })]);
+  assert.equal(blank.frp, null, 'blank FRP is not 0');
+  assert.equal(blank.confidence, null, 'blank confidence is not low');
+  const [zero] = adaptFirmsRecords([proxyRecord({ frp: 0, confidence: 0 })]);
+  assert.equal(zero.frp, 0, 'measured zero FRP stays 0');
+  assert.equal(zero.confidence, 0, 'measured zero confidence stays 0 (low)');
+  const [cat] = adaptFirmsRecords([proxyRecord({ frp: 12.4, confidence: 'h' })]);
+  assert.equal(cat.frp, 12.4);
+  assert.equal(cat.confidence, 0.9);
+});
+
+test('normalizeConfidenceOrNull: unreported → null, measured 0 → 0', () => {
+  assert.equal(normalizeConfidenceOrNull(null), null);
+  assert.equal(normalizeConfidenceOrNull(undefined), null);
+  assert.equal(normalizeConfidenceOrNull(''), null);
+  assert.equal(normalizeConfidenceOrNull('   '), null);
+  assert.equal(normalizeConfidenceOrNull('bogus'), null);
+  assert.equal(normalizeConfidenceOrNull(0), 0);
+  assert.equal(normalizeConfidenceOrNull('0'), 0);
+  assert.equal(normalizeConfidenceOrNull('n'), 0.6);
+  assert.equal(normalizeConfidenceOrNull('h'), 0.9);
+  assert.equal(normalizeConfidenceOrNull(85), 0.85);
 });

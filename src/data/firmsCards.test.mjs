@@ -212,3 +212,19 @@ test('real FIRMS lifecycle clears host entries on disable and destroy', async ()
     else globalThis.window = originalWindow;
   }
 });
+
+test('DS-03: card builders never throw on null FRP/confidence; labels read unknown', () => {
+  // The Cycle-1 probe record that used to crash both builders.
+  const record = { frp: null, confidence: null };
+  const card = buildFireCard({ fire: fire(record), position: {} }, NOW);
+  assert.equal(card.title, '▲ unknown MW');
+  assert.equal(card.details[0], 'unknown · 2h · N20', 'confidence bucket reads unknown, never low');
+  const selected = buildSelectedFireCard(fire(record), NOW);
+  assert.equal(selected.title, 'FIRE · unknown MW');
+  const cell = buildCellCard({
+    cell: { count: 3, maxFrp: null, newestAcqMs: NOW - 3 * 3600000, night: 0 },
+    position: { x: 0, y: 0, z: 0 },
+    accent: '145, 164, 180',
+  }, NOW);
+  assert.match(cell.details[0], /^max unknown MW/);
+});

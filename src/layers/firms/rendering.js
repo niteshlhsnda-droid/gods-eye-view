@@ -89,13 +89,19 @@ export function createRendering({
           lonCell,
           count: 0,
           intensity: 0,
-          maxFrp: 0,
+          maxFrp: null, // null until a detection with measured FRP lands here
           night: 0,
           newestAcqMs: 0,
         };
         existing.count += 1;
         existing.intensity += intensity;
-        existing.maxFrp = Math.max(existing.maxFrp, fire.frp);
+        // An unmeasured FRP must never seed or lower the cell's max into a
+        // measured-looking 0 (DS-01 follow-through: formatFrp renders the
+        // all-unknown cell as "max unknown MW").
+        if (Number.isFinite(fire.frp)) {
+          existing.maxFrp =
+            existing.maxFrp == null ? fire.frp : Math.max(existing.maxFrp, fire.frp);
+        }
         existing.newestAcqMs = Math.max(existing.newestAcqMs, fire.acqMs);
         if (fire.night) existing.night += 1;
         cells.set(key, existing);
