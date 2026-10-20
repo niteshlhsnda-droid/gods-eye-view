@@ -129,6 +129,34 @@ export function createModel({
   }
 
   /**
+   * Decide a heat cell's paint from its aggregation totals. A cell whose
+   * every detection has unreported FRP is NOT heat-normalized: its
+   * normalized heat is NaN so heatColor() returns the unknown neutral —
+   * unknown inputs must never be normalized into the yellow "low" stop.
+   * Mixed cells (at least one measured FRP) take the measured path, and
+   * legacy cell shapes without unknownFrpCount default to measured.
+   * @param {Object} cell - Aggregated cell ({count, unknownFrpCount, ...}).
+   * @param {number} maxScore - Max heatScore across cells this render.
+   * @returns {{score: number, normalized: number, alpha: number,
+   *   unknown: boolean}} (DS-13)
+   */
+
+  function cellHeatPaint(cell, maxScore) {
+    const score = heatScore(cell);
+    const unknown =
+      cell.count > 0 && (cell.unknownFrpCount || 0) >= cell.count;
+    if (unknown)
+      return {
+        score,
+        normalized: NaN,
+        alpha: UNKNOWN_CELL_ALPHA,
+        unknown: true,
+      };
+    const normalized = Math.min(1, Math.sqrt(score / Math.max(1, maxScore)));
+    return { score, normalized, alpha: 0.16 + normalized * 0.5, unknown: false };
+  }
+
+  /**
    * Pick a sprite color stop from FRP + confidence, reusing the same
    * yellow → orange → red thresholds as the aggregated heat cells.
    * A detection whose FRP or confidence was never reported gets the
@@ -149,9 +177,31 @@ export function createModel({
     return DETECTION_COLOR_STOPS[2];
   }
 
-  /** FRP → core marker pixel size, clamped to 8..28px. */
+  /**
+   * Neutral core marker size for unreported FRP. 12px sits low in the
+   * 8..28 measured band (it does not claim a big fire) but is visually
+   * distinct from the 8px measured minimum. (DS-12)
+   */
+
+  const UNKNOWN_FRP_PIXEL_SIZE = 12;
+
+  /**
+   * Fill alpha for an all-unknown-FRP heat cell: calm but visible, well
+   * inside the measured-yellow band's low end. (DS-13)
+   */
+
+  const UNKNOWN_CELL_ALPHA = 0.25;
+
+  /** FRP → core marker pixel size, clamped to 8..28px.
+   * A non-finite FRP is not a measurement: it renders at the distinct
+   * neutral UNKNOWN_FRP_PIXEL_SIZE, never at the 8px measured minimum,
+   * so an unknown detection can never be size-confused with a genuine
+   * measured-0 fire. The grey unknown colour stop carries the
+   * unknownness; the size just refuses the false "minimum" reading.
+   * (DS-12) */
 
   function frpPixelSize(frp) {
+    if (!Number.isFinite(frp)) return UNKNOWN_FRP_PIXEL_SIZE;
     return Math.max(
       8,
       Math.min(28, Math.round(8 + Math.sqrt(Math.max(0, frp)) * 2)),
@@ -527,6 +577,7 @@ export function createModel({
     cellIntersectsBounds,
     heatScore,
     heatColor,
+    cellHeatPaint,
     detectionColorStop,
     frpPixelSize,
     sizeBucket,

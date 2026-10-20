@@ -86,3 +86,60 @@ test('DS-03: formatFrp never throws and never prints a measured-looking number f
   assert.equal(model.formatFrp(0.8), '0.8');
   assert.equal(model.formatFrp(1520.27), '1520');
 });
+
+test('DS-12: unreported FRP gets a distinct neutral marker size, never the measured minimum', () => {
+  // Fail-old: frpPixelSize(null) === 8 === frpPixelSize(0) — unknown was
+  // size-identical to a genuine measured-0 fire.
+  assert.notEqual(model.frpPixelSize(null), model.frpPixelSize(0));
+  assert.equal(model.frpPixelSize(null), 12);
+  assert.equal(model.frpPixelSize(undefined), 12);
+  assert.equal(model.frpPixelSize(NaN), 12);
+  // Measured path untouched: 0 MW still owns the 8px minimum, sizes rise with FRP.
+  assert.equal(model.frpPixelSize(0), 8);
+  assert.equal(model.frpPixelSize(1), 10);
+  assert.ok(model.frpPixelSize(150) >= model.frpPixelSize(30));
+  assert.ok(model.frpPixelSize(-5) === 8, 'negative clamps like before');
+});
+
+test('DS-13: an all-unknown-FRP heat cell paints the unknown neutral, not normalized yellow', () => {
+  const allUnknown = {
+    count: 3,
+    unknownFrpCount: 3,
+    intensity: 6,
+    night: 1,
+    maxFrp: null,
+  };
+  const paint = model.cellHeatPaint(allUnknown, 100);
+  assert.equal(paint.unknown, true);
+  assert.ok(Number.isNaN(paint.normalized), 'NaN reaches heatColor, never a finite yellow');
+  // Through the real heatColor: non-finite → the unknown neutral, never yellow.
+  assert.ok(
+    model.heatColor(paint.normalized, paint.alpha).equals(
+      UNKNOWN_DETECTION_STOP.color.withAlpha(paint.alpha),
+    ),
+  );
+  // Measured path untouched: a measured cell normalizes and stays on the stops.
+  const measured = {
+    count: 3,
+    unknownFrpCount: 0,
+    intensity: 6,
+    night: 1,
+    maxFrp: 40,
+  };
+  const mp = model.cellHeatPaint(measured, 100);
+  assert.equal(mp.unknown, false);
+  assert.ok(Number.isFinite(mp.normalized) && mp.normalized > 0);
+  // Mixed cells (at least one measured FRP) take the measured path.
+  const mixed = model.cellHeatPaint(
+    { count: 3, unknownFrpCount: 2, intensity: 6, night: 0, maxFrp: 40 },
+    100,
+  );
+  assert.equal(mixed.unknown, false);
+  assert.ok(Number.isFinite(mixed.normalized));
+  // Legacy cell shapes (no unknownFrpCount) default to the measured path, not unknown.
+  const legacy = model.cellHeatPaint(
+    { count: 1, intensity: 2, night: 0, maxFrp: 5 },
+    100,
+  );
+  assert.equal(legacy.unknown, false);
+});

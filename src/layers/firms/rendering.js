@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { FIRMS_OVERLAY_SOURCE_ID } from '../../data/firmsLabels.js';
+import { FIRMS_OVERLAY_SOURCE_ID, accentForSeverity } from '../../data/firmsLabels.js';
 import { horizonOccluder } from '../../data/iconOrientation.js';
 import { LOD_LEVELS, CONTEXT_TOP_N } from './policy.js';
 
@@ -90,11 +90,17 @@ export function createRendering({
           count: 0,
           intensity: 0,
           maxFrp: null, // null until a detection with measured FRP lands here
+          unknownFrpCount: 0, // detections here whose FRP was never reported
           night: 0,
           newestAcqMs: 0,
         };
         existing.count += 1;
         existing.intensity += intensity;
+        // DS-13: an unmeasured FRP must be countable, not just ignorable —
+        // the cell paint path needs to know when EVERY detection here is
+        // unknown so it can paint the unknown neutral instead of a
+        // normalized "low" yellow.
+        if (!Number.isFinite(fire.frp)) existing.unknownFrpCount += 1;
         // An unmeasured FRP must never seed or lower the cell's max into a
         // measured-looking 0 (DS-01 follow-through: formatFrp renders the
         // all-unknown cell as "max unknown MW").
@@ -149,10 +155,11 @@ export function createRendering({
     layerState._labelLodDistance = lod.labelDistance;
 
     for (const cell of cells) {
-      const score = components.model.heatScore(cell);
-      const normalized = Math.min(1, Math.sqrt(score / maxScore));
-      const alpha = 0.16 + normalized * 0.5;
-      const color = components.model.heatColor(normalized, alpha);
+      // DS-13: an all-unknown-FRP cell is never heat-normalized into a
+      // measured-looking yellow rectangle — cellHeatPaint returns NaN
+      // normalized so heatColor() yields the unknown neutral.
+      const paint = components.model.cellHeatPaint(cell, maxScore);
+      const color = components.model.heatColor(paint.normalized, paint.alpha);
       const centerLon = cell.lonCell + lod.gridDegrees / 2;
       const centerLat = cell.latCell + lod.gridDegrees / 2;
       const position = Cesium.Cartesian3.fromDegrees(centerLon, centerLat, 0);
@@ -171,20 +178,23 @@ export function createRendering({
         position,
         properties: {
           count: cell.count,
-          intensity: score,
+          intensity: paint.score,
           maxFrp: cell.maxFrp,
           night: cell.night,
         },
       });
 
       // Cells arrive heat-sorted, so candidate order doubles as label priority.
-      // Accent is resolved here because `normalized` only exists in this walk.
+      // Accent is resolved here because the paint only exists in this walk;
+      // unknown cells get the unknown accent so ambient cards stay honest.
       layerState._labelCandidates.push({
         position,
         cullPosition: components.model.cellCullPosition(centerLon, centerLat),
         fire: null,
         cell,
-        accent: components.model.cellAccent(normalized),
+        accent: paint.unknown
+          ? accentForSeverity('unknown')
+          : components.model.cellAccent(paint.normalized),
       });
     }
 
