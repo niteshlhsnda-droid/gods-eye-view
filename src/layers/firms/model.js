@@ -7,6 +7,7 @@ import {
 import {
   VIEW_PADDING,
   DETECTION_COLOR_STOPS,
+  UNKNOWN_DETECTION_STOP,
   CULL_LIFT_THRESHOLD_M,
   CULL_LIFT_M,
   LABEL_MIN_SEP_PX,
@@ -118,6 +119,10 @@ export function createModel({
   }
 
   function heatColor(value, alpha) {
+    // A non-finite heat value is not a measurement: render the unknown
+    // neutral, never the yellow stop it used to fall through to.
+    if (!Number.isFinite(value))
+      return UNKNOWN_DETECTION_STOP.color.withAlpha(alpha);
     if (value > 0.72) return Cesium.Color.RED.withAlpha(alpha);
     if (value > 0.42) return Cesium.Color.ORANGE.withAlpha(alpha);
     return Cesium.Color.YELLOW.withAlpha(alpha);
@@ -126,11 +131,15 @@ export function createModel({
   /**
    * Pick a sprite color stop from FRP + confidence, reusing the same
    * yellow → orange → red thresholds as the aggregated heat cells.
+   * A detection whose FRP or confidence was never reported gets the
+   * unknown stop — missing inputs must not render as a measured fire.
    * @param {Object} fire - Detection record.
    * @returns {{name: string, color: Cesium.Color}}
    */
 
   function detectionColorStop(fire) {
+    if (!Number.isFinite(fire?.frp) || !Number.isFinite(fire?.confidence))
+      return UNKNOWN_DETECTION_STOP;
     const heat = Math.min(
       1,
       Math.sqrt(Math.max(0, fire.frp) / 150) * 0.85 + fire.confidence * 0.15,
@@ -497,9 +506,11 @@ export function createModel({
     return `${Math.round(minutes / 60)}h ago`;
   }
 
-  /** Normalized 0..1 confidence → low/nominal/high display bucket. */
+  /** Normalized 0..1 confidence → low/nominal/high display bucket.
+   * Unreported confidence is 'unknown', never 'low': low is a claim. */
 
   function confidenceBucket(confidence) {
+    if (!Number.isFinite(confidence)) return 'unknown';
     if (confidence >= 0.75) return 'high';
     if (confidence >= 0.45) return 'nominal';
     return 'low';

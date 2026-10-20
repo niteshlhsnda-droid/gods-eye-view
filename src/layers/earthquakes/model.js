@@ -4,13 +4,28 @@ export const EARTHQUAKE_OVERLAY_SOURCE_ID = 'earthquakes';
 export const EARTHQUAKE_OVERLAY_COHORT_LIMIT = 96;
 export const EARTHQUAKE_OVERLAY_COLLISION_CAPACITY = 48;
 
+/** Neutral for an unreported/invalid depth — the shared "unknown" grey
+ * (#91a4b4, the bikeshare COLOR_NEUTRAL precedent). An unknown depth
+ * must never render as a measured band. */
+export const UNKNOWN_DEPTH_COLOR = Cesium.Color.fromCssColorString('#91a4b4');
+
 /**
  * Color by depth:
  *  - Shallow (<70km): Red
  *  - Intermediate (70-300km): Orange
  *  - Deep (>300km): Yellow
+ *  - Unknown (missing, non-finite, or negative): neutral grey — mirrors
+ *    `labelEarthquakeDepthBand`, which reads those as "Depth unknown".
+ *    A reported depth of exactly 0 is a real shallow measurement and
+ *    stays red.
  */
 export function depthColor(depthKm) {
+  if (
+    typeof depthKm !== 'number' ||
+    !Number.isFinite(depthKm) ||
+    depthKm < 0
+  )
+    return UNKNOWN_DEPTH_COLOR;
   if (depthKm < 70) return Cesium.Color.RED;
   if (depthKm < 300) return Cesium.Color.ORANGE;
   return Cesium.Color.YELLOW;

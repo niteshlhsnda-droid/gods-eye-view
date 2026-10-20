@@ -101,9 +101,9 @@ const RAMP_SPECS = new Map([
       ],
       unknownLabel: 'Depth unknown',
       notes: [
-        'Colors are Cesium.RED / Cesium.ORANGE / Cesium.YELLOW as used by depthColor (src/layers/earthquakes/model.js).',
+        'Band colors are Cesium.RED / Cesium.ORANGE / Cesium.YELLOW as used by depthColor (src/layers/earthquakes/model.js); an unknown depth uses the neutral grey #91a4b4.',
         'The color encodes focal depth only — never magnitude or hazard.',
-        'The earthquakes layer calls depthColor(depthKm || 0), so a quake with an unreported depth currently renders as shallow red; labelEarthquakeDepthBand reports such cases as "Depth unknown" instead of endorsing the fallback.',
+        'depthColor and labelEarthquakeDepthBand agree: a missing, non-finite, or negative depth renders as the neutral unknown color (#91a4b4) and labels as "Depth unknown" — an unreported depth never renders as shallow red.',
       ],
     },
   ],
@@ -145,7 +145,7 @@ const RAMP_SPECS = new Map([
       notes: [
         'Heat = min(1, sqrt(max(0, FRP) / 150) × 0.85 + confidence × 0.15): FRP in megawatts (MW), confidence normalized 0–1; thresholds are strict inequalities (> 0.72, > 0.42) per detectionColorStop (src/layers/firms/model.js).',
         'Colors are DETECTION_COLOR_STOPS (src/layers/firms/policy.js): red = Cesium.RED, orange = Cesium.ORANGE, yellow = Cesium.YELLOW, shared by detection glow sprites and aggregated heat cells.',
-        'Missing FRP is treated as 0 and missing confidence makes the heat NaN, which falls through to the yellow stop — so a yellow dot can mean "inputs missing", never "confirmed weak fire".',
+        'Missing FRP or missing confidence never reaches the heat math: detectionColorStop returns the separate unknown stop (neutral #91a4b4) and heatColor renders non-finite heat the same neutral — so a yellow dot now always means a measured low heat, never "inputs missing".',
       ],
     },
   ],
@@ -366,7 +366,8 @@ export function colorRampRowLegend(rampId, options) {
 
 /**
  * Honesty-guarded label for the earthquake depth band a depth value
- * belongs to. Unlike the renderer (depthColor(depthKm || 0)), this never
+ * belongs to. Like the renderer (depthColor returns the neutral
+ * unknown color for the same inputs), this never
  * defaults a missing depth into the shallow band: null, '', undefined,
  * NaN, non-finite, and negative inputs all read as 'Depth unknown'.
  * A reported 0 km is a real (finite) value and bands as shallow —

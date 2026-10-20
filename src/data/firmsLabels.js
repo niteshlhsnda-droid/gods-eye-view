@@ -28,11 +28,12 @@ const ACCENT_RGB = Object.freeze({
   red: '224, 82, 82',
   orange: '240, 178, 62',
   yellow: '244, 227, 108',
+  unknown: '145, 164, 180',
 });
 
 /**
  * Severity stop name → "r, g, b" accent string (defaults to yellow).
- * @param {string} stopName - 'red' | 'orange' | 'yellow'.
+ * @param {string} stopName - 'red' | 'orange' | 'yellow' | 'unknown'.
  * @returns {string}
  */
 export function accentForSeverity(stopName) {

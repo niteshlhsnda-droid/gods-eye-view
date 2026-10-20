@@ -95,3 +95,14 @@ export const DETECTION_COLOR_STOPS = [
   { name: 'orange', color: Cesium.Color.ORANGE },
   { name: 'yellow', color: Cesium.Color.YELLOW },
 ];
+
+/**
+ * Stop for a detection whose FRP or confidence was never reported: the
+ * shared "unknown" neutral (#91a4b4, the bikeshare COLOR_NEUTRAL
+ * precedent). Deliberately NOT a fourth DETECTION_COLOR_STOPS entry —
+ * the color-ramp legend correspondence pins exactly three heat stops.
+ */
+export const UNKNOWN_DETECTION_STOP = Object.freeze({
+  name: 'unknown',
+  color: Cesium.Color.fromCssColorString('#91a4b4'),
+});

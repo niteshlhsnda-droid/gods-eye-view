@@ -89,7 +89,7 @@ export function createEarthquakesLayer({ source, overlayHost } = {}) {
         } of rows) {
           count++;
           const baseRadius = Math.pow(2, mag) * 1000;
-          const color = depthColor(depthKm || 0);
+          const color = depthColor(depthKm);
           const isSignificant = mag >= 5.0;
           const fillAlpha = isSignificant ? 0.4 : 0.3;
           const outlineAlpha = isSignificant ? 1.0 : 0.8;
