@@ -100,7 +100,9 @@ export function createRendering({
         // all-unknown cell as "max unknown MW").
         if (Number.isFinite(fire.frp)) {
           existing.maxFrp =
-            existing.maxFrp == null ? fire.frp : Math.max(existing.maxFrp, fire.frp);
+            existing.maxFrp == null
+              ? fire.frp
+              : Math.max(existing.maxFrp, fire.frp);
         }
         existing.newestAcqMs = Math.max(existing.newestAcqMs, fire.acqMs);
         if (fire.night) existing.night += 1;

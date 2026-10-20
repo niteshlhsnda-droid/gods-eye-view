@@ -20,11 +20,7 @@ export const UNKNOWN_DEPTH_COLOR = Cesium.Color.fromCssColorString('#91a4b4');
  *    stays red.
  */
 export function depthColor(depthKm) {
-  if (
-    typeof depthKm !== 'number' ||
-    !Number.isFinite(depthKm) ||
-    depthKm < 0
-  )
+  if (typeof depthKm !== 'number' || !Number.isFinite(depthKm) || depthKm < 0)
     return UNKNOWN_DEPTH_COLOR;
   if (depthKm < 70) return Cesium.Color.RED;
   if (depthKm < 300) return Cesium.Color.ORANGE;
