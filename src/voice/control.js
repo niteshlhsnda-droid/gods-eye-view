@@ -1,16 +1,15 @@
-/** Build the voice control independently of its connection backend. */
-export function createVoiceControl({ reset = false } = {}) {
-  let root = document.getElementById('gev-voice-control');
-  if (root && reset) {
-    root.remove();
-    root = null;
-  }
-  if (!root) {
-    root = document.createElement('div');
-    root.id = 'gev-voice-control';
-    root.dataset.status = 'idle';
-    root.dataset.speaker = 'idle';
-    root.innerHTML = `
+import { resolvePublicUrl } from '../data/assetBase.js';
+
+/**
+ * Render the voice-control markup. Pure (no DOM) so the injected asset
+ * references are unit-testable.
+ * H-05: the mic-orbit `<img>` resolves against the Vite deploy base
+ * (`/gods-eye-view/` on the Pages subpath, `/` in dev) — the root-absolute
+ * `/mic.svg` 404'd on live.
+ */
+export function voiceControlMarkup() {
+  const micSrc = resolvePublicUrl('/mic.svg');
+  return `
       <div class="gev-voice-heading">
         <div class="gev-voice-kicker">AI AGENT</div>
         <div id="gev-voice-status">OFF</div>
@@ -20,7 +19,7 @@ export function createVoiceControl({ reset = false } = {}) {
         </div>
       </div>
       <button id="gev-voice-button" type="button" aria-label="Voice control — activate to toggle voice; hold Space to speak" aria-describedby="gev-voice-help">
-        <span class="gev-mic-orbit"><img src="/mic.svg" alt="" /></span>
+        <span class="gev-mic-orbit"><img src="${micSrc}" alt="" /></span>
         <span class="gev-mic-label">ON/OFF</span>
       </button>
       <div class="gev-voice-visualizer" aria-hidden="true">
@@ -64,6 +63,21 @@ export function createVoiceControl({ reset = false } = {}) {
         <div class="gev-voice-error-hint">Check microphone permission and network access, then try again.</div>
       </div>
     `;
+}
+
+/** Build the voice control independently of its connection backend. */
+export function createVoiceControl({ reset = false } = {}) {
+  let root = document.getElementById('gev-voice-control');
+  if (root && reset) {
+    root.remove();
+    root = null;
+  }
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'gev-voice-control';
+    root.dataset.status = 'idle';
+    root.dataset.speaker = 'idle';
+    root.innerHTML = voiceControlMarkup();
     const commandDock = document.getElementById('command-dock');
     if (commandDock) {
       const locationBar = document.getElementById('location-bar');

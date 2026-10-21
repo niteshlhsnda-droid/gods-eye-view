@@ -8,6 +8,7 @@ export {
 } from './recordPolicy.js';
 import * as Cesium from 'cesium';
 import { EMERGENCY_TINT_CSS } from '../../data/aircraftEmergency.js';
+import { resolvePublicUrl } from '../../data/assetBase.js';
 
 export const FOCUS_EVIDENCE_DEV = import.meta.env?.DEV === true;
 
@@ -47,7 +48,9 @@ export const GROUND_SCALE = 0.8;
 // the slots go to either the nearest planes ('proximity') or every in-view plane ('all'), each
 // backed by a hard cap so a draw-call explosion can't tank the frame (no instancing yet).
 
-export const PLANE_MODEL_URL = '/models/airplane.glb';
+// H-06: resolve against the Vite deploy base (`/gods-eye-view/` on the Pages
+// subpath, `/` in dev) — the root-absolute URL 404'd on live.
+export const PLANE_MODEL_URL = resolvePublicUrl('/models/airplane.glb');
 
 export const MODEL_ALT_CEIL_M = 800000;
 // m: below this camera altitude, draw 3D models (raised so it's easy to trigger)

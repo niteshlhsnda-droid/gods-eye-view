@@ -863,6 +863,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -909,6 +910,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -950,6 +952,7 @@
     "exports": ["./aircraft"],
     "modules": [
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -1484,6 +1487,7 @@
       "src/voice/realtimeBackend.js",
       "src/voice/cloudVoiceAuth.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/layerSummary.js",
       "src/voice/voiceCost.js",
       "src/voice/commands.js",
@@ -2372,6 +2376,7 @@
       "src/voice/cloudVoiceAuth.js",
       "src/voice/commands.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/deixis.js",
       "src/voice/earcon.js",
       "src/voice/gevActions.js",
@@ -2493,6 +2498,7 @@
       "src/cyberSonar.js",
       "src/data/adminBoundaries.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -3167,6 +3173,7 @@
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js"
     ],
     "external": []
@@ -3189,6 +3196,7 @@
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js"
     ],
     "external": []
@@ -3287,6 +3295,7 @@
       "src/voice/sessionCommands.js",
       "src/voice/session.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/voiceCard.js",
       "src/voice/voiceCardPresentation.js",
       "src/voice/resultDisplay.js",
