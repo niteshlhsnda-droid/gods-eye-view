@@ -40,11 +40,16 @@ export function lookupKey(locale, key) {
   return typeof node === 'string' ? node : undefined;
 }
 
-/** `{{var}}` interpolation. Unknown vars are left in place. */
+/**
+ * `{{var}}` interpolation. Missing or null vars render as empty — no raw
+ * `{{…}}` placeholder ever reaches a toast or label (DS-23). Explicit `null`
+ * is normalized because a default parameter only fires on `undefined`.
+ */
 export function interpolate(template, vars = {}) {
   if (typeof template !== 'string') return template;
+  const v = vars ?? {};
   return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, name) =>
-    vars[name] != null ? String(vars[name]) : match,
+    v[name] != null ? String(v[name]) : '',
   );
 }
 

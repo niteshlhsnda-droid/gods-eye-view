@@ -144,7 +144,8 @@ export function parseGeoJsonLines(
     maxPositions = MAX_GEOJSONL_POSITIONS,
   } = {},
 ) {
-  if (typeof text !== 'string') throw new TypeError('text must be a string');
+  if (typeof text !== 'string')
+    throw new GeoJsonLinesError('GeoJSONL import needs text.');
   const features = [];
   const state = { positions: 0, maxPositions };
   const addFeature = (feature, line) => {

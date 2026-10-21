@@ -88,11 +88,13 @@ export function createAlertCenter({
   const cycloneProvider = createCycloneProvider({ cycloneSource });
 
   const tr = (key, vars, fallback) => {
-    // Adjacent to DS-17: the real i18n `t` throws on null vars when the
-    // template carries {{placeholders}} (interpolate reads vars[name] on
+    // DS-21 bandage (kept as defense-in-depth; DS-23 fixed null vars at the
+    // i18n source): the real i18n `t` used to throw on null vars when the
+    // template carried {{placeholders}} (interpolate read vars[name] on
     // null). Every title lookup passed null, so each toast crashed before it
     // fired in production. Normalise to {} — titles degrade to the
-    // (uninterpolated) template or the fallback instead of throwing.
+    // empty-substituted template (DS-23: no raw {{…}} ever leaks) or the
+    // fallback instead of throwing.
     const value = t(key, vars ?? {});
     return typeof value === 'string' && value !== key ? value : fallback;
   };
