@@ -27,9 +27,13 @@
  * | `UNKNOWN`    | No frame ever received, or no health/fetch data to judge by: we cannot  |
  * |            | say what this feed is.                                                  |
  *
- * This module is a specification, not yet wired into any view. A view
- * adopts it when it renders `cameraFeedHonestyLabel(meta).label` next to
- * the camera's picture. See `docs/camera-label-honesty.md`.
+ * This module is a specification, wired into the CCTV view since the H-03
+ * fix: `src/layers/cctv/presentation.js` renders
+ * `honestFeedModeToken(camera, health)` — the transport label while the
+ * pipeline is healthy, this spec's verdict the moment the health sync
+ * reports a failed fetch pipeline. A view adopts it when it renders
+ * `cameraFeedHonestyLabel(meta).label` next to the camera's picture.
+ * See `docs/camera-label-honesty.md`.
  */
 
 /**

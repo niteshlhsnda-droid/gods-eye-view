@@ -1447,6 +1447,7 @@
       "./maps/controller",
       "./maps/catalog",
       "./maps/imagery",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "./maps/terrain",
       "./maps/3d",
       "./maps/defaults"
@@ -2073,6 +2074,7 @@
       "src/layers/submarineCables/interaction.js",
       "src/layers/submarineCables/lifecycle.js",
       "src/layers/submarineCables/overlay.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/submarineCables/policy.js",
       "src/layers/submarineCables/rendering.js",
       "src/layers/submarineCables/state.js",
@@ -2876,6 +2878,7 @@
       "src/layers/traffic/controls.js",
       "src/layers/traffic/flow.js",
       "src/layers/traffic/flowDecode.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/traffic/flowSource.js",
       "src/layers/traffic/footprint.js",
       "src/layers/traffic/index.js",

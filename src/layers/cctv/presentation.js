@@ -1,6 +1,7 @@
 import { CCTV_AMBIENT_CARD_MAX } from '../../data/cctvLod.js';
 import { ACTIVE_FRAME_REFRESH_MS, IDLE_FRAME_REFRESH_MS } from './policy.js';
 import { headingHudToken, isHeadingEstimated } from './headingConfidence.js';
+import { cameraFeedHonestyLabel } from './cameraLabelHonesty.js';
 
 /**
  * Honest feed-mode label for a CCTV camera. Non-HLS video feeds loop their
@@ -15,6 +16,33 @@ export function cctvFeedModeLabel(feedType) {
   if (normalized === 'hls') return 'LIVE STREAM';
   if (normalized === 'mp4' || normalized === 'webm') return 'LOOPED CLIP';
   return 'SNAPSHOT';
+}
+
+/**
+ * The on-screen feed-mode token for one camera, honesty-wired (H-03).
+ * The transport label (`LIVE STREAM` / `LOOPED CLIP` / `SNAPSHOT`) stands
+ * while the pipeline is healthy; the moment the health sync reports a
+ * failed fetch pipeline, the `cameraLabelHonesty` spec overrides it — the
+ * label must agree with the fetch-failure banner instead of claiming the
+ * feed is fine (Oct-15 lesson; docs/Rules.md "Labels are promises").
+ * No per-frame fetch clock exists in the CCTV pipeline, so the spec runs
+ * without `lastGoodFetchMs` and reports UNKNOWN on absence of evidence.
+ * @param {object} camera
+ * @param {object|null} health
+ * @returns {string}
+ */
+export function honestFeedModeToken(camera, health) {
+  const healthStatus = String(health?.status ?? '')
+    .trim()
+    .toLowerCase();
+  if (healthStatus === 'failed') {
+    return cameraFeedHonestyLabel({
+      feedType: camera?.feedType,
+      healthStatus,
+      lastGoodFetchMs: null,
+    }).label;
+  }
+  return cctvFeedModeLabel(camera?.feedType);
 }
 
 export function createPresentation({
@@ -64,7 +92,7 @@ export function createPresentation({
       health?.sourceKind
         ? `SRC ${String(health.sourceKind).toUpperCase()}`
         : `SRC ${String(active.camera.feedType || 'image').toUpperCase()}`,
-      cctvFeedModeLabel(active.camera.feedType),
+      honestFeedModeToken(active.camera, health),
       `${viewBand.toUpperCase()} CONTEXT`,
     ]
       .filter(Boolean)
@@ -110,8 +138,9 @@ export function createPresentation({
       feedType: camera.feedType,
       // Honest feed-mode label: LOOPED CLIP for looping finite video, LIVE
       // STREAM for HLS only, SNAPSHOT for image feeds. Never "LIVE" for a
-      // looping clip.
-      feedMode: cctvFeedModeLabel(camera.feedType),
+      // looping clip. While the fetch pipeline reports failure, the
+      // cameraLabelHonesty spec overrides the transport label (H-03).
+      feedMode: honestFeedModeToken(camera, health),
       isVideo:
         parts.model.isVideoFeedType(camera.feedType) &&
         record.projection?.mode !== 'image',

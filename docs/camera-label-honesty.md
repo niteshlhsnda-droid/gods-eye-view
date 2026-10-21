@@ -1,9 +1,13 @@
 # Camera label honesty
 
-**Status:** specification (pure function, not yet wired into any view).
-`src/layers/cctv/cameraLabelHonesty.js` implements the rule below; a view
-adopts it when it renders `cameraFeedHonestyLabel(meta).label` next to the
-camera's picture. No UI changes ship with this document.
+**Status:** wired into the CCTV view (H-03 fix, `audit-fix/h-bundle`).
+`src/layers/cctv/cameraLabelHonesty.js` implements the rule below;
+`src/layers/cctv/presentation.js` renders it via `honestFeedModeToken`:
+the transport label (`LIVE STREAM` / `LOOPED CLIP` / `SNAPSHOT`) while the
+fetch pipeline is healthy, the spec's verdict the moment the health sync
+reports a failed pipeline. No per-frame fetch clock exists in the CCTV
+pipeline, so the spec runs without `lastGoodFetchMs` and reports UNKNOWN
+on absence of evidence.
 
 ## The rule
 

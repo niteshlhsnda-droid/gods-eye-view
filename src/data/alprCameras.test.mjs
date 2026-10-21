@@ -22,6 +22,7 @@ import {
   QUERY_SNAP_DEGREES,
   QUERY_REUSE_MS,
   alprRetryDelayMs,
+  isRetryableAlprError,
   boxContains,
   buildOverpassQuery,
   snapAlprBox,
@@ -283,7 +284,15 @@ function cameraHarness(layer = alprCamerasLayer) {
           body: `data=${encodeURIComponent(buildOverpassQuery(box.south, box.west, box.north, box.east))}`,
         });
         if (!response.ok)
-          throw new Error('Camera source temporarily unavailable');
+          // Mirror production's overpassError() taxonomy so the retry
+          // classifier sees the same messages as the live source (H-01).
+          throw new Error(
+            response.status === 429
+              ? 'Overpass rate-limited'
+              : response.status === 504
+                ? 'Overpass timed out'
+                : 'Overpass temporarily unavailable',
+          );
         const body = await response.json();
         if (!Array.isArray(body.elements) || body.remark)
           throw new Error('Incomplete fixture snapshot');
@@ -635,8 +644,105 @@ test('invalid or partial successful payloads are failures, not an empty all-clea
         json: async () => payload,
       }));
       await alprCamerasLayer.update();
-      assert.equal(alprCamerasLayer.getStats().status, 'unavailable');
+      // H-01: a malformed payload is deterministic — it must surface as an
+      // error with the real message and NO retry, never as a "retrying"
+      // camera-fetch banner.
+      const stats = alprCamerasLayer.getStats();
+      assert.equal(stats.status, 'error');
+      assert.equal(stats.retryAt, 0);
+      assert.match(String(stats.error), /incomplete|Incomplete/);
     }
+  } finally {
+    h.restore();
+  }
+});
+
+test('isRetryableAlprError: transient fetch failures retry, deterministic faults do not', () => {
+  // Transient: the Overpass fetch path's "try again later" outcomes.
+  assert.equal(isRetryableAlprError(new Error('Overpass rate-limited')), true);
+  assert.equal(isRetryableAlprError(new Error('Overpass timed out')), true);
+  assert.equal(
+    isRetryableAlprError(new Error('Overpass temporarily unavailable')),
+    true,
+  );
+  assert.equal(isRetryableAlprError(new TypeError('Failed to fetch')), true);
+  assert.equal(
+    isRetryableAlprError(Object.assign(new Error('x'), { retryable: true })),
+    true,
+  );
+  // Deterministic: malformed payloads, validation throws, geometry guards,
+  // capability misses — retrying re-runs the identical path forever (H-01).
+  assert.equal(
+    isRetryableAlprError(
+      new TypeError('ALPR requires a bounded city viewport'),
+    ),
+    false,
+  );
+  assert.equal(
+    isRetryableAlprError(
+      new Error('Overpass returned an incomplete camera response'),
+    ),
+    false,
+  );
+  assert.equal(
+    isRetryableAlprError(new Error('Camera coverage unavailable')),
+    false,
+  );
+  assert.equal(
+    isRetryableAlprError(
+      Object.assign(new Error('Unavailable'), { retryable: false }),
+    ),
+    false,
+  );
+  assert.equal(isRetryableAlprError(null), false);
+  assert.equal(isRetryableAlprError(undefined), false);
+});
+
+test('a deterministic ALPR fault surfaces as an error with no retry scheduled', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = cameraHarness();
+  try {
+    h.setFetch(async () => {
+      throw new TypeError('ALPR requires a bounded city viewport');
+    });
+    await alprCamerasLayer.update();
+    const stats = alprCamerasLayer.getStats();
+    // Fail-old: the pre-fix catch funnelled this into 'unavailable' and
+    // scheduled a retry, raising the "retrying" banner forever.
+    assert.equal(stats.status, 'error');
+    assert.equal(stats.retryAt, 0);
+    assert.match(String(stats.error), /bounded city viewport/);
+    const requests = h.requests.length;
+    t.mock.timers.tick(600_000);
+    await Promise.resolve();
+    assert.equal(
+      h.requests.length,
+      requests,
+      'no retry may fire for a deterministic fault',
+    );
+  } finally {
+    h.restore();
+  }
+});
+
+test('a transient ALPR failure keeps the unavailable status and the retry', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const h = cameraHarness();
+  try {
+    h.setFetch(async () => {
+      throw new Error('Overpass rate-limited');
+    });
+    await alprCamerasLayer.update();
+    const stats = alprCamerasLayer.getStats();
+    assert.equal(stats.status, 'unavailable');
+    assert.ok(stats.retryAt > Date.now(), 'retry is scheduled');
+    const requests = h.requests.length;
+    t.mock.timers.tick(31_000);
+    await Promise.resolve();
+    assert.ok(
+      h.requests.length > requests,
+      'the transient failure retries with backoff',
+    );
   } finally {
     h.restore();
   }
