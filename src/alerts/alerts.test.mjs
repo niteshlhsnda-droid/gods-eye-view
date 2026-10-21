@@ -273,3 +273,46 @@ test('toast titles do not crash on null vars with the real i18n t', async () => 
   assert.equal(toasts.length, 1);
   center.destroy();
 });
+
+test('DS-22: quake toast title is interpolated, not the raw {{template}}', async () => {
+  const toasts = [];
+  const center = createAlertCenter({
+    toastService: { notify: async (toast) => toasts.push(toast) },
+    quakeSource: async () => [
+      { ...ROWS[0], stableId: 'q-ds22', time: Date.now() + 1000 },
+    ],
+    storage: memoryStorage(),
+    timers: fakeTimers(),
+    t: realI18nT,
+  });
+  center.subscribe('quakes', { minMag: 5 });
+  await center.checkNow('quakes');
+  assert.equal(toasts.length, 1);
+  // Pre-DS-22 the title was the raw template 'M{{mag}} earthquake — {{place}}'
+  // (the null-vars fix for DS-21 left the template uninterpolated).
+  assert.ok(
+    !toasts[0].title.includes('{{'),
+    `raw template leaked into toast title: ${toasts[0].title}`,
+  );
+  assert.equal(toasts[0].title, 'M6.0 earthquake — Test Range');
+  center.destroy();
+});
+
+test('CG-12: flyoversRow labels the 1,500 km proximity gate in all locales', () => {
+  for (const [name, loc] of [
+    ['en', en],
+    ['hi', hi],
+    ['es', es],
+    ['pt', pt],
+  ]) {
+    const label = loc.alerts.flyoversRow;
+    assert.ok(
+      /1[.,]500/.test(label),
+      `${name}: proximity gate missing — ${label}`,
+    );
+    assert.ok(
+      !/overhead|por encima|por cima|ऊपर से/i.test(label),
+      `${name}: 'overhead' wording remains — ${label}`,
+    );
+  }
+});

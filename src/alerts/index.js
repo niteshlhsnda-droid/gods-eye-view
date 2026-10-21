@@ -153,7 +153,11 @@ export function createAlertCenter({
     for (const alert of alerts) {
       await notify({
         kind: 'warning',
-        title: tr('alerts.quake', null, 'Earthquake alert'),
+        title: tr(
+          'alerts.quake',
+          { mag: alert.mag.toFixed(1), place: alert.place },
+          'Earthquake alert',
+        ),
         message: tr(
           'alerts.quake',
           { mag: alert.mag.toFixed(1), place: alert.place },

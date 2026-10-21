@@ -64,7 +64,7 @@ export default {
   alerts: {
     title: 'Alert me',
     quakesRow: 'Earthquakes (M5.0 and up)',
-    flyoversRow: 'Satellite flyovers (stations overhead)',
+    flyoversRow: 'Satellite flyovers (within 1,500 km)',
     cyclonesRow: 'New tropical cyclones',
     saved: 'Alert preferences saved',
     unavailable: 'Alerts are unavailable right now',

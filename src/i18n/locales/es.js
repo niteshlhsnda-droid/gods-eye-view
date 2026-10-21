@@ -64,7 +64,7 @@ export default {
   alerts: {
     title: 'Avísame',
     quakesRow: 'Terremotos (M5.0 o más)',
-    flyoversRow: 'Pasos de satélites (estaciones por encima)',
+    flyoversRow: 'Pasos de satélites (dentro de 1.500 km)',
     cyclonesRow: 'Nuevos ciclones tropicales',
     saved: 'Preferencias de avisos guardadas',
     unavailable: 'Los avisos no están disponibles ahora',
