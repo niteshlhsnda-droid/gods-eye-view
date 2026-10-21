@@ -6,7 +6,14 @@ import {
   requestPushPermission,
   ALERT_KINDS,
   ALERT_STORAGE_KEY,
+  FLYOVER_OVERHEAD_MAX_KM,
+  flyoverToastCopy,
 } from './index.js';
+import { t as realI18nT } from '../i18n/index.js';
+import en from '../i18n/locales/en.js';
+import hi from '../i18n/locales/hi.js';
+import es from '../i18n/locales/es.js';
+import pt from '../i18n/locales/pt.js';
 
 function memoryStorage() {
   const values = new Map();
@@ -160,4 +167,109 @@ test('push notifications are explicitly deferred', async () => {
   assert.ok(status.note.includes('later milestone'));
   const again = await requestPushPermission();
   assert.equal(again.status, 'deferred');
+});
+
+test('DS-16: re-subscribing clears the old poll interval (no orphaned pollers)', () => {
+  const calls = [];
+  let nextHandle = 0;
+  const timers = {
+    setInterval: (fn, ms) => {
+      const handle = ++nextHandle;
+      calls.push(['set', handle, ms]);
+      return handle;
+    },
+    clearInterval: (handle) => calls.push(['clear', handle]),
+  };
+  const center = createAlertCenter({
+    toastService: { notify: async () => {} },
+    quakeSource: async () => [],
+    timers,
+  });
+  center.subscribe('quakes');
+  center.subscribe('quakes');
+  const sets = calls.filter((c) => c[0] === 'set');
+  const clears = calls.filter((c) => c[0] === 'clear');
+  // Pre-fix: 2 sets but only 1 clear — the first 5-minute poller was orphaned.
+  assert.equal(sets.length, 2);
+  assert.equal(
+    clears.length,
+    1,
+    're-subscribe must clear the previous interval before setting a new one',
+  );
+  const cleared = new Set(clears.map((c) => c[1]));
+  for (const [, handle] of sets.slice(0, 1))
+    assert.ok(cleared.has(handle), `interval handle ${handle} leaked`);
+  // Unsubscribe clears the one live poller — nothing left behind.
+  center.unsubscribe('quakes');
+  const clearedAfter = new Set(
+    calls.filter((c) => c[0] === 'clear').map((c) => c[1]),
+  );
+  for (const [, handle] of sets)
+    assert.ok(clearedAfter.has(handle), `interval handle ${handle} leaked`);
+  center.destroy();
+});
+
+test('DS-17: flyover toast wording is distance-aware', () => {
+  // The filed probe: a 1,401 km hit is near the horizon, not overhead.
+  const far = flyoverToastCopy({ name: 'ISS (ZARYA)', distanceKm: 1401 });
+  assert.equal(far.key, 'alerts.flyoverWithin');
+  assert.deepEqual(far.vars, { name: 'ISS (ZARYA)', km: 1401 });
+  assert.ok(far.fallback.includes('within 1401 km'));
+  assert.ok(!far.fallback.includes('overhead'));
+
+  const near = flyoverToastCopy({ name: 'ISS (ZARYA)', distanceKm: 120 });
+  assert.equal(near.key, 'alerts.flyoverOverhead');
+  assert.ok(near.fallback.includes('passing overhead'));
+
+  // Boundary: 500 km is still "overhead", 501 km is not.
+  assert.equal(FLYOVER_OVERHEAD_MAX_KM, 500);
+  assert.equal(
+    flyoverToastCopy({ name: 'X', distanceKm: 500 }).key,
+    'alerts.flyoverOverhead',
+  );
+  assert.equal(
+    flyoverToastCopy({ name: 'X', distanceKm: 501 }).key,
+    'alerts.flyoverWithin',
+  );
+
+  // Robust to missing fields.
+  const bare = flyoverToastCopy({});
+  assert.equal(bare.vars.name, 'Unknown satellite');
+  assert.equal(bare.key, 'alerts.flyoverOverhead');
+});
+
+test('DS-17: the new flyover keys resolve in every locale', () => {
+  for (const [code, table] of Object.entries({ en, hi, es, pt })) {
+    assert.equal(
+      typeof table.alerts.flyoverTitle,
+      'string',
+      `${code}.alerts.flyoverTitle`,
+    );
+    assert.ok(
+      table.alerts.flyoverOverhead.includes('{{name}}'),
+      `${code}.alerts.flyoverOverhead`,
+    );
+    assert.ok(
+      table.alerts.flyoverWithin.includes('{{name}}') &&
+        table.alerts.flyoverWithin.includes('{{km}}'),
+      `${code}.alerts.flyoverWithin`,
+    );
+  }
+});
+
+test('toast titles do not crash on null vars with the real i18n t', async () => {
+  // The real i18n `t` throws on null vars when the template has {{placeholders}};
+  // every alert title lookup passed null, so each toast died before firing.
+  const toasts = [];
+  const freshRows = [{ ...ROWS[0], time: Date.now() + 1000 }];
+  const center = createAlertCenter({
+    toastService: { notify: async (toast) => toasts.push(toast) },
+    quakeSource: async () => freshRows,
+    timers: fakeTimers(),
+    t: realI18nT,
+  });
+  center.subscribe('quakes');
+  await center.checkNow('quakes');
+  assert.equal(toasts.length, 1);
+  center.destroy();
 });

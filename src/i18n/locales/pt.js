@@ -71,7 +71,9 @@ export default {
     cycloneTitle: 'Novo ciclone tropical',
     cyclone: '{{name}} ({{classification}}) — ventos de {{windKt}} nós',
     quake: 'Terremoto M{{mag}} — {{place}}',
-    flyover: '{{name}} está passando por cima',
+    flyoverTitle: 'Passagem de satélite',
+    flyoverOverhead: '{{name}} está passando por cima',
+    flyoverWithin: '{{name}} está passando a menos de {{km}} km',
     subscribe: 'Me avise',
     unsubscribe: 'Parar avisos',
     pushLater:

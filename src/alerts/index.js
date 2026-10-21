@@ -23,6 +23,38 @@ export const ALERT_STORAGE_KEY = 'gev:alerts:v1';
 export const QUAKE_POLL_MS = 5 * 60 * 1000;
 export const FLYOVER_POLL_MS = 60 * 1000;
 export const CYCLONE_POLL_MS = 30 * 60 * 1000;
+/**
+ * DS-17: max ground distance (km) still described as "overhead" in a flyover
+ * toast. The 1,500 km default detection radius is a proximity gate, not a
+ * sky-position claim — a satellite 1,400 km away is near the horizon.
+ */
+export const FLYOVER_OVERHEAD_MAX_KM = 500;
+
+/**
+ * DS-17: distance-aware flyover toast copy, pure for testing. Hits close
+ * enough to be plausibly overhead say so; the rest report their actual
+ * distance, matching the user guide's honest "a catalog satellite passing
+ * within 1,500 km".
+ * @param {{name?: string, distanceKm?: number}} hit
+ * @returns {{key: string, vars: object, fallback: string}}
+ */
+export function flyoverToastCopy(hit) {
+  const name =
+    typeof hit?.name === 'string' && hit.name ? hit.name : 'Unknown satellite';
+  const km = Math.round(Number(hit?.distanceKm) || 0);
+  if (km <= FLYOVER_OVERHEAD_MAX_KM) {
+    return {
+      key: 'alerts.flyoverOverhead',
+      vars: { name },
+      fallback: `${name} is passing overhead`,
+    };
+  }
+  return {
+    key: 'alerts.flyoverWithin',
+    vars: { name, km },
+    fallback: `${name} is passing within ${km} km`,
+  };
+}
 
 /**
  * @param {object} input
@@ -56,7 +88,12 @@ export function createAlertCenter({
   const cycloneProvider = createCycloneProvider({ cycloneSource });
 
   const tr = (key, vars, fallback) => {
-    const value = t(key, vars);
+    // Adjacent to DS-17: the real i18n `t` throws on null vars when the
+    // template carries {{placeholders}} (interpolate reads vars[name] on
+    // null). Every title lookup passed null, so each toast crashed before it
+    // fired in production. Normalise to {} — titles degrade to the
+    // (uninterpolated) template or the fallback instead of throwing.
+    const value = t(key, vars ?? {});
     return typeof value === 'string' && value !== key ? value : fallback;
   };
   const notify = (toast) => {
@@ -143,14 +180,11 @@ export function createAlertCenter({
       const last = lastFlyoverAlert.get(hit.name) || 0;
       if (at - last < FLYOVER_COOLDOWN_MS) continue;
       lastFlyoverAlert.set(hit.name, at);
+      const copy = flyoverToastCopy(hit);
       await notify({
         kind: 'info',
-        title: tr('alerts.flyover', null, 'Satellite flyover'),
-        message: tr(
-          'alerts.flyover',
-          { name: hit.name },
-          `${hit.name} is passing overhead`,
-        ),
+        title: tr('alerts.flyoverTitle', null, 'Satellite flyover'),
+        message: tr(copy.key, copy.vars, copy.fallback),
       });
     }
   }
@@ -190,11 +224,24 @@ export function createAlertCenter({
     }
   }
 
+  /**
+   * DS-16: clear the poller for a kind, if any. subscribe() used to overwrite
+   * the handle in `intervals` without clearing it, orphaning the old
+   * setInterval so unsubscribe() could never clear it — every re-subscribe
+   * leaked another poller.
+   */
+  function clearPoller(kind) {
+    const existing = intervals.get(kind);
+    if (existing != null) timers.clearInterval(existing);
+    intervals.delete(kind);
+  }
+
   /** Subscribe to a kind. Options: quakes { minMag }, flyovers { radiusKm }. */
   function subscribe(kind, options = {}) {
     if (!ALERT_KINDS.includes(kind)) return false;
     subscriptions.set(kind, { ...options });
     persist();
+    clearPoller(kind);
     if (kind === 'quakes') {
       void checkQuakes();
       intervals.set(
@@ -220,9 +267,7 @@ export function createAlertCenter({
   function unsubscribe(kind) {
     if (!subscriptions.has(kind)) return false;
     subscriptions.delete(kind);
-    const timer = intervals.get(kind);
-    if (timer != null) timers.clearInterval(timer);
-    intervals.delete(kind);
+    clearPoller(kind);
     persist();
     return true;
   }
