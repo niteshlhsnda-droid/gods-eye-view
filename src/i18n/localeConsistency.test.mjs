@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   SUPPORTED_LOCALES,
   lookupKey,
@@ -28,6 +31,42 @@ function flatKeys(table, prefix = '') {
   }
   return keys.sort();
 }
+
+test('no locale file repeats a key inside one object block (DS-10 regression)', () => {
+  // A duplicated key in one object literal is silently overwritten by the
+  // parser (later wins), so the dead first value can only be caught at the
+  // source level. DS-10: every locale's `alerts` block shipped `title`,
+  // `quakesRow`, `flyoversRow`, `cyclonesRow`, `saved`, `unavailable` twice.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  for (const code of Object.keys(LOCALES)) {
+    const src = readFileSync(path.join(here, 'locales', `${code}.js`), 'utf8');
+    // Indent-aware block tracking: a key belongs to the nearest enclosing
+    // block whose opening indent is smaller.
+    const frames = [{ indent: -1, keys: new Set() }];
+    const dupes = [];
+    for (const line of src.split('\n')) {
+      const close = line.match(/^(\s*)\},?\s*$/);
+      if (close) {
+        const n = close[1].length;
+        while (frames.length > 1 && frames[frames.length - 1].indent >= n)
+          frames.pop();
+        continue;
+      }
+      const keyed = line.match(/^(\s*)([A-Za-z_$][\w$]*)\s*:/);
+      if (!keyed) continue;
+      const n = keyed[1].length;
+      const key = keyed[2];
+      const opensBlock = /:\s*\{\s*$/.test(line);
+      while (frames.length > 1 && frames[frames.length - 1].indent >= n)
+        frames.pop();
+      const frame = frames[frames.length - 1];
+      if (frame.keys.has(key)) dupes.push(`${' '.repeat(n)}${key}`);
+      else frame.keys.add(key);
+      if (opensBlock) frames.push({ indent: n, keys: new Set() });
+    }
+    assert.deepEqual(dupes, [], `${code} repeats keys:\n${dupes.join('\n')}`);
+  }
+});
 
 test('all four locales carry exactly the English key set', () => {
   const reference = flatKeys(en);

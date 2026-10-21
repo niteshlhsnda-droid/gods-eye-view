@@ -2,10 +2,11 @@
  * Alert providers — pure detection logic for Alert Me.
  *
  * Quakes poll the same USGS feed the earthquakes layer uses; flyovers
- * propagate the satellites layer's TLE catalog with satellite.js. Cyclone
- * landfalls are a documented scaffold: there is no cyclone layer or feed in
- * the app yet, so the provider reports `not-configured` instead of faking
- * data. Push notifications are explicitly deferred (see index.js).
+ * propagate the satellites layer's TLE catalog with satellite.js. Cyclones
+ * alert on every newly-appearing active storm from the NHC active-storms
+ * feed — there is no landfall or proximity gate behind the alert, so the
+ * row must never be labelled "landfalls" (DS-09). Push notifications are
+ * explicitly deferred (see index.js).
  */
 import {
   twoline2satrec,

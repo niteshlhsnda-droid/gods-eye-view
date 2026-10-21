@@ -1,10 +1,12 @@
 /**
- * Alert Me — subscription center for quakes, satellite flyovers, and cyclone
- * landfalls.
+ * Alert Me — subscription center for quakes, satellite flyovers, and
+ * new tropical cyclones.
  *
- * Toasts now; push notifications explicitly later. `getPushStatus()` /
- * `requestPushPermission()` document the deferred milestone and never prompt
- * the user today.
+ * The cyclone row alerts on every newly-appearing active storm — there is
+ * no landfall or proximity gate behind it (DS-09), so the label must never
+ * promise landfalls. Toasts now; push notifications explicitly later.
+ * `getPushStatus()` / `requestPushPermission()` document the deferred
+ * milestone and never prompt the user today.
  */
 import {
   filterNewQuakes,

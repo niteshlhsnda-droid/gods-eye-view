@@ -10,10 +10,6 @@ export default {
     clearLayers: 'Borrar las capas de datos seleccionadas',
     share: 'Compartir esta escena',
     story: 'Modo historia',
-    storyTitle: 'Ver «Anatomy of a Cyclone»',
-    alertMe: 'Avísame',
-    alertMeTitle: 'Avisos en pantalla de terremotos, satélites y ciclones',
-    story: 'Modo historia',
     storyTitle: 'Abrir la línea de tiempo del modo historia',
     alertMe: 'Avísame',
     alertMeTitle: 'Suscribirse a alertas de terremotos, satélites y ciclones',
@@ -42,7 +38,6 @@ export default {
     next: 'Diapositiva siguiente',
     playPause: 'Reproducir o pausar',
     close: 'Cerrar historia',
-    unavailable: 'El modo historia no está disponible ahora',
   },
   tour: {
     search: {
@@ -68,11 +63,11 @@ export default {
   },
   alerts: {
     title: 'Avísame',
-    quakesRow: 'Terremotos (M5.0+)',
-    flyoversRow: 'Pasos de satélites',
+    quakesRow: 'Terremotos (M5.0 o más)',
+    flyoversRow: 'Pasos de satélites (estaciones por encima)',
     cyclonesRow: 'Nuevos ciclones tropicales',
-    saved: 'Preferencias de alerta guardadas',
-    unavailable: 'Las alertas no están disponibles ahora',
+    saved: 'Preferencias de avisos guardadas',
+    unavailable: 'Los avisos no están disponibles ahora',
     cycloneTitle: 'Nuevo ciclón tropical',
     cyclone: '{{name}} ({{classification}}) — vientos de {{windKt}} nudos',
     quake: 'Terremoto M{{mag}} — {{place}}',
@@ -81,13 +76,6 @@ export default {
     unsubscribe: 'Dejar de avisar',
     pushLater:
       'Las notificaciones push llegarán más tarde — por ahora, avisos en pantalla.',
-    title: 'Avísame',
-    quakesRow: 'Terremotos (M5.0 o más)',
-    flyoversRow: 'Pasos de satélites (estaciones por encima)',
-    cyclonesRow: 'Aterrizajes de ciclones',
-    cyclonesComing: 'Necesita una fuente de tormentas activas — próximamente',
-    saved: 'Preferencias de avisos guardadas',
-    unavailable: 'Los avisos no están disponibles ahora',
   },
   lang: {
     label: 'Idioma',

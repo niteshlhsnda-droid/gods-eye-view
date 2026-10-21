@@ -10,10 +10,6 @@ export default {
     clearLayers: 'Clear selected data layers',
     share: 'Share this scene',
     story: 'Story mode',
-    storyTitle: 'Watch “Anatomy of a Cyclone”',
-    alertMe: 'Alert me',
-    alertMeTitle: 'Toast alerts for quakes, flyovers and cyclones',
-    story: 'Story mode',
     storyTitle: 'Open the Story Mode timeline',
     alertMe: 'Alert me',
     alertMeTitle: 'Subscribe to quake, flyover and cyclone alerts',
@@ -42,7 +38,6 @@ export default {
     next: 'Next slide',
     playPause: 'Play or pause',
     close: 'Close story',
-    unavailable: 'Story mode is unavailable right now',
   },
   tour: {
     search: {
@@ -68,8 +63,8 @@ export default {
   },
   alerts: {
     title: 'Alert me',
-    quakesRow: 'Earthquakes (M5.0+)',
-    flyoversRow: 'Satellite flyovers',
+    quakesRow: 'Earthquakes (M5.0 and up)',
+    flyoversRow: 'Satellite flyovers (stations overhead)',
     cyclonesRow: 'New tropical cyclones',
     saved: 'Alert preferences saved',
     unavailable: 'Alerts are unavailable right now',
@@ -80,13 +75,6 @@ export default {
     subscribe: 'Alert me',
     unsubscribe: 'Stop alerts',
     pushLater: 'Push notifications are coming later — toasts for now.',
-    title: 'Alert me',
-    quakesRow: 'Earthquakes (M5.0 and up)',
-    flyoversRow: 'Satellite flyovers (stations overhead)',
-    cyclonesRow: 'Cyclone landfalls',
-    cyclonesComing: 'Needs an active-storms feed — coming soon',
-    saved: 'Alert preferences saved',
-    unavailable: 'Alerts are unavailable right now',
   },
   lang: {
     label: 'Language',

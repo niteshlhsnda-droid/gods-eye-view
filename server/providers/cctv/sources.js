@@ -464,10 +464,13 @@ function pickOntarioCctvView(views) {
 }
 
 /**
- * Fetch Ontario 511 CCTV cameras. Keyless: the catalog is exposed by the
- * public 511 API, while frame URLs are stable still-image endpoints under
- * 511on.ca/map/Cctv/. Only rows with finite Ontario coords and at least one
- * enabled official still view are kept.
+ * Fetch Ontario 511 CCTV cameras. PAUSED: the 511on.ca cameras API now
+ * requires a developer key (it answers HTTP 400 keyless), so the keyless
+ * fetch below currently returns []. The pack is hidden from advertised
+ * coverage until a key is provisioned — see PX-01. Frame URLs, when live,
+ * are stable still-image endpoints under 511on.ca/map/Cctv/. Only rows
+ * with finite Ontario coords and at least one enabled official still view
+ * are kept.
  *
  * @returns {Promise<Array<object>>} Normalized camera source objects.
  */
