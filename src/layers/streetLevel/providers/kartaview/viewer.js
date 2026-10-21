@@ -214,7 +214,11 @@ export function createKartaViewViewer({
         (id) => {
           if (photo === target && button && !id) disable(button);
         },
-        () => {},
+        () => {
+          /* checkEnds is a best-effort neighbour pre-warm: a failed step
+             leaves the button enabled and the real click surfaces the error
+             to the viewer. (F-14 burn-down: documented fail-safe.) */
+        },
       );
   }
 

@@ -410,7 +410,11 @@ export function createProjection({
     for (const record of layerState._records) {
       if (!record.projection?.video) continue;
       if (record.camera.id === activeId && layerState._enabled) {
-        record.projection.video.play().catch(() => {});
+        record.projection.video.play().catch(() => {
+          /* Autoplay denial is expected on some browsers (no user gesture yet);
+             the projection keeps its last frame and retries on the next user
+             interaction. (F-14 burn-down: documented fail-safe.) */
+        });
       } else {
         const runtime = record.projection;
         destroyProjectionRuntime(runtime);

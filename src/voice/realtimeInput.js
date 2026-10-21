@@ -226,7 +226,11 @@ export class RealtimeInput {
     try {
       const context = new AudioContextClass();
       this.visualizerAudioContext = context;
-      context.resume().catch(() => {});
+      context.resume().catch(() => {
+        /* Visualizer-only context: a denied resume leaves the voice bars
+           flat; the voice session itself is unaffected.
+           (F-14 burn-down: documented fail-safe.) */
+      });
       const analyser = context.createAnalyser();
       analyser.fftSize = 64;
       analyser.smoothingTimeConstant = 0.72;
@@ -349,7 +353,11 @@ export class RealtimeInput {
     this.visualizerOutputData = null;
     this.visualizerSpeaker = 'idle';
     if (this.visualizerAudioContext) {
-      this.visualizerAudioContext.close().catch(() => {});
+      this.visualizerAudioContext.close().catch(() => {
+        /* Teardown: a close() failure on the visualizer context is
+           meaningless — the reference is dropped unconditionally.
+           (F-14 burn-down: documented fail-safe.) */
+      });
       this.visualizerAudioContext = null;
     }
     resetVoiceVisualizerBars(

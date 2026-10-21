@@ -61,7 +61,12 @@ export function createMapSourceControls({
     renderMapStackChips(container, controller.getStacks(), {
       activeId: controller.getActiveId(),
       onSelect: (id) => {
-        void select(id).catch(() => {});
+        void select(id).catch((err) => {
+          // A user-initiated map-stack switch must never fail silently:
+          // the chip stays visibly active while the switch failed.
+          // (F-14 burn-down: real fix per the Cycle-1 ruling.)
+          console.warn('[mapSourceControls] map-stack select failed', err);
+        });
       },
       bind,
     });

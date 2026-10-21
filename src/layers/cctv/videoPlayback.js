@@ -52,7 +52,11 @@ export function attachCctvVideo(
   const play = () => {
     if (disposed) return;
     clearTimeout(startup);
-    video.play().catch(() => {});
+    video.play().catch(() => {
+      /* Autoplay denial is expected on some browsers; the 30 s startup timer
+         and the 'error' listener still bound the failure visibly.
+         (F-14 burn-down: documented fail-safe.) */
+    });
   };
   video.addEventListener('canplay', play);
   video.addEventListener('error', fail);
