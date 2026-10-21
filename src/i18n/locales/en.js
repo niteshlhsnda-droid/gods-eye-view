@@ -46,7 +46,7 @@ export default {
     },
     layers: {
       title: 'Data layers',
-      body: 'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated or archival data — check its label.',
+      body: 'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated, continuous or recorded data — check its label.',
     },
     share: {
       title: 'Share a scene',

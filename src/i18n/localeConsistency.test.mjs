@@ -138,3 +138,22 @@ test('applyI18n paints data-i18n attributes', async () => {
   assert.deepEqual(painted, ['Share this scene']);
   applyI18n(null);
 });
+
+test('tour.layers.body teaches only canonical label vocabulary (CG-17 regression)', () => {
+  // docs/Rules.md's canonical label vocabulary: LIVE · CONTINUOUS · SNAPSHOT ·
+  // SIMULATED · PROPAGATED · STALE · PRELIMINARY · VINTAGE UNKNOWN + RECORDED.
+  // CG-17: the onboarding tour taught "archival" (en) / "de archivo" (es, pt) /
+  // "पुरालेख" (hi) — a word no layer ever displays and which is not in the
+  // vocabulary. Fails on the pre-fix sources.
+  const banned = ['archival', 'de archivo', 'पुरालेख'];
+  for (const [name, table] of Object.entries(LOCALES)) {
+    const body = table.tour?.layers?.body;
+    assert.ok(body, `${name} has tour.layers.body`);
+    for (const word of banned) {
+      assert.ok(
+        !body.toLowerCase().includes(word),
+        `${name} tour.layers.body teaches non-canonical word "${word}"`
+      );
+    }
+  }
+});

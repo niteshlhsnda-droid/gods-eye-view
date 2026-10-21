@@ -42,7 +42,7 @@ export function buildTourSteps(t = translate) {
       title: tr('tour.layers.title', 'Data layers'),
       description: tr(
         'tour.layers.body',
-        'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated or archival data — check its label.',
+        'Toggle aircraft, vessels, satellites, earthquakes, CCTV and more. Each layer shows live, snapshot, simulated, continuous or recorded data — check its label.',
       ),
     },
     {

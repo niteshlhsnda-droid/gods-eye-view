@@ -46,7 +46,7 @@ export default {
     },
     layers: {
       title: 'Capas de datos',
-      body: 'Activa aviones, barcos, satélites, terremotos, CCTV y más. Cada capa muestra datos en vivo, instantáneas, simulados o de archivo — consulta su etiqueta.',
+      body: 'Activa aviones, barcos, satélites, terremotos, CCTV y más. Cada capa muestra datos en vivo, instantáneas, simulados, continuos o grabados — consulta su etiqueta.',
     },
     share: {
       title: 'Comparte una escena',
