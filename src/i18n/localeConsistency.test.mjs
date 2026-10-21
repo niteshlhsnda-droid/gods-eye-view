@@ -88,9 +88,32 @@ test('no locale ships an empty string', () => {
   }
 });
 
-test('interpolation keeps unknown vars in place', () => {
-  assert.equal(interpolate('M{{mag}} — {{place}}', { mag: 6.1 }), 'M6.1 — {{place}}');
+test('interpolation degrades missing/null vars to empty, never raw placeholders (DS-23)', () => {
+  assert.equal(
+    interpolate('M{{mag}} — {{place}}', { mag: 6.1 }),
+    'M6.1 — ',
+  );
+  assert.equal(
+    interpolate('M{{mag}} — {{place}}', { mag: 6.1, place: null }),
+    'M6.1 — ',
+  );
   assert.equal(interpolate('plain', {}), 'plain');
+  assert.equal(interpolate('M{{mag}}', null), 'M');
+});
+
+test('t() survives null vars and null-valued vars without raw placeholders (DS-23)', async () => {
+  __resetI18nForTests();
+  await initI18n({ lng: 'en' });
+  // Arm 1: explicit null vars must not throw (vars ?? {} normalization).
+  const nullVars = t('alerts.quake', null);
+  assert.equal(typeof nullVars, 'string');
+  assert.doesNotMatch(nullVars, /\{\{/);
+  // Arm 2: null property values must not leak the raw placeholder.
+  const nullProp = t('alerts.quake', { place: null });
+  assert.equal(typeof nullProp, 'string');
+  assert.doesNotMatch(nullProp, /\{\{/);
+  const allNull = t('alerts.quake', { mag: null, place: null });
+  assert.doesNotMatch(allNull, /\{\{/);
 });
 
 test('t() falls back to English, then to the key', async () => {

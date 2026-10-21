@@ -216,9 +216,16 @@ test('empty and blank-only input is rejected', () => {
   );
 });
 
-test('non-string input throws TypeError', () => {
-  assert.throws(() => parseGeoJsonLines(null), TypeError);
-  assert.throws(() => parseGeoJsonLines(42), TypeError);
+test('non-string input throws a typed GeoJsonLinesError (DS-24)', () => {
+  for (const bad of [null, undefined, 5]) {
+    assert.throws(
+      () => parseGeoJsonLines(bad),
+      (error) =>
+        error instanceof GeoJsonLinesError &&
+        error.message === 'GeoJSONL import needs text.',
+      `parseGeoJsonLines(${String(bad)}) must refuse typed`,
+    );
+  }
 });
 
 test('feature limit is enforced with the line number', () => {

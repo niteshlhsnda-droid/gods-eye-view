@@ -2809,7 +2809,11 @@ export function createBhoteKoshiEventLayer({
 
   function handlePlay() {
     if (_presentation === BHOTE_KOSHI_SCENE_PRESENTATION) {
-      void playSceneShot();
+      // CP-06: a replayShot rejection must not die as an unhandled rejection
+      // while the panel re-syncs healthy in `finally`.
+      void playSceneShot().catch((error) => {
+        console.warn('[Data:BhoteKoshi] Scene-shot playback failed:', error);
+      });
       return;
     }
     togglePlayback();
@@ -2817,7 +2821,10 @@ export function createBhoteKoshiEventLayer({
 
   function handlePrevious() {
     if (_presentation === BHOTE_KOSHI_SCENE_PRESENTATION) {
-      void navigateSceneShot(-1);
+      // CP-05: same surfacing for the prev/next navigation rejections.
+      void navigateSceneShot(-1).catch((error) => {
+        console.warn('[Data:BhoteKoshi] Scene-shot navigation failed:', error);
+      });
       return;
     }
     jumpToEvidenceBeat(-1);
@@ -2825,7 +2832,9 @@ export function createBhoteKoshiEventLayer({
 
   function handleNext() {
     if (_presentation === BHOTE_KOSHI_SCENE_PRESENTATION) {
-      void navigateSceneShot(1);
+      void navigateSceneShot(1).catch((error) => {
+        console.warn('[Data:BhoteKoshi] Scene-shot navigation failed:', error);
+      });
       return;
     }
     jumpToEvidenceBeat(1);

@@ -2273,6 +2273,28 @@ test('Bhote Koshi repeated event frames perform no panel lookup, DOM write, or c
   }
 });
 
+test('Bhote Koshi scene-shot buttons surface rejections instead of dying silently (CP-05/CP-06)', async () => {
+  const source = await readFile(eventModuleUrl, 'utf8');
+  // navigateSceneShot/playSceneShot are try+finally with no catch: without a
+  // .catch on the fire-and-forget `void` call, a loadAdjacentShot/replayShot
+  // rejection is an unhandled rejection while the panel re-syncs healthy.
+  for (const call of [
+    'void playSceneShot().catch(',
+    'void navigateSceneShot(-1).catch(',
+    'void navigateSceneShot(1).catch(',
+  ]) {
+    assert.ok(
+      source.includes(call),
+      `${call}…) must attach a .catch that surfaces the error (CP-05/CP-06)`,
+    );
+  }
+  assert.match(
+    source,
+    /void playSceneShot\(\)\.catch\(\(error\) => \{\s*console\.warn\([^;]*Scene-shot playback failed/,
+    'the play-button .catch must surface the rejection',
+  );
+});
+
 test('Bhote Koshi frame path keeps evidence lookup scalar and wrapper-free', async () => {
   const source = await readFile(eventModuleUrl, 'utf8');
   assert.doesNotMatch(source, /#ffd166/i, 'event UI no longer publishes the prototype yellow');
