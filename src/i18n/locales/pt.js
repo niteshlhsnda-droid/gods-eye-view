@@ -46,7 +46,7 @@ export default {
     },
     layers: {
       title: 'Camadas de dados',
-      body: 'Ative aviões, navios, satélites, terremotos, CCTV e mais. Cada camada mostra dados ao vivo, instantâneos, simulados ou de arquivo — veja o rótulo dela.',
+      body: 'Ative aviões, navios, satélites, terremotos, CCTV e mais. Cada camada mostra dados ao vivo, instantâneos, simulados, contínuos ou gravados — veja o rótulo dela.',
     },
     share: {
       title: 'Compartilhe uma cena',
