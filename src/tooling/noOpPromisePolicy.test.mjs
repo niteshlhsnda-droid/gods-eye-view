@@ -63,7 +63,7 @@ test('parsePolicy accepts the shipped v1 policy (positive control)', async () =>
     'noop-catch-named',
     'noop-then-fulfillment',
   ]);
-  assert.equal(parsed.allowlist.length, 82);
+  assert.equal(parsed.allowlist.length, 81);
   assert.equal(parsed.rules.length, 5);
   assert.ok(
     parsed.allowlist.every((entry) => typeof entry.reason === 'string'),
