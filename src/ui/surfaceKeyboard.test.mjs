@@ -21,9 +21,21 @@ function fixture() {
     isConnected: true,
     hidden: false,
     disabled: false,
+    matchesDisabled: false,
+    tabindex: null,
+    inertAncestor: false,
     focusCalls: [],
     hasAttribute(name) {
       return name === 'disabled' && this.disabled;
+    },
+    getAttribute(name) {
+      return name === 'tabindex' ? this.tabindex : null;
+    },
+    matches(selector) {
+      return selector === ':disabled' && this.matchesDisabled;
+    },
+    closest(selector) {
+      return selector === '[inert]' && this.inertAncestor ? {} : null;
     },
     getClientRects() {
       return this.hidden ? [] : [{}];
@@ -218,4 +230,31 @@ test('destroy is permanent, releases its listener and never restores focus', () 
   const e = f.event('Tab');
   handler(e);
   assert.equal(e.defaultPrevented, false);
+});
+
+test('Tab skips fieldset-disabled children, numeric negative tabindex and inert descendants (GM-03 upstream port)', () => {
+  const f = fixture();
+  f.controller.activate();
+  const fieldsetDisabled = f.node();
+  fieldsetDisabled.matchesDisabled = true;
+  const negativeTabindex = f.node();
+  negativeTabindex.tabindex = '-2';
+  const inertChild = f.node();
+  inertChild.inertAncestor = true;
+  const good = f.node();
+  f.setControls([fieldsetDisabled, negativeTabindex, inertChild, good]);
+  f.opener.focus();
+  f.send('Tab');
+  assert.equal(
+    f.documentRef.activeElement,
+    good,
+    'excluded controls come first in the candidate list — cycling must skip all three',
+  );
+  f.opener.focus();
+  f.send('Tab', { shiftKey: true });
+  assert.equal(
+    f.documentRef.activeElement,
+    good,
+    'reverse cycling skips the excluded controls too',
+  );
 });
