@@ -682,6 +682,27 @@
   letter-spacing: 0.8px;
 }
 
+/* GM-13 fix: off-state feed buttons must not inherit --text-dim (2.45:1).
+   Each state keeps its state color whether or not the layer is .active;
+   :not(.active) scoping means the .active.feed-* rules (identical colors,
+   more specific in combination) are untouched — no visual change to active
+   buttons. loading takes --text-primary (14.0:1); the rest mirror their
+   .active.feed-* colors, verified ≥7:1 on the same composite. */
+.data-toggle-btn.feed-loading:not(.active) {
+  color: #e8eaed;
+}
+.data-toggle-btn.feed-stale:not(.active),
+.data-toggle-btn.feed-partial:not(.active),
+.data-toggle-btn.feed-fallback:not(.active) {
+  color: #ffd27a;
+}
+.data-toggle-btn.feed-degraded:not(.active) {
+  color: #ffad72;
+}
+.data-toggle-btn.feed-unavailable:not(.active) {
+  color: #ff8585;
+}
+
 .data-toggle-btn:hover {
   border-color: var(--glass-border-hover);
   background: rgba(255, 255, 255, 0.06);
