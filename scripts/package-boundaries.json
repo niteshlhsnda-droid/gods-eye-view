@@ -1450,7 +1450,6 @@
       "./maps/controller",
       "./maps/catalog",
       "./maps/imagery",
-      "src/layers/cctv/cameraLabelHonesty.js",
       "./maps/terrain",
       "./maps/3d",
       "./maps/defaults"
