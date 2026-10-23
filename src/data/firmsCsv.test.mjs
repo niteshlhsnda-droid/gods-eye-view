@@ -181,3 +181,20 @@ for (const fixture of contractCases) {
     );
   });
 }
+
+test('FZ-02/DS-01: blank or unparseable FRP parses to null, never a measured 0', () => {
+  const header =
+    'latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight';
+  const blankFrp =
+    '34.123,-117.456,321.5,1.2,0.8,2026-07-16,1045,Aqua,MODIS,78,6.1NRT,290.25,,D';
+  const junkFrp =
+    '34.123,-117.456,321.5,1.2,0.8,2026-07-16,1045,Aqua,MODIS,78,6.1NRT,290.25,n/a,D';
+  const zeroFrp =
+    '34.123,-117.456,321.5,1.2,0.8,2026-07-16,1045,Aqua,MODIS,78,6.1NRT,290.25,0,D';
+  const [b] = parseFirmsCsv(`${header}\n${blankFrp}\n`);
+  const [j] = parseFirmsCsv(`${header}\n${junkFrp}\n`);
+  const [z] = parseFirmsCsv(`${header}\n${zeroFrp}\n`);
+  assert.equal(b.frp, null, 'blank FRP cell → null');
+  assert.equal(j.frp, null, 'junk FRP cell → null');
+  assert.equal(z.frp, 0, 'measured zero FRP stays 0');
+});
