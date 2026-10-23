@@ -1,5 +1,48 @@
 import { resolvePublicUrl } from '../data/assetBase.js';
 
+/** Build the voice control independently of its connection backend. */
+export function createVoiceControl({ reset = false } = {}) {
+  let root = document.getElementById('gev-voice-control');
+  if (root && reset) {
+    root.remove();
+    root = null;
+  }
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'gev-voice-control';
+    root.dataset.status = 'idle';
+    root.dataset.speaker = 'idle';
+    root.innerHTML = voiceControlMarkup();
+    const commandDock = document.getElementById('command-dock');
+    if (commandDock) {
+      const locationBar = document.getElementById('location-bar');
+      const controlPanel = document.getElementById('control-panel');
+      commandDock.appendChild(root);
+      if (locationBar) commandDock.insertBefore(locationBar, root);
+      if (controlPanel) commandDock.appendChild(controlPanel);
+    } else {
+      document.body.appendChild(root);
+    }
+    root
+      .querySelector('.gev-voice-error-dismiss')
+      ?.addEventListener('click', () => {
+        root.classList.add('error-dismissed');
+      });
+  }
+  return {
+    root,
+    button: root.querySelector('#gev-voice-button'),
+    buttonLabel: root.querySelector('.gev-mic-label'),
+    status: root.querySelector('#gev-voice-status'),
+    detail: root.querySelector('#gev-voice-detail'),
+    helpDetail: root.querySelector('.gev-voice-help-detail'),
+    errorDetail: root.querySelector('#gev-voice-error-detail'),
+    tierButton: root.querySelector('#gev-voice-tier'),
+    costValue: root.querySelector('#gev-voice-cost-value'),
+    card: root.querySelector('#gev-voice-card'),
+  };
+}
+
 /**
  * Render the voice-control markup. Pure (no DOM) so the injected asset
  * references are unit-testable.
@@ -63,47 +106,4 @@ export function voiceControlMarkup() {
         <div class="gev-voice-error-hint">Check microphone permission and network access, then try again.</div>
       </div>
     `;
-}
-
-/** Build the voice control independently of its connection backend. */
-export function createVoiceControl({ reset = false } = {}) {
-  let root = document.getElementById('gev-voice-control');
-  if (root && reset) {
-    root.remove();
-    root = null;
-  }
-  if (!root) {
-    root = document.createElement('div');
-    root.id = 'gev-voice-control';
-    root.dataset.status = 'idle';
-    root.dataset.speaker = 'idle';
-    root.innerHTML = voiceControlMarkup();
-    const commandDock = document.getElementById('command-dock');
-    if (commandDock) {
-      const locationBar = document.getElementById('location-bar');
-      const controlPanel = document.getElementById('control-panel');
-      commandDock.appendChild(root);
-      if (locationBar) commandDock.insertBefore(locationBar, root);
-      if (controlPanel) commandDock.appendChild(controlPanel);
-    } else {
-      document.body.appendChild(root);
-    }
-    root
-      .querySelector('.gev-voice-error-dismiss')
-      ?.addEventListener('click', () => {
-        root.classList.add('error-dismissed');
-      });
-  }
-  return {
-    root,
-    button: root.querySelector('#gev-voice-button'),
-    buttonLabel: root.querySelector('.gev-mic-label'),
-    status: root.querySelector('#gev-voice-status'),
-    detail: root.querySelector('#gev-voice-detail'),
-    helpDetail: root.querySelector('.gev-voice-help-detail'),
-    errorDetail: root.querySelector('#gev-voice-error-detail'),
-    tierButton: root.querySelector('#gev-voice-tier'),
-    costValue: root.querySelector('#gev-voice-cost-value'),
-    card: root.querySelector('#gev-voice-card'),
-  };
 }
