@@ -78,7 +78,12 @@ export function createLifecycle({
       layerState._voiceRestoring = false;
       parts.tuning.endRadioTuning();
       const closedTuningNoise = layerState._tuningNoiseContext?.close?.();
-      if (closedTuningNoise?.catch) void closedTuningNoise.catch(() => {});
+      if (closedTuningNoise?.catch)
+        void closedTuningNoise.catch(() => {
+          /* Teardown path: a close() failure on an already-destroying
+             AudioContext is meaningless — the context reference is dropped
+             unconditionally below. (F-14 burn-down: documented fail-safe.) */
+        });
       layerState._tuningNoiseContext = null;
       if (layerState._audio) layerState._audio.volume = DEFAULT_RADIO_VOLUME;
       layerState._audio = null;

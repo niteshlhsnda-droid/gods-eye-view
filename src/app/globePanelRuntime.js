@@ -623,7 +623,11 @@ export function panelRuntime(config) {
       mode: displayMode === 'fullscreen' ? 'inline' : 'fullscreen',
     }).then(
       (result) => showDisplayMode({ displayMode: result?.mode }),
-      () => {},
+      () => {
+        /* Display-mode requests are best-effort: a denied fullscreen request
+           leaves the panel inline, which is a safe, complete state — no error
+           surface needed. (F-14 burn-down: documented fail-safe.) */
+      },
     );
   });
 
