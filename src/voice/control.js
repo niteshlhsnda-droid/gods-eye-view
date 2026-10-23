@@ -1,3 +1,5 @@
+import { resolvePublicUrl } from '../data/assetBase.js';
+
 /** Build the voice control independently of its connection backend. */
 export function createVoiceControl({ reset = false } = {}) {
   let root = document.getElementById('gev-voice-control');
@@ -10,7 +12,47 @@ export function createVoiceControl({ reset = false } = {}) {
     root.id = 'gev-voice-control';
     root.dataset.status = 'idle';
     root.dataset.speaker = 'idle';
-    root.innerHTML = `
+    root.innerHTML = voiceControlMarkup();
+    const commandDock = document.getElementById('command-dock');
+    if (commandDock) {
+      const locationBar = document.getElementById('location-bar');
+      const controlPanel = document.getElementById('control-panel');
+      commandDock.appendChild(root);
+      if (locationBar) commandDock.insertBefore(locationBar, root);
+      if (controlPanel) commandDock.appendChild(controlPanel);
+    } else {
+      document.body.appendChild(root);
+    }
+    root
+      .querySelector('.gev-voice-error-dismiss')
+      ?.addEventListener('click', () => {
+        root.classList.add('error-dismissed');
+      });
+  }
+  return {
+    root,
+    button: root.querySelector('#gev-voice-button'),
+    buttonLabel: root.querySelector('.gev-mic-label'),
+    status: root.querySelector('#gev-voice-status'),
+    detail: root.querySelector('#gev-voice-detail'),
+    helpDetail: root.querySelector('.gev-voice-help-detail'),
+    errorDetail: root.querySelector('#gev-voice-error-detail'),
+    tierButton: root.querySelector('#gev-voice-tier'),
+    costValue: root.querySelector('#gev-voice-cost-value'),
+    card: root.querySelector('#gev-voice-card'),
+  };
+}
+
+/**
+ * Render the voice-control markup. Pure (no DOM) so the injected asset
+ * references are unit-testable.
+ * H-05: the mic-orbit `<img>` resolves against the Vite deploy base
+ * (`/gods-eye-view/` on the Pages subpath, `/` in dev) — the root-absolute
+ * `/mic.svg` 404'd on live.
+ */
+export function voiceControlMarkup() {
+  const micSrc = resolvePublicUrl('/mic.svg');
+  return `
       <div class="gev-voice-heading">
         <div class="gev-voice-kicker">AI AGENT</div>
         <div id="gev-voice-status">OFF</div>
@@ -20,7 +62,7 @@ export function createVoiceControl({ reset = false } = {}) {
         </div>
       </div>
       <button id="gev-voice-button" type="button" aria-label="Voice control — activate to toggle voice; hold Space to speak" aria-describedby="gev-voice-help">
-        <span class="gev-mic-orbit"><img src="/mic.svg" alt="" /></span>
+        <span class="gev-mic-orbit"><img src="${micSrc}" alt="" /></span>
         <span class="gev-mic-label">ON/OFF</span>
       </button>
       <div class="gev-voice-visualizer" aria-hidden="true">
@@ -64,32 +106,4 @@ export function createVoiceControl({ reset = false } = {}) {
         <div class="gev-voice-error-hint">Check microphone permission and network access, then try again.</div>
       </div>
     `;
-    const commandDock = document.getElementById('command-dock');
-    if (commandDock) {
-      const locationBar = document.getElementById('location-bar');
-      const controlPanel = document.getElementById('control-panel');
-      commandDock.appendChild(root);
-      if (locationBar) commandDock.insertBefore(locationBar, root);
-      if (controlPanel) commandDock.appendChild(controlPanel);
-    } else {
-      document.body.appendChild(root);
-    }
-    root
-      .querySelector('.gev-voice-error-dismiss')
-      ?.addEventListener('click', () => {
-        root.classList.add('error-dismissed');
-      });
-  }
-  return {
-    root,
-    button: root.querySelector('#gev-voice-button'),
-    buttonLabel: root.querySelector('.gev-mic-label'),
-    status: root.querySelector('#gev-voice-status'),
-    detail: root.querySelector('#gev-voice-detail'),
-    helpDetail: root.querySelector('.gev-voice-help-detail'),
-    errorDetail: root.querySelector('#gev-voice-error-detail'),
-    tierButton: root.querySelector('#gev-voice-tier'),
-    costValue: root.querySelector('#gev-voice-cost-value'),
-    card: root.querySelector('#gev-voice-card'),
-  };
 }

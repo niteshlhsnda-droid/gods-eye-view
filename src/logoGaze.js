@@ -111,7 +111,13 @@ export function initLogoGaze(root = document) {
 
   const loadInlineLogos = async () => {
     try {
-      const source = logos[0].dataset.logoSrc || '/logo.svg';
+      // The build rebases data-logo-src to the deploy base (H-02); the
+      // sibling <img> carries the same Vite-rewritten URL, so prefer it as
+      // the fallback over a root-absolute guess that 404s on subpaths.
+      const source =
+        logos[0].dataset.logoSrc ||
+        logos[0].querySelector('img')?.getAttribute('src') ||
+        '/logo.svg';
       const response = await window.fetch(source);
       if (!response.ok) return;
       const markup = await response.text();

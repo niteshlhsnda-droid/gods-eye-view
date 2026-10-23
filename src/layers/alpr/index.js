@@ -14,6 +14,7 @@ import {
   boxContains,
   destinationPointDeg,
   alprRetryDelayMs,
+  isRetryableAlprError,
   validateAlprSnapshot,
   alprCreditMarkup,
 } from './model.js';
@@ -273,11 +274,32 @@ export function createAlprCamerasLayer({ source, services } = {}) {
       )
         return;
       state.stale = Boolean(state.lastUpdate);
+      if (isUnavailableCapability(error)) {
+        // Permanent session capability miss: show it, never retry (unchanged).
+        setAlprStatus(
+          'unavailable',
+          error?.message || 'Camera source temporarily unavailable',
+        );
+        return;
+      }
+      if (isRetryableAlprError(error)) {
+        setAlprStatus(
+          'unavailable',
+          error?.message || 'Camera source temporarily unavailable',
+        );
+        scheduleUnavailableRetry();
+        return;
+      }
+      // Deterministic fault (malformed payload, validation throw, bad tile
+      // metadata, bounded-viewport guard): retrying re-runs the identical
+      // path forever, and the retry banner would mislabel it as a camera
+      // *fetch* failure (H-01). Surface it as an error with the real message
+      // and no retry scheduled, so no banner renders.
+      clearUnavailableRetry();
       setAlprStatus(
-        'unavailable',
-        error?.message || 'Camera source temporarily unavailable',
+        'error',
+        error?.message || 'Camera source returned an unusable response',
       );
-      if (!isUnavailableCapability(error)) scheduleUnavailableRetry();
     } finally {
       if (state.abort === requestAbort) {
         state.abort = null;
@@ -479,6 +501,7 @@ export {
   boxContains,
   destinationPointDeg,
   alprRetryDelayMs,
+  isRetryableAlprError,
   isAlprSurveillanceType,
   normalizeAlprNode,
   buildOverpassQuery,

@@ -55,6 +55,40 @@ export function alprRetryDelayMs(prevDelayMs) {
 }
 
 /**
+ * The ALPR source's transient failure messages: rate limits, timeouts and
+ * other "try again later" outcomes from the Overpass fetch path. Anything
+ * else the layer throws is a deterministic fault — a malformed payload, a
+ * post-fetch validation throw, bad tile metadata, the bounded-viewport
+ * geometry guard — and retrying it re-runs the identical path forever while
+ * the retry banner mislabels it as a camera *fetch* failure (H-01).
+ */
+const TRANSIENT_ALPR_MESSAGES = new Set([
+  'Overpass rate-limited',
+  'Overpass timed out',
+  'Overpass temporarily unavailable',
+]);
+
+/**
+ * Whether an ALPR fetch error is worth retrying with backoff.
+ * Pure so the classification is pinnable without booting the layer.
+ */
+export function isRetryableAlprError(error) {
+  if (error == null) return false;
+  // The source layer can mark outcomes explicitly (see sources/capability.js).
+  if (error.retryable === true) return true;
+  if (error.retryable === false) return false;
+  const message = String(error?.message ?? '');
+  if (TRANSIENT_ALPR_MESSAGES.has(message)) return true;
+  // Browser network failures are transient; the bounded-viewport TypeError is
+  // a programming condition, so it must not match this arm.
+  if (message === 'ALPR requires a bounded city viewport') return false;
+  return (
+    error instanceof TypeError &&
+    /failed to fetch|network|load failed/i.test(message)
+  );
+}
+
+/**
  * Whether a `surveillance:type` value denotes an ALPR camera. OSM allows
  * semicolon multi-values (`camera;ALPR`) and mixed case, so an exact match
  * would silently miss tagged cameras.

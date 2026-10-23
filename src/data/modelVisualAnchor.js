@@ -1,4 +1,5 @@
 import * as Cesium from 'cesium';
+import { resolvePublicUrl } from './assetBase.js';
 /**
  * Model-space visual centres measured from the shipped GLBs' scene-space AABBs.
  *
@@ -10,9 +11,12 @@ import * as Cesium from 'cesium';
  */
 const CENTERED_MODEL = Object.freeze([0, 0, 0]);
 
+// H-06: keys ride the same deploy-base-resolved URL strings as the model
+// constants (`visualCenterForModel(url)` / `trailAnchorForModel(url)` are
+// exact-match lookups, so the keys must stay in sync by construction).
 export const MODEL_VISUAL_CENTER_NATIVE = Object.freeze({
-  '/models/airplane.glb': CENTERED_MODEL,
-  '/models/jet.glb': CENTERED_MODEL,
+  [resolvePublicUrl('/models/airplane.glb')]: CENTERED_MODEL,
+  [resolvePublicUrl('/models/jet.glb')]: CENTERED_MODEL,
 });
 
 /**
@@ -60,14 +64,20 @@ export const MODEL_VISUAL_CENTER_NATIVE = Object.freeze({
  * re-guess, when an asset changes.
  */
 export const MODEL_TRAIL_ANCHOR_NATIVE = Object.freeze({
-  '/models/airplane.glb': Object.freeze([24.0879, -2.2163, 0]),
-  '/models/jet.glb': Object.freeze([18.9103, 0.1266, 0]),
-  '/models/bell206.glb': Object.freeze([5.2077, -0.0005, 0]),
-  '/models/c172.glb': Object.freeze([3.6816, -0.2425, 0]),
-  '/models/citation2.glb': Object.freeze([6.8804, -0.6136, 0]),
-  '/models/mq9.glb': Object.freeze([5.1951, -1.1516, 0]),
-  '/models/b789.glb': Object.freeze([30.1007, -3.4814, 0]),
-  '/models/atr72.glb': Object.freeze([12.9785, -1.2935, 0]),
+  [resolvePublicUrl('/models/airplane.glb')]: Object.freeze([
+    24.0879, -2.2163, 0,
+  ]),
+  [resolvePublicUrl('/models/jet.glb')]: Object.freeze([18.9103, 0.1266, 0]),
+  [resolvePublicUrl('/models/bell206.glb')]: Object.freeze([
+    5.2077, -0.0005, 0,
+  ]),
+  [resolvePublicUrl('/models/c172.glb')]: Object.freeze([3.6816, -0.2425, 0]),
+  [resolvePublicUrl('/models/citation2.glb')]: Object.freeze([
+    6.8804, -0.6136, 0,
+  ]),
+  [resolvePublicUrl('/models/mq9.glb')]: Object.freeze([5.1951, -1.1516, 0]),
+  [resolvePublicUrl('/models/b789.glb')]: Object.freeze([30.1007, -3.4814, 0]),
+  [resolvePublicUrl('/models/atr72.glb')]: Object.freeze([12.9785, -1.2935, 0]),
 });
 
 /** @constant Cesium's OWN axis correction for a glTF loaded with the

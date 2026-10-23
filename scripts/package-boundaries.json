@@ -863,6 +863,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -909,6 +910,7 @@
     "modules": [
       "src/cyberSonar.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -950,6 +952,7 @@
     "exports": ["./aircraft"],
     "modules": [
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
       "src/data/aircraftNearbyPolicy.js",
@@ -1249,6 +1252,7 @@
       "src/data/iconOrientation.js",
       "src/data/trackingClickGesture.js",
       "src/layers/cctv/calibration.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/cctv/cards.js",
       "src/layers/cctv/catalog.js",
       "src/layers/cctv/controls.js",
@@ -1483,6 +1487,7 @@
       "src/voice/realtimeBackend.js",
       "src/voice/cloudVoiceAuth.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/layerSummary.js",
       "src/voice/voiceCost.js",
       "src/voice/commands.js",
@@ -2073,6 +2078,7 @@
       "src/layers/submarineCables/interaction.js",
       "src/layers/submarineCables/lifecycle.js",
       "src/layers/submarineCables/overlay.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/submarineCables/policy.js",
       "src/layers/submarineCables/rendering.js",
       "src/layers/submarineCables/state.js",
@@ -2370,6 +2376,7 @@
       "src/voice/cloudVoiceAuth.js",
       "src/voice/commands.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/deixis.js",
       "src/voice/earcon.js",
       "src/voice/gevActions.js",
@@ -2491,6 +2498,7 @@
       "src/cyberSonar.js",
       "src/data/adminBoundaries.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js",
       "src/data/aircraftIcons.js",
       "src/data/aircraftMeta.js",
@@ -2876,6 +2884,7 @@
       "src/layers/traffic/controls.js",
       "src/layers/traffic/flow.js",
       "src/layers/traffic/flowDecode.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/traffic/flowSource.js",
       "src/layers/traffic/footprint.js",
       "src/layers/traffic/index.js",
@@ -3164,6 +3173,7 @@
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js"
     ],
     "external": []
@@ -3186,6 +3196,7 @@
       "src/data/aircraftMeta.js",
       "src/data/renderAltitude.js",
       "src/data/aircraftClass.js",
+      "src/data/assetBase.js",
       "src/data/aircraftEmergency.js"
     ],
     "external": []
@@ -3284,6 +3295,7 @@
       "src/voice/sessionCommands.js",
       "src/voice/session.js",
       "src/voice/control.js",
+      "src/data/assetBase.js",
       "src/voice/voiceCard.js",
       "src/voice/voiceCardPresentation.js",
       "src/voice/resultDisplay.js",

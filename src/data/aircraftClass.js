@@ -6,6 +6,7 @@
  * C17/K35R in the widebody set. Category fallbacks cover the OpenSky extended
  * integer category (states index 17) and ADS-B emitter strings ("A1".."B1").
  */
+import { resolvePublicUrl } from './assetBase.js';
 
 const HELI = new Set([
   'EC20',
@@ -484,18 +485,21 @@ export const CLASS_SCALE_3D = {
 
 /** Per-class glTF — all the shared airplane today; drop real assets in here.
  *  NOTE for future models: each asset may need its own heading offset (the
- *  shared GLB uses MODEL_HEADING_OFFSET_DEG = 180 in both layers). */
+ *  shared GLB uses MODEL_HEADING_OFFSET_DEG = 180 in both layers).
+ *  H-06: URLs resolve against the Vite deploy base (`/gods-eye-view/` on the
+ *  Pages subpath, `/` in dev) so the 3D-model fetch doesn't 404 on live. */
+const SHARED_AIRPLANE_URL = resolvePublicUrl('/models/airplane.glb');
 export const CLASS_MODEL_URL = {
-  light: '/models/airplane.glb',
-  glider: '/models/airplane.glb',
-  turboprop: '/models/airplane.glb',
-  airliner: '/models/airplane.glb',
-  widebody: '/models/airplane.glb',
-  quadjet: '/models/airplane.glb',
-  helicopter: '/models/airplane.glb',
-  fastjet: '/models/airplane.glb',
-  bizjet: '/models/airplane.glb',
-  uav: '/models/airplane.glb',
+  light: SHARED_AIRPLANE_URL,
+  glider: SHARED_AIRPLANE_URL,
+  turboprop: SHARED_AIRPLANE_URL,
+  airliner: SHARED_AIRPLANE_URL,
+  widebody: SHARED_AIRPLANE_URL,
+  quadjet: SHARED_AIRPLANE_URL,
+  helicopter: SHARED_AIRPLANE_URL,
+  fastjet: SHARED_AIRPLANE_URL,
+  bizjet: SHARED_AIRPLANE_URL,
+  uav: SHARED_AIRPLANE_URL,
 };
 
 /** Real per-class GLBs (2026-08-15 Hangar fleet, owner picks; CC-BY 4.0 —
@@ -509,10 +513,34 @@ export const CLASS_MODEL_URL = {
  *  pinned by modelScale.test.mjs. Classes NOT listed (airliner, quadjet,
  *  glider, fastjet) still render the shared airplane.glb via CLASS_MODEL_URL. */
 export const CLASS_MODEL_REAL = {
-  helicopter: { url: '/models/bell206.glb', bellyM: 1.66, radiusM: 8.24 },
-  light: { url: '/models/c172.glb', bellyM: 1.36, radiusM: 7.0 },
-  bizjet: { url: '/models/citation2.glb', bellyM: 2.86, radiusM: 11.24 },
-  uav: { url: '/models/mq9.glb', bellyM: 2.02, radiusM: 12.0 },
-  widebody: { url: '/models/b789.glb', bellyM: 7.81, radiusM: 44.08 },
-  turboprop: { url: '/models/atr72.glb', bellyM: 3.81, radiusM: 19.49 },
+  helicopter: {
+    url: resolvePublicUrl('/models/bell206.glb'),
+    bellyM: 1.66,
+    radiusM: 8.24,
+  },
+  light: {
+    url: resolvePublicUrl('/models/c172.glb'),
+    bellyM: 1.36,
+    radiusM: 7.0,
+  },
+  bizjet: {
+    url: resolvePublicUrl('/models/citation2.glb'),
+    bellyM: 2.86,
+    radiusM: 11.24,
+  },
+  uav: {
+    url: resolvePublicUrl('/models/mq9.glb'),
+    bellyM: 2.02,
+    radiusM: 12.0,
+  },
+  widebody: {
+    url: resolvePublicUrl('/models/b789.glb'),
+    bellyM: 7.81,
+    radiusM: 44.08,
+  },
+  turboprop: {
+    url: resolvePublicUrl('/models/atr72.glb'),
+    bellyM: 3.81,
+    radiusM: 19.49,
+  },
 };
