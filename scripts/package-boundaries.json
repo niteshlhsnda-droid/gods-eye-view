@@ -1252,6 +1252,7 @@
       "src/data/iconOrientation.js",
       "src/data/trackingClickGesture.js",
       "src/layers/cctv/calibration.js",
+      "src/layers/cctv/cameraLabelHonesty.js",
       "src/layers/cctv/cards.js",
       "src/layers/cctv/catalog.js",
       "src/layers/cctv/controls.js",
