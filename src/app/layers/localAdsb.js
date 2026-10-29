@@ -8,6 +8,7 @@ import * as trails from '../../data/trailRenderer.js';
 import * as geoid from '../../data/geoid.js';
 import { markDetectionSourcesChanged } from '../../data/detection.js';
 import { refreshTrackedReadout } from '../../data/trackedReadout.js';
+import { resolvePublicUrl } from '../../data/assetBase.js';
 
 /**
  * Construct the Local ADS-B layer, the browser RTL-SDR session it shares with
@@ -25,8 +26,9 @@ export function createApplicationLocalAdsb({
   surface = null,
   enrichment = null,
   displayParams = null,
-  resolveAsset = (url) =>
-    `${import.meta.env?.BASE_URL || '/'}${url.replace(/^\//, '')}`,
+  // H-06: the shared idempotent resolver — model-URL constants are already
+  // base-resolved, so this must not prefix a second time in the Pages build.
+  resolveAsset = resolvePublicUrl,
 } = {}) {
   return createLocalAdsbLayer({
     receiver,

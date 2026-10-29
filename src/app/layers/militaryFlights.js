@@ -11,14 +11,16 @@ import * as readout from '../../data/trackedReadout.js';
 import * as context from '../../data/contextStore.js';
 import * as render from '../../renderGovernor.js';
 import * as recession from '../../data/aircraftRecession.js';
+import { resolvePublicUrl } from '../../data/assetBase.js';
 
 /** Construct one layer using the application scene owners and a supplied source. */
 export function createApplicationMilitary({
   surface,
   source,
   militaryRegistry,
-  resolveAsset = (url) =>
-    `${import.meta.env?.BASE_URL || '/'}${url.replace(/^\//, '')}`,
+  // H-06: the shared idempotent resolver — model-URL constants are already
+  // base-resolved, so this must not prefix a second time in the Pages build.
+  resolveAsset = resolvePublicUrl,
 }) {
   const { groundFloor, meshFloor, groundSnap } = surface;
   return createMilitaryFlightLayer({

@@ -80,7 +80,12 @@ export function createTuningNoise({
     if (!layerState._tuningNoiseContext)
       layerState._tuningNoiseContext = new AudioContextClass();
     const resumed = layerState._tuningNoiseContext.resume?.();
-    if (resumed?.catch) void resumed.catch(() => {});
+    if (resumed?.catch)
+      void resumed.catch(() => {
+        /* Resume denial is environmental (autoplay policy); tuning static is
+           decorative — the radio keeps working without it.
+           (F-14 burn-down: documented fail-safe.) */
+      });
     if (layerState._tuningNoiseSource) return true;
 
     const frameCount = Math.max(
@@ -132,7 +137,12 @@ export function createTuningNoise({
     syncTuningNoiseGain();
     stopTuningNoiseSource();
     const suspended = layerState._tuningNoiseContext?.suspend?.();
-    if (suspended?.catch) void suspended.catch(() => {});
+    if (suspended?.catch)
+      void suspended.catch(() => {
+        /* Teardown-adjacent path: a suspend() failure while the noise source
+           is already stopped has no observable effect.
+           (F-14 burn-down: documented fail-safe.) */
+      });
     if (emit) parts.presentation.emitState();
   }
   return {

@@ -393,7 +393,9 @@ const LAYERS = [
     source: 'src/data/militaryFlights.js',
     asset: (() => {
       const src = readLayerSource(path.join(ROOT, 'src/data/militaryFlights.js'));
-      const m = src.match(/\bconst JET_MODEL_URL = '([^']+)';/);
+      // H-06: the constant may wrap the literal in resolvePublicUrl('...') so
+      // the URL rides the Vite deploy base; extract the asset path either way.
+      const m = src.match(/\bconst JET_MODEL_URL = (?:resolvePublicUrl\()?['"]([^'"]+)['"]\)?;/);
       assert.ok(m, 'militaryFlights.js: JET_MODEL_URL not found');
       return m[1];
     })(),

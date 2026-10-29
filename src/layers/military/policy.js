@@ -7,6 +7,7 @@ export {
 } from './recordPolicy.js';
 import * as Cesium from 'cesium';
 import { EMERGENCY_TINT_CSS } from '../../data/aircraftEmergency.js';
+import { resolvePublicUrl } from '../../data/assetBase.js';
 
 /**
  * @module militaryFlights
@@ -72,7 +73,9 @@ export const GROUND_SCALE = 0.8;
 // can't tank the frame (no instancing yet). Distinct asset + amber tint set this layer
 // apart from the commercial flights layer.
 
-export const JET_MODEL_URL = '/models/jet.glb';
+// H-06: resolve against the Vite deploy base (`/gods-eye-view/` on the Pages
+// subpath, `/` in dev) — the root-absolute URL 404'd on live.
+export const JET_MODEL_URL = resolvePublicUrl('/models/jet.glb');
 
 export const MODEL_ALT_CEIL_M = 800000;
 // m: below this camera altitude, draw 3D models (raised so it's easy to trigger)
@@ -136,7 +139,9 @@ export const MODEL_COLOR_BLEND_AMOUNT = 0.94;
 // asset has its former 24× runtime calibration baked into transform-applied
 // meter-scale geometry; these values mirror flights.js and are regression-pinned.
 
-export const PLANE_MODEL_URL = '/models/airplane.glb';
+// H-06: resolve against the Vite deploy base (`/gods-eye-view/` on the Pages
+// subpath, `/` in dev) — the root-absolute URL 404'd on live.
+export const PLANE_MODEL_URL = resolvePublicUrl('/models/airplane.glb');
 
 export const PLANE_MODEL_SCALE = 1;
 

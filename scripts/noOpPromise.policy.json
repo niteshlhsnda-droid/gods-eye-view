@@ -90,8 +90,8 @@
       "file": "src/app/globePanelRuntime.js",
       "class": "noop-catch-anonymous",
       "line": 624,
-      "reason": "PENDING REVIEW: display-mode request rejection ignored without a note",
-      "review": "2026-11-18"
+      "reason": "Display-mode requests are best-effort: a denied fullscreen request leaves the panel inline, a safe complete state. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/app/startupChrome.js",
@@ -110,7 +110,7 @@
     {
       "file": "src/data/geoFileImport.js",
       "class": "noop-catch-anonymous",
-      "line": 557,
+      "line": 568,
       "reason": "reader-cancel failure during error teardown is meaningless; the GeoImportError is thrown",
       "review": "2027-01-19"
     },
@@ -195,8 +195,8 @@
       "file": "src/layers/cctv/projection.js",
       "class": "noop-catch-anonymous",
       "line": 413,
-      "reason": "PENDING REVIEW: video.play() rejection swallowed with no comment — likely autoplay-denial, needs an in-code note or a logged warning",
-      "review": "2026-11-18"
+      "reason": "video.play() autoplay denial is expected pre-gesture; the projection keeps its last frame and retries on next interaction. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/cctv/videoPlayback.js",
@@ -209,8 +209,8 @@
       "file": "src/layers/cctv/videoPlayback.js",
       "class": "noop-catch-anonymous",
       "line": 55,
-      "reason": "PENDING REVIEW: video.play() rejection swallowed with no comment — likely autoplay-denial, needs an in-code note or a logged warning",
-      "review": "2026-11-18"
+      "reason": "video.play() autoplay denial is expected; the 30s startup timer and error listener still bound the failure visibly. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/flights/enrichment.js",
@@ -285,9 +285,9 @@
     {
       "file": "src/layers/radio/lifecycle.js",
       "class": "noop-catch-anonymous",
-      "line": 81,
-      "reason": "PENDING REVIEW: tuning-noise close failure swallowed without a note",
-      "review": "2026-11-18"
+      "line": 82,
+      "reason": "Teardown path: close() failure on an already-destroying AudioContext is meaningless; the reference is dropped unconditionally. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/radio/playback.js",
@@ -299,16 +299,16 @@
     {
       "file": "src/layers/radio/tuningNoise.js",
       "class": "noop-catch-anonymous",
-      "line": 83,
-      "reason": "PENDING REVIEW: AudioContext resume failure swallowed without a note",
-      "review": "2026-11-18"
+      "line": 84,
+      "reason": "Resume denial is environmental (autoplay policy); tuning static is decorative, radio keeps working. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/radio/tuningNoise.js",
       "class": "noop-catch-anonymous",
-      "line": 135,
-      "reason": "PENDING REVIEW: AudioContext suspend failure swallowed without a note",
-      "review": "2026-11-18"
+      "line": 141,
+      "reason": "Teardown-adjacent: suspend() failure while the noise source is already stopped has no observable effect. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/recentImagery/index.js",
@@ -335,8 +335,8 @@
       "file": "src/layers/streetLevel/providers/kartaview/viewer.js",
       "class": "noop-catch-anonymous",
       "line": 213,
-      "reason": "PENDING REVIEW: step() rejection swallowed in checkEnds without a note",
-      "review": "2026-11-18"
+      "reason": "checkEnds is a best-effort neighbour pre-warm; a failed step leaves buttons enabled and the real click surfaces the error. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/layers/traffic/flow.js",
@@ -537,7 +537,7 @@
     {
       "file": "src/ui/applicationShell.js",
       "class": "noop-catch-anonymous",
-      "line": 1572,
+      "line": 1716,
       "reason": "experience lane is progressive enhancement (in-code comment)",
       "review": "2027-01-19"
     },
@@ -554,13 +554,6 @@
       "line": 264,
       "reason": "queue chain guard: later navigation must still win after a failed batch",
       "review": "2027-01-19"
-    },
-    {
-      "file": "src/ui/mapSourceControls.js",
-      "class": "noop-catch-anonymous",
-      "line": 64,
-      "reason": "PENDING REVIEW: select() rejection from a user click swallowed silently — needs a comment or a user-visible error",
-      "review": "2026-11-18"
     },
     {
       "file": "src/voice/realtimeBackend.js",
@@ -587,15 +580,15 @@
       "file": "src/voice/realtimeInput.js",
       "class": "noop-catch-anonymous",
       "line": 229,
-      "reason": "PENDING REVIEW: AudioContext.resume() failure swallowed without a note",
-      "review": "2026-11-18"
+      "reason": "Visualizer-only context: a denied resume leaves the voice bars flat; the voice session is unaffected. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/voice/realtimeInput.js",
       "class": "noop-catch-anonymous",
-      "line": 352,
-      "reason": "PENDING REVIEW: AudioContext.close() failure swallowed without a note",
-      "review": "2026-11-18"
+      "line": 356,
+      "reason": "Teardown: close() failure on the visualizer context is meaningless; the reference is dropped unconditionally. Documented fail-safe (F-14 burn-down, in-code comment).",
+      "review": "2027-01-19"
     },
     {
       "file": "src/warroom/index.js",
