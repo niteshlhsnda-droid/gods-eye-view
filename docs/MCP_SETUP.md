@@ -57,6 +57,17 @@ Diego in God's Eye View with military flights on."*
   the live globe; the first load takes 10–20 seconds.
 - Claude Code and the Codex CLI answer with data and a link.
 
+## Scope and limits
+
+The MCP tools are generic layer, scene and query operations (30 tools on the
+MCP surface): they answer questions from the app's live public data and show
+views on the globe. They do not build general event reconstructions — the only
+bundled event pack is the Bhote Koshi 2026 flood. Follow and cockpit views are
+live-only: there is no recorded ADS-B playback, so a past flight cannot be
+replayed from a recording. Any reconstruction built from this data is a
+visualisation, not the truth — without the aircraft's black-box telemetry, much
+of what happened stays unknown.
+
 ## Troubleshooting
 
 - **The server does not appear:** run the command from step 2 in a terminal;
