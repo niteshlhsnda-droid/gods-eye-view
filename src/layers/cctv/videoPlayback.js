@@ -13,9 +13,14 @@ export function attachCctvVideo(
   video.loop = feedType !== 'hls';
   let disposed = false;
   let hls = null;
-  const leaseId = feedType === 'hls' ? globalThis.crypto.randomUUID() : null;
+  // The lease belongs to the server HLS puller (server/providers/cctv/stream.js
+  // sessions), not to upstream hosts: a direct upstream HLS URL must never
+  // gain a lease query param or a DELETE release — both are proxy protocol.
+  const isProxyMedia = url.startsWith('/api/');
+  const leaseId =
+    feedType === 'hls' && isProxyMedia ? globalThis.crypto.randomUUID() : null;
   const mediaUrl =
-    feedType === 'hls'
+    leaseId !== null
       ? `${url}${url.includes('?') ? '&' : '?'}lease=${leaseId}`
       : url;
   let timer = null;
@@ -23,7 +28,7 @@ export function attachCctvVideo(
   let governor = null;
   let retries = 0;
   const release = () => {
-    if (feedType === 'hls') {
+    if (leaseId !== null) {
       void fetchImpl?.(mediaUrl, { method: 'DELETE', keepalive: true }).catch(
         () => {},
       );

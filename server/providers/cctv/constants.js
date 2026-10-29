@@ -267,6 +267,42 @@ export const NORWAY_ANCHORS = [
   { lat: 69.6492, lon: 18.9553 }, // Tromsø
 ];
 
+/**
+ * Oregon DOT TripCheck: one keyless statewide CCTV inventory (ArcGIS-style
+ * JSON) published as the map's own data asset; still images refresh at
+ * /RoadCams/cams/<filename>. ODOT publishes TripCheck data free for public
+ * integration (XML/JSON); the formal TripCheck Data API product is a
+ * separate keyed subscription and is NOT used here. Inventory refreshes
+ * every 24 hours per ODOT's feed table, so membership in the inventory is
+ * itself the liveness signal — no per-image verification runs at load.
+ * Still images only: the inventory's videoId refers to TripCheck's own
+ * player, not a direct stream URL, and is never mapped to a video feed.
+ */
+export const TRIPCHECK_INVENTORY_URL =
+  'https://tripcheck.com/Scripts/map/data/cctvinventory.js';
+export const TRIPCHECK_IMAGE_ORIGIN = 'https://tripcheck.com';
+export const TRIPCHECK_IMAGE_PATH = '/RoadCams/cams/';
+export const DEFAULT_TRIPCHECK_MAX_SOURCES = 1000;
+export const TRIPCHECK_ANCHORS = [
+  { lat: 45.5152, lon: -122.6784 }, // Portland
+  { lat: 44.9429, lon: -123.0351 }, // Salem
+  { lat: 44.0521, lon: -123.0868 }, // Eugene
+  { lat: 44.0582, lon: -121.3153 }, // Bend
+  { lat: 42.3265, lon: -122.8756 }, // Medford
+  { lat: 46.1879, lon: -123.8313 }, // Astoria
+];
+/**
+ * AviationWX airport weathercams: one keyless bulk catalog (anonymous tier:
+ * 50 req/min, no key; a partner key only raises limits). Each webcam is a
+ * ~60-second refreshing still frame served from the API itself, so the
+ * loader HEAD-verifies every image URL at build time and drops dead ones.
+ * Partner-contributed images remain the partners' property; AviationWX's
+ * API terms require attribution to AviationWX.org, which the loader sets
+ * as the credit. Feed type is 'image' (CONTINUOUS, never LIVE).
+ */
+export const AVIATIONWX_BULK_URL =
+  'https://api.aviationwx.org/v1/weathercam/bulk?operator=aviationwx';
+export const AVIATIONWX_IMAGE_ORIGIN = 'https://api.aviationwx.org';
 /** DelDOT CCTV: one keyless statewide JSON catalog; live video via RTMP-over-HTTP (rtmpt:80). */
 export const DELDOT_CCTV_URL = 'https://tmc.deldot.gov/json/videocamera.json';
 export const DEFAULT_DELDOT_MAX_SOURCES = 300;

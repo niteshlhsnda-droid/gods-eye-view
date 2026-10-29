@@ -65,6 +65,13 @@ import {
   DEFAULT_VEGVESEN_MAX_SOURCES,
   VEGVESEN_MAX_CATALOG_BYTES,
   NORWAY_ANCHORS,
+  TRIPCHECK_INVENTORY_URL,
+  TRIPCHECK_IMAGE_ORIGIN,
+  TRIPCHECK_IMAGE_PATH,
+  DEFAULT_TRIPCHECK_MAX_SOURCES,
+  TRIPCHECK_ANCHORS,
+  AVIATIONWX_BULK_URL,
+  AVIATIONWX_IMAGE_ORIGIN,
 } from './constants.js';
 import {
   toFiniteNumber,
@@ -1865,4 +1872,229 @@ export async function loadVegvesenSourcesFromOpenData() {
     );
     return [];
   }
+}
+
+/**
+ * Oregon DOT TripCheck: keyless statewide CCTV inventory. Each feature's
+ * attributes carry filename, latitude, longitude, route, and title; the
+ * still image lives at /RoadCams/cams/<filename> on the same origin.
+ * Feed type is 'image' (a refreshing snapshot is CONTINUOUS, never LIVE).
+ * Entries without a safe filename or Oregon-plausible coordinates are
+ * dropped, never shipped. The pack is anchor-prioritized like Vegvesen so
+ * a cap keeps statewide coverage rather than just the first inventory
+ * region; the default 1000 keeps the merged catalog under the 5000
+ * ceiling when the snapshot is built with CCTV_MAX_SOURCES=5000.
+ */
+export async function loadTripcheckSourcesFromOpenData() {
+  try {
+    // The inventory is a .js asset, not a .json endpoint: asking for
+    // application/json earns an HTTP 406, so accept anything.
+    const resp = await fetch(TRIPCHECK_INVENTORY_URL, {
+      headers: { Accept: '*/*' },
+      signal: AbortSignal.timeout(CCTV_SOURCE_FETCH_TIMEOUT_MS),
+      redirect: 'error',
+    });
+    if (!resp.ok) {
+      console.warn('[CCTV] TripCheck inventory download failed:', resp.status);
+      return [];
+    }
+    const payload = await readResponseJsonCapped(resp, 2 * 1024 * 1024);
+    const features = Array.isArray(payload?.features) ? payload.features : [];
+    if (!features.length) return [];
+    const cameras = [];
+    for (const feature of features) {
+      const attrs = feature?.attributes;
+      if (!attrs || typeof attrs !== 'object') continue;
+      const filename = String(attrs.filename || '').trim();
+      // Allowlist: a bare JPEG filename, no slashes, no traversal. Spaces
+      // and '@' occur in real inventory filenames (e.g. "I-5@Goshen_…jpg")
+      // and are encoded at URL build time.
+      if (!/^[A-Za-z0-9_.@\- ]+\.jpg$/i.test(filename)) continue;
+      const lat = toFiniteNumber(attrs.latitude);
+      const lon = toFiniteNumber(attrs.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      // Oregon bounding box — a bad upstream coord can't place a camera out of state.
+      if (lat < 41.9 || lat > 46.3 || lon < -124.6 || lon > -116.5) continue;
+      const cameraId = String(
+        attrs.cameraId ?? attrs.publishedImageId ?? '',
+      ).trim();
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(cameraId)) continue;
+      const title = String(attrs.title || '').trim();
+      const imageUrl = `${TRIPCHECK_IMAGE_ORIGIN}${TRIPCHECK_IMAGE_PATH}${encodeURI(filename)}`;
+      cameras.push({
+        id: `tripcheck-${cameraId.toLowerCase()}`,
+        name: title || `TripCheck camera ${cameraId}`,
+        city: 'Oregon',
+        cityId: '',
+        provider: 'Oregon DOT TripCheck',
+        lat,
+        lon,
+        feedType: 'image',
+        url: imageUrl,
+        snapshotUrl: imageUrl,
+        license: '',
+        credit: 'ODOT TripCheck',
+        sourceKind: 'tripcheck',
+      });
+    }
+    const maxRaw = Number(
+      process.env.CCTV_TRIPCHECK_MAX_SOURCES || DEFAULT_TRIPCHECK_MAX_SOURCES,
+    );
+    const maxCount = Number.isFinite(maxRaw)
+      ? Math.max(8, Math.min(1000, Math.floor(maxRaw)))
+      : DEFAULT_TRIPCHECK_MAX_SOURCES;
+    const prioritized = prioritizeSources(cameras, maxCount, TRIPCHECK_ANCHORS);
+    console.log(
+      `[CCTV] Loaded TripCheck camera sources: ${cameras.length} (using nearest ${prioritized.length})`,
+    );
+    return prioritized;
+  } catch (error) {
+    console.warn(
+      '[CCTV] TripCheck camera download error:',
+      error?.message || error,
+    );
+    return [];
+  }
+}
+
+/**
+ * AviationWX airport weathercams: keyless bulk catalog (anonymous tier).
+ * Every webcam image URL is HEAD-verified before it enters the catalog —
+ * a dead frame is dropped, counted, and reported, never shipped. The pack
+ * is small (~100 cameras), so no per-pack cap or anchor prioritization is
+ * needed; the catalog-wide cap still applies at merge time. Frames refresh
+ * about every 60 seconds, so feed type is 'image' (CONTINUOUS, never LIVE).
+ * Credit is AviationWX.org, as their API terms require attribution.
+ */
+export async function loadAviationWxSourcesFromOpenData() {
+  try {
+    const resp = await fetch(AVIATIONWX_BULK_URL, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(CCTV_SOURCE_FETCH_TIMEOUT_MS),
+      redirect: 'error',
+    });
+    if (!resp.ok) {
+      console.warn('[CCTV] AviationWX bulk download failed:', resp.status);
+      return [];
+    }
+    const payload = await readResponseJsonCapped(resp, 2 * 1024 * 1024);
+    const airports = Array.isArray(payload?.airports) ? payload.airports : [];
+    if (!airports.length) return [];
+    const candidates = [];
+    for (const airport of airports) {
+      if (!airport || typeof airport !== 'object') continue;
+      if (airport.maintenance === true) continue;
+      const lat = toFiniteNumber(airport.lat);
+      const lon = toFiniteNumber(airport.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      const webcams = Array.isArray(airport.webcams) ? airport.webcams : [];
+      for (const webcam of webcams) {
+        if (!webcam || typeof webcam !== 'object') continue;
+        let imageUrl;
+        try {
+          imageUrl = new URL(String(webcam.image_url || ''));
+        } catch {
+          continue;
+        }
+        if (
+          imageUrl.origin !== AVIATIONWX_IMAGE_ORIGIN ||
+          !/^\/v1\/airports\/[a-z0-9]+\/webcams\/\d+\/image$/.test(
+            imageUrl.pathname,
+          )
+        )
+          continue;
+        const index = String(webcam.index ?? '').trim();
+        if (!/^\d+$/.test(index)) continue;
+        const airportId = String(airport.id || '')
+          .trim()
+          .toLowerCase();
+        if (!/^[a-z0-9]{1,16}$/.test(airportId)) continue;
+        const heading = toFiniteNumber(webcam.approximate_heading, NaN);
+        candidates.push({
+          id: `aviationwx-${airportId}-${index}`,
+          name: String(webcam.name || `Webcam ${index}`).trim(),
+          city: String(airport.name || airportId).trim(),
+          cityId: '',
+          provider: 'AviationWX',
+          lat,
+          lon,
+          ...(Number.isFinite(heading)
+            ? {
+                headingDeg: ((heading % 360) + 360) % 360,
+                headingConfidence: 'medium',
+              }
+            : {}),
+          feedType: 'image',
+          url: imageUrl.href,
+          snapshotUrl: imageUrl.href,
+          license: '',
+          credit: 'AviationWX.org',
+          sourceKind: 'aviationwx',
+        });
+      }
+    }
+    // Liveness: HEAD each frame (GET fallback on 405/501). Concurrency is
+    // deliberately low (3): the anonymous tier allows 50 requests/minute,
+    // and 25-way concurrency through this VM's proxy timed every frame
+    // out (102/102 dropped on the first run). Retries cover 429s and
+    // timeouts; the catalog must not carry a dead airport frame.
+    const verified = [];
+    let dropped = 0;
+    let next = 0;
+    async function worker() {
+      while (next < candidates.length) {
+        const camera = candidates[next];
+        next += 1;
+        if (await aviationWxImageAlive(camera.url)) verified.push(camera);
+        else dropped += 1;
+      }
+    }
+    const workers = [];
+    for (let i = 0; i < 3; i += 1) workers.push(worker());
+    await Promise.all(workers);
+    console.log(
+      `[CCTV] Loaded AviationWX camera sources: ${candidates.length} candidates, ${verified.length} verified alive, ${dropped} dropped`,
+    );
+    return verified;
+  } catch (error) {
+    console.warn(
+      '[CCTV] AviationWX camera download error:',
+      error?.message || error,
+    );
+    return [];
+  }
+}
+
+async function aviationWxImageAlive(url) {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (attempt > 0) await sleep(1500);
+    try {
+      const head = await fetch(url, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(15000),
+        redirect: 'follow',
+      });
+      if (head.ok || (head.status >= 300 && head.status < 400)) return true;
+      if (head.status === 429) continue;
+      if (head.status === 405 || head.status === 501) {
+        const get = await fetch(url, {
+          method: 'GET',
+          signal: AbortSignal.timeout(15000),
+          redirect: 'follow',
+        });
+        try {
+          await get.body?.cancel();
+        } catch {
+          // Status is the signal; body handling is best-effort.
+        }
+        if (get.ok || (get.status >= 300 && get.status < 400)) return true;
+        if (get.status === 429) continue;
+      }
+      return false;
+    } catch {
+      // Timeout or network failure: one retry, then dead.
+    }
+  }
+  return false;
 }

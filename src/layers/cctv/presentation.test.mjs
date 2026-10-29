@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cctvFeedModeLabel, honestFeedModeToken } from './presentation.js';
+import {
+  cctvFeedModeLabel,
+  honestFeedModeToken,
+  createPresentation,
+} from './presentation.js';
 
 test('cctvFeedModeLabel: only HLS is a live stream', () => {
   assert.equal(cctvFeedModeLabel('hls'), 'LIVE STREAM');
@@ -51,4 +55,34 @@ test('honestFeedModeToken: a failed pipeline never reads live (Oct-15 lesson)', 
       `failed pipeline must not claim liveness (got ${token})`,
     );
   }
+});
+
+test('no-selection summary names a missing Windy key instead of hiding it', () => {
+  const state = {
+    _records: [{ id: 'austin-1' }],
+    _windyStatus: 'missing-key',
+    _windyCount: 0,
+    _cardIds: new Set(),
+  };
+  const parts = { selection: { getActiveRecord: () => null } };
+  const presentation = createPresentation({ state, parts });
+  const summary = presentation.buildSummaryText();
+  assert.match(summary, /CAMERAS STANDING BY/);
+  assert.match(summary, /WINDY WEBCAMS OFF: API KEY NOT CONFIGURED/);
+  const withKey = createPresentation({
+    state: { ...state, _windyStatus: 'ok', _windyCount: 3 },
+    parts,
+  });
+  assert.doesNotMatch(
+    withKey.buildSummaryText(),
+    /WINDY WEBCAMS OFF/,
+  );
+  // uiState maps records through the full camera-state builder, so check
+  // the payload fields against an empty record list.
+  const ui = createPresentation({
+    state: { ...state, _records: [] },
+    parts,
+  }).uiState();
+  assert.equal(ui.windyStatus, 'missing-key');
+  assert.equal(ui.windyCount, 0);
 });

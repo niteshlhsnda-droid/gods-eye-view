@@ -85,10 +85,17 @@ export function createCatalog({ state: layerState, services, parts, source }) {
       const signal = layerState._sourceAbort?.signal;
       const data = await source.getCatalog({ signal });
       signal?.throwIfAborted();
+      // Windy status rides the catalog payload: 'missing-key' means the
+      // per-load Windy fetch was skipped (no key configured) and the panel
+      // must say so instead of silently showing no Windy cameras.
+      layerState._windyStatus = data?.windyStatus || 'unknown';
+      layerState._windyCount = Number(data?.windyCount) || 0;
       if (!Array.isArray(data?.sources)) return [];
       return data.sources;
     } catch (error) {
       if (error?.name === 'AbortError') throw error;
+      layerState._windyStatus = 'unknown';
+      layerState._windyCount = 0;
       return [];
     }
   }
