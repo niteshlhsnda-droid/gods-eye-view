@@ -781,6 +781,45 @@ button.sl-status:focus-visible {
   display: none;
 }
 
+/* Sequence playback sits at the bottom centre: play, then its speed. */
+.sl-kv-play,
+.sl-kv-speed {
+  top: auto;
+  bottom: 8px;
+  height: 34px;
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.sl-kv-play {
+  left: calc(50% - 46px);
+}
+
+.sl-kv-speed {
+  left: calc(50% - 6px);
+  width: 52px;
+}
+
+/* The honest label, visible only while a sequence is playing. */
+.sl-kv-playback-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(10, 10, 15, 0.72);
+  color: #fff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sl-kv-playback-badge[hidden] {
+  display: none;
+}
+
 /* ── Short viewports ─────────────────────────────────────────────────────── */
 @media (max-height: 640px) {
   .street-level-panel-inner {

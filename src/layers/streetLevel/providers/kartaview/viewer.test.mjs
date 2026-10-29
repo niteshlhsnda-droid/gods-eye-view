@@ -64,6 +64,21 @@ const PHOTOS = {
       pano: 'https://storage13.openstreetcam.org/wrapped_proc/q.jpg',
     },
   },
+  lone1: {
+    id: 'lone1',
+    sequenceId: null,
+    sequenceIndex: 0,
+    lon: -83.04,
+    lat: 42.33,
+    heading: 90,
+    isPano: false,
+    capturedAt: Date.UTC(2016, 7, 23),
+    urls: {
+      view: 'https://storage2.openstreetcam.org/lth/l.jpg',
+      full: 'https://storage2.openstreetcam.org/proc/l.jpg',
+      pano: null,
+    },
+  },
 };
 
 function fakeRenderer(canvas) {
@@ -100,12 +115,34 @@ PHOTOS.pano2 = {
   },
 };
 
+/** Timers the test drives by hand: no real interval ever runs. */
+function fakeTimers() {
+  const timers = new Map();
+  let nextId = 1;
+  return {
+    timers,
+    setInterval(fn, ms) {
+      const id = nextId++;
+      timers.set(id, { fn, ms });
+      return id;
+    },
+    clearInterval(id) {
+      timers.delete(id);
+    },
+    /** Run every live timer's callback once, in creation order. */
+    async tickAll() {
+      for (const { fn } of [...timers.values()]) await fn();
+    },
+  };
+}
+
 function setup({
   failLoads = [],
   rendererThrows = false,
   steps = {},
   failSteps = false,
   hold = () => false,
+  timers,
 } = {}) {
   const loads = [];
   const held = [];
@@ -145,6 +182,7 @@ function setup({
       renderers.push(renderer);
       return renderer;
     },
+    ...(timers ? { timers } : {}),
   });
   const poses = [];
   viewer.onPose((pose) => poses.push(pose));
@@ -981,4 +1019,124 @@ test('a preview or sharper version nobody will draw is freed, not left decoded',
   assert.ok(await until(() => closed.length === 2));
   assert.match(closed[1], /rs:fit:2048/, 'the overtaken sharp version');
   assert.equal(renderers[0].images.length, 1, 'only the preview was drawn');
+});
+
+test('play steps through a sequence as labelled photo-sequence playback, then stops at its end', async () => {
+  const clock = fakeTimers();
+  const { viewer, host, stepped, poses } = setup({
+    timers: clock,
+    steps: {
+      'flat1:1': 'flat2',
+      'flat1:-1': null,
+      'flat2:1': null,
+      'flat2:-1': 'flat1',
+    },
+  });
+  await viewer.mount(host);
+  const [, , , , play, speed, badge] = host.children[0].children;
+  assert.equal(play.disabled, true, 'nothing to play before a photo shows');
+  assert.equal(badge.hidden, true);
+  await viewer.open('flat1');
+  assert.equal(play.disabled, false);
+  assert.equal(speed.textContent, '2 fps');
+  play.fire('click');
+  assert.equal(play.textContent, '❚❚');
+  assert.equal(badge.hidden, false);
+  assert.equal(badge.textContent, 'Photo sequence — not live video');
+  assert.equal([...clock.timers.values()][0].ms, 500, '2 fps by default');
+  await clock.tickAll();
+  assert.equal(await until(() => poses.at(-1)?.imageId === 'flat2'), true);
+  assert.deepEqual(stepped, ['flat2']);
+  // At the end: the next tick stops playback instead of stepping on.
+  await clock.tickAll();
+  assert.equal(badge.hidden, true);
+  assert.equal(play.textContent, '▶');
+  assert.equal(clock.timers.size, 0, 'the timer is cleared at the end');
+  assert.deepEqual(stepped, ['flat2']);
+});
+
+test('pause stops the stepping and speed cycles through 1, 2 and 4 fps', async () => {
+  const clock = fakeTimers();
+  const { viewer, host, stepped } = setup({
+    timers: clock,
+    steps: { 'flat1:1': 'flat2', 'flat2:1': null },
+  });
+  await viewer.mount(host);
+  const [, , , , play, speed, badge] = host.children[0].children;
+  await viewer.open('flat1');
+  play.fire('click');
+  await clock.tickAll();
+  assert.equal(await until(() => stepped.includes('flat2')), true);
+  // Pause: further ticks step nowhere and the timer is gone.
+  play.fire('click');
+  assert.equal(play.textContent, '▶');
+  assert.equal(badge.hidden, true);
+  assert.equal(clock.timers.size, 0, 'the timer is cleared on pause');
+  await clock.tickAll();
+  assert.deepEqual(stepped, ['flat2']);
+  // Speed cycles 2 → 4 → 1 → 2 fps, restarting the timer while playing.
+  assert.equal(speed.textContent, '2 fps');
+  speed.fire('click');
+  assert.equal(speed.textContent, '4 fps');
+  speed.fire('click');
+  assert.equal(speed.textContent, '1 fps');
+  speed.fire('click');
+  assert.equal(speed.textContent, '2 fps');
+  play.fire('click');
+  assert.equal([...clock.timers.values()][0].ms, 500);
+  speed.fire('click');
+  assert.equal(
+    [...clock.timers.values()][0].ms,
+    250,
+    '4 fps restarts the timer',
+  );
+  assert.equal(
+    clock.timers.size,
+    1,
+    'the old timer is cleared on a speed change',
+  );
+  viewer.close();
+});
+
+test('opening another photo stops playback', async () => {
+  const clock = fakeTimers();
+  const { viewer, host } = setup({
+    timers: clock,
+    steps: { 'flat1:1': 'flat2', 'flat2:1': null },
+  });
+  await viewer.mount(host);
+  const [, , , , play, , badge] = host.children[0].children;
+  await viewer.open('flat1');
+  play.fire('click');
+  assert.equal(badge.hidden, false);
+  await viewer.open('pano1');
+  assert.equal(badge.hidden, true);
+  assert.equal(play.textContent, '▶');
+  assert.equal(clock.timers.size, 0);
+});
+
+test('play stays disabled for a photo with no sequence', async () => {
+  const { viewer, host } = setup();
+  await viewer.mount(host);
+  const [, , , , play, speed, badge] = host.children[0].children;
+  await viewer.open('lone1');
+  assert.equal(play.disabled, true);
+  assert.equal(speed.disabled, true);
+  assert.equal(badge.hidden, true);
+});
+
+test('closing the viewer stops playback', async () => {
+  const clock = fakeTimers();
+  const { viewer, host } = setup({
+    timers: clock,
+    steps: { 'flat1:1': 'flat2' },
+  });
+  await viewer.mount(host);
+  const [, , , , play, , badge] = host.children[0].children;
+  await viewer.open('flat1');
+  play.fire('click');
+  assert.equal(badge.hidden, false);
+  viewer.close();
+  assert.equal(badge.hidden, true);
+  assert.equal(clock.timers.size, 0);
 });

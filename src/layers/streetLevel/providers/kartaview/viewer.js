@@ -100,6 +100,13 @@ export function panoSizeFor(canvasPixels, fovDeg) {
  * @param {(canvas: HTMLCanvasElement) => object} [options.createRenderer]
  * @returns {import('../../registry.js').ViewerAdapter}
  */
+/** Photos per second offered by sequence playback, in cycle order. */
+export const PLAYBACK_FPS_STEPS = Object.freeze([1, 2, 4]);
+/** The playback rate a fresh viewer starts at. */
+export const PLAYBACK_FPS_DEFAULT = 2;
+/** The honest label shown while a sequence plays: photos, never live video. */
+export const PLAYBACK_LABEL = 'Photo sequence — not live video';
+
 export function createKartaViewViewer({
   getPhoto,
   step,
@@ -109,6 +116,7 @@ export function createKartaViewViewer({
   render,
   load = loadImage,
   createRenderer = createPanoramaRenderer,
+  timers = {},
 }) {
   const listeners = new Set();
   let root = null;
@@ -145,6 +153,23 @@ export function createKartaViewViewer({
   let keepViewFor = null;
   /** ‹ › presses run one after another, each from where the last one went. */
   let steps = Promise.resolve();
+  /** Sequence playback controls (built with the viewer, null after teardown). */
+  let playButton = null;
+  let speedButton = null;
+  let playbackBadge = null;
+  /** True while a sequence is playing through its photos. */
+  let playing = false;
+  /** The playback timer id, or null when not playing. */
+  let playbackTimer = null;
+  /** Photos per second while playing. */
+  let playbackFps = PLAYBACK_FPS_DEFAULT;
+  /** A playback step is waiting on the step chain: ticks skip, never queue. */
+  let playbackStepPending = false;
+  /** The timer functions, injectable so tests drive ticks by hand. */
+  const setTimer =
+    timers.setInterval ?? ((fn, ms) => globalThis.setInterval(fn, ms));
+  const clearTimer =
+    timers.clearInterval ?? ((id) => globalThis.clearInterval(id));
 
   function requestRender() {
     render?.governorRequestRender?.('kartaview-viewer');
@@ -201,7 +226,68 @@ export function createKartaViewViewer({
     const enabled = Boolean(photo?.sequenceId) && showing !== null;
     if (prevButton) prevButton.disabled = !enabled;
     if (nextButton) nextButton.disabled = !enabled;
+    if (playButton) playButton.disabled = !enabled;
+    if (speedButton) speedButton.disabled = !enabled;
     if (enabled) checkEnds(photo);
+  }
+
+  /** Play/pause glyph, speed readout and badge follow the playback state. */
+  function syncPlayback() {
+    if (playButton) {
+      playButton.textContent = playing ? '❚❚' : '▶';
+      playButton.title = playing
+        ? 'Pause photo sequence'
+        : 'Play photo sequence (not live video)';
+      playButton.setAttribute('aria-label', playButton.title);
+    }
+    if (speedButton) speedButton.textContent = `${playbackFps} fps`;
+    if (playbackBadge) playbackBadge.hidden = !playing;
+  }
+
+  /** One playback frame: step forward, stopping at the sequence end. */
+  async function playbackTick() {
+    if (!playing || playbackStepPending) return;
+    playbackStepPending = true;
+    try {
+      const next = await stepBy(1);
+      // A lost press (undefined) retries on the next tick; null is the end.
+      if (next === null) stopPlayback();
+    } finally {
+      playbackStepPending = false;
+    }
+  }
+
+  function startPlayback() {
+    if (playing || !photo?.sequenceId || showing === null) return;
+    playing = true;
+    syncPlayback();
+    playbackTimer = setTimer(playbackTick, 1000 / playbackFps);
+  }
+
+  function stopPlayback() {
+    if (playbackTimer !== null) {
+      clearTimer(playbackTimer);
+      playbackTimer = null;
+    }
+    if (!playing) return;
+    playing = false;
+    syncPlayback();
+  }
+
+  function togglePlayback() {
+    if (playing) stopPlayback();
+    else startPlayback();
+  }
+
+  /** Cycle 1 → 2 → 4 photos per second, restarting the timer if playing. */
+  function cyclePlaybackSpeed() {
+    const at = PLAYBACK_FPS_STEPS.indexOf(playbackFps);
+    playbackFps = PLAYBACK_FPS_STEPS[(at + 1) % PLAYBACK_FPS_STEPS.length];
+    if (playing) {
+      clearTimer(playbackTimer);
+      playbackTimer = setTimer(playbackTick, 1000 / playbackFps);
+    }
+    syncPlayback();
   }
 
   /** Disable ‹ or › at once where the sequence ends (it also warms the neighbours). */
@@ -300,10 +386,16 @@ export function createKartaViewViewer({
    * Step along the sequence from the photo showing, or from the one on its
    * way after an earlier press, and open it through the core.
    */
+  /**
+   * Step along the sequence, resolving to the photo stepped to, null at
+   * the sequence end, or undefined when the press was lost (no answer,
+   * or another photo opened meanwhile). Playback tells end from loss by
+   * this value: only null stops it.
+   */
   function stepBy(delta) {
     steps = steps.then(async () => {
       const fromId = openingId ?? photo?.id;
-      if (!fromId || !root) return;
+      if (!fromId || !root) return undefined;
       let from;
       let nextId = null;
       try {
@@ -311,19 +403,21 @@ export function createKartaViewViewer({
         if (from.sequenceId) nextId = await step(from, delta);
       } catch {
         // Not the end of the sequence, just no answer: the press is lost.
-        return;
+        return undefined;
       }
       // Closed, or another photo was opened meanwhile.
-      if ((openingId ?? photo?.id) !== fromId) return;
+      if ((openingId ?? photo?.id) !== fromId) return undefined;
       if (!nextId) {
         const button = delta < 0 ? prevButton : nextButton;
         if (button && photo?.id === fromId) disable(button);
-        return;
+        return null;
       }
       openingId = nextId;
       keepViewFor = nextId;
       onStep(nextId);
+      return nextId;
     });
+    return steps;
   }
 
   /** Pointers on the panorama: one drags the view, two pinch the zoom. */
@@ -440,7 +534,7 @@ export function createKartaViewViewer({
     root.setAttribute('role', 'group');
     root.setAttribute(
       'aria-label',
-      'KartaView photo. ← and → step along the sequence. On a 360° photo, drag or use Shift+← →, ↑ ↓ to look around, and + − to zoom',
+      'KartaView photo. ← and → step along the sequence. Play steps through the sequence as a photo sequence, not live video. On a 360° photo, drag or use Shift+← →, ↑ ↓ to look around, and + − to zoom',
     );
     picture = doc.createElement('img');
     picture.className = 'sl-kv-photo';
@@ -464,7 +558,43 @@ export function createKartaViewViewer({
     };
     prevButton = nav('Previous photo in this sequence (←)', '‹', -1);
     nextButton = nav('Next photo in this sequence (→)', '›', 1);
-    root.append(picture, canvas, prevButton, nextButton);
+    // Sequence playback, after the step buttons so the existing button
+    // order (picture, canvas, ‹, ›) never moves for callers that read it.
+    playButton = doc.createElement('button');
+    playButton.type = 'button';
+    playButton.className = 'sl-kv-step sl-kv-play';
+    playButton.textContent = '▶';
+    playButton.title = 'Play photo sequence (not live video)';
+    playButton.setAttribute('aria-label', playButton.title);
+    playButton.disabled = true;
+    listen(playButton, 'click', (event) => {
+      event.stopPropagation();
+      togglePlayback();
+    });
+    speedButton = doc.createElement('button');
+    speedButton.type = 'button';
+    speedButton.className = 'sl-kv-step sl-kv-speed';
+    speedButton.textContent = `${playbackFps} fps`;
+    speedButton.title = 'Playback speed: photos per second';
+    speedButton.setAttribute('aria-label', speedButton.title);
+    speedButton.disabled = true;
+    listen(speedButton, 'click', (event) => {
+      event.stopPropagation();
+      cyclePlaybackSpeed();
+    });
+    playbackBadge = doc.createElement('div');
+    playbackBadge.className = 'sl-kv-playback-badge';
+    playbackBadge.textContent = PLAYBACK_LABEL;
+    playbackBadge.hidden = true;
+    root.append(
+      picture,
+      canvas,
+      prevButton,
+      nextButton,
+      playButton,
+      speedButton,
+      playbackBadge,
+    );
     host.append(root);
     listen(root, 'keydown', onKeyDown);
     applyRenderMode();
@@ -482,6 +612,7 @@ export function createKartaViewViewer({
     renderer = null;
     root?.remove();
     root = picture = canvas = prevButton = nextButton = null;
+    playButton = speedButton = playbackBadge = null;
     showing = null;
     photo = null;
   }
@@ -643,6 +774,10 @@ export function createKartaViewViewer({
     async open(imageId) {
       if (!root) throw new Error('KartaView viewer is not mounted');
       const id = String(imageId);
+      // A photo opened from elsewhere (a cone click, a new search) ends
+      // playback; a playback step's own open keeps it going, because the
+      // step set openingId to this id before asking the core to open it.
+      if (playing && openingId !== id) stopPlayback();
       const seq = ++openSeq;
       const keepView = keepViewFor === id;
       keepViewFor = null;
@@ -658,6 +793,7 @@ export function createKartaViewViewer({
       openSeq++;
       openingId = null;
       keepViewFor = null;
+      stopPlayback();
       photo = null;
       show(null);
       if (picture) picture.removeAttribute('src');
@@ -668,6 +804,7 @@ export function createKartaViewViewer({
       openSeq++;
       openingId = null;
       keepViewFor = null;
+      stopPlayback();
       teardown();
     },
 
