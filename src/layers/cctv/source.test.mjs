@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCctvSource, createCctvLayer } from './index.js';
+import {
+  createCctvSource,
+  createCctvLayer,
+  mapWindyWebcam,
+  fetchWindyCameras,
+} from './index.js';
 
 const camera = {
   id: 'pack/camera ?x',
@@ -172,4 +177,222 @@ test('frames are read through the registered frame endpoint', async () => {
     fetchImpl: async () => new Response(null, { status: 502 }),
   });
   await assert.rejects(failing.getFrame(camera), /Camera frame HTTP 502/);
+});
+
+test('camera catalog falls back to the static snapshot when the proxy 404s', async () => {
+  const snapshot = {
+    sources: [
+      {
+        id: 'austin-1',
+        feedType: 'image',
+        url: 'https://example.test/a.jpg',
+        snapshotUrl: '',
+      },
+      {
+        id: 'deldot-1',
+        feedType: 'hls',
+        url: 'https://example.test/live.m3u8',
+        snapshotUrl: '',
+      },
+    ],
+  };
+  const requested = [];
+  const source = createCctvSource({
+    fetchImpl: async (path) => {
+      requested.push(path);
+      if (path === '/api/cctv/sources')
+        return new Response('', { status: 404 });
+      if (path === '/data/cctv-sources.json')
+        return new Response(JSON.stringify(snapshot));
+      if (path === '/data/cctv-opentraffic.json')
+        return new Response(
+          JSON.stringify({
+            sources: [
+              {
+                id: 'otcm-1',
+                feedType: 'image',
+                url: 'https://example.test/otcm.jpg',
+                snapshotUrl: 'https://example.test/otcm.jpg',
+              },
+            ],
+          }),
+        );
+      throw new Error('unexpected fetch ' + path);
+    },
+  });
+  const catalog = await source.getCatalog();
+  assert.equal(catalog.sources.length, 3);
+  assert.equal(catalog.opentrafficSources, 1);
+  // No Windy key in tests: zero Windy cameras, status reported, no fetch.
+  assert.equal(catalog.windyStatus, 'missing-key');
+  assert.equal(catalog.windyCount, 0);
+  assert.deepEqual(requested, [
+    '/api/cctv/sources',
+    '/data/cctv-sources.json',
+    '/data/cctv-opentraffic.json',
+  ]);
+  assert.match(
+    source.getFrameUrl({ ...camera, id: 'otcm-1' }),
+    /^https:\/\/example\.test\/otcm\.jpg\?cctvTs=\d+$/,
+  );
+  assert.match(
+    source.getFrameUrl({ ...camera, id: 'austin-1' }),
+    /^https:\/\/example\.test\/a\.jpg\?cctvTs=\d+$/,
+  );
+  assert.match(
+    source.getMediaUrl({ id: 'deldot-1' }),
+    /^https:\/\/example\.test\/live\.m3u8\?cctvTs=\d+$/,
+  );
+  // A video camera without a snapshot still uses the proxy frame route.
+  assert.match(
+    source.getFrameUrl({ ...camera, id: 'deldot-1' }),
+    /^\/api\/cctv\/frame\//,
+  );
+});
+
+test('camera catalog falls back to the static snapshot on a network failure', async () => {
+  const source = createCctvSource({
+    fetchImpl: async (path) => {
+      if (path === '/api/cctv/sources') throw new TypeError('fetch failed');
+      return new Response(JSON.stringify({ sources: [] }));
+    },
+  });
+  const catalog = await source.getCatalog();
+  assert.deepEqual(catalog.sources, []);
+});
+
+test('camera frame and media URLs stay on the proxy when the catalog came from it', async () => {
+  const source = createCctvSource({
+    fetchImpl: async () =>
+      new Response(JSON.stringify({ sources: [], cameras: [] })),
+  });
+  await source.getCatalog();
+  assert.match(
+    source.getFrameUrl(camera),
+    /^\/api\/cctv\/frame\/pack%2Fcamera%20%3Fx\?/,
+  );
+  assert.match(
+    source.getMediaUrl(camera),
+    /^\/api\/cctv\/media\/pack%2Fcamera%20%3Fx\?ts=\d+$/,
+  );
+});
+
+const windyWebcam = {
+  webcamId: 1401795663,
+  status: 'active',
+  title: 'Times Square',
+  viewCount: 42,
+  lastUpdatedOn: '2026-10-29T10:00:00.000Z',
+  images: {
+    current: {
+      preview: 'https://images.windy.com/preview.jpg?token=abc',
+      icon: 'https://images.windy.com/icon.jpg?token=abc',
+    },
+  },
+  location: {
+    city: 'New York',
+    region: 'New York',
+    country: 'United States',
+    latitude: 40.758,
+    longitude: -73.9855,
+  },
+  player: { day: 'https://windy.com/embed/day' },
+  urls: { detail: 'https://windy.com/webcams/1401795663' },
+};
+
+test('Windy v3 webcams map to snapshot catalog entries, never live', () => {
+  const mapped = mapWindyWebcam(windyWebcam);
+  assert.equal(mapped.id, 'windy-1401795663');
+  assert.equal(mapped.name, 'Times Square');
+  assert.equal(mapped.city, 'New York');
+  assert.equal(mapped.lat, 40.758);
+  assert.equal(mapped.lon, -73.9855);
+  // A refreshing snapshot is CONTINUOUS, never LIVE: feedType image.
+  assert.equal(mapped.feedType, 'image');
+  assert.equal(mapped.url, 'https://images.windy.com/preview.jpg?token=abc');
+  assert.equal(mapped.snapshotUrl, mapped.url);
+  assert.equal(mapped.provider, 'Windy');
+  assert.equal(mapped.credit, 'Windy.com');
+  assert.equal(mapped.sourceKind, 'windy');
+  assert.equal(mapWindyWebcam({ ...windyWebcam, status: 'inactive' }), null);
+  assert.equal(
+    mapWindyWebcam({ ...windyWebcam, location: { city: 'Nowhere' } }),
+    null,
+  );
+  assert.equal(mapWindyWebcam({ ...windyWebcam, images: {} }), null);
+  // Thumbnail fallback when no preview size is present.
+  const thumb = mapWindyWebcam({
+    ...windyWebcam,
+    images: { current: { thumbnail: 'https://images.windy.com/t.jpg' } },
+  });
+  assert.equal(thumb.url, 'https://images.windy.com/t.jpg');
+});
+
+test('Windy fetch without a key makes no request and reports missing-key', async () => {
+  let calls = 0;
+  const result = await fetchWindyCameras({
+    fetchImpl: async () => {
+      calls += 1;
+      return new Response('{}');
+    },
+    key: '',
+    areas: [{ name: 'Nowhere', lat: 0, lon: 0, radiusKm: 10 }],
+  });
+  assert.deepEqual(result, { cameras: [], status: 'missing-key' });
+  assert.equal(calls, 0);
+});
+
+test('Windy fetch dedupes across areas and degrades per area', async () => {
+  const seen = [];
+  const fetchImpl = async (url, init) => {
+    seen.push({ url, key: init.headers['X-WINDY-API-KEY'] });
+    if (url.includes('10%2C20')) return new Response('', { status: 500 });
+    return new Response(JSON.stringify({ total: 1, webcams: [windyWebcam] }));
+  };
+  const result = await fetchWindyCameras({
+    fetchImpl,
+    key: 'test-key',
+    areas: [
+      { name: 'Failing', lat: 10, lon: 20, radiusKm: 50 },
+      { name: 'New York', lat: 40.7, lon: -74, radiusKm: 100 },
+      { name: 'New York again', lat: 40.7, lon: -74, radiusKm: 100 },
+    ],
+    limit: 5,
+  });
+  assert.equal(result.status, 'ok');
+  assert.equal(result.cameras.length, 1);
+  assert.equal(result.cameras[0].id, 'windy-1401795663');
+  assert.ok(seen.every((call) => call.key === 'test-key'));
+  assert.ok(seen[1].url.includes('nearby=40.7%2C-74%2C100'));
+  assert.ok(seen[1].url.includes('include=images'));
+  const allFail = await fetchWindyCameras({
+    fetchImpl: async () => new Response('', { status: 500 }),
+    key: 'test-key',
+    areas: [{ name: 'Failing', lat: 10, lon: 20, radiusKm: 50 }],
+  });
+  assert.deepEqual(allFail, { cameras: [], status: 'error' });
+});
+
+test('catalog appends Windy cameras per page load with direct frame URLs', async () => {
+  const source = createCctvSource({
+    windyApiKey: 'test-key',
+    windyAreas: [{ name: 'New York', lat: 40.7, lon: -74, radiusKm: 100 }],
+    fetchImpl: async (url) => {
+      if (String(url).startsWith('https://api.windy.com/'))
+        return new Response(
+          JSON.stringify({ total: 1, webcams: [windyWebcam] }),
+        );
+      return new Response(JSON.stringify({ sources: [] }));
+    },
+  });
+  const catalog = await source.getCatalog();
+  assert.equal(catalog.windyStatus, 'ok');
+  assert.equal(catalog.windyCount, 1);
+  assert.equal(catalog.sources.length, 1);
+  assert.equal(catalog.sources[0].id, 'windy-1401795663');
+  // Tokenised Windy URLs are remembered direct, so cards use them as-is.
+  assert.match(
+    source.getFrameUrl({ ...camera, id: 'windy-1401795663' }),
+    /^https:\/\/images\.windy\.com\/preview\.jpg\?token=abc&cctvTs=\d+$/,
+  );
 });

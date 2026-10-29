@@ -19,6 +19,8 @@ import {
   loadCalgarySourcesFromOpenData,
   loadDelDOTSourcesFromOpenData,
   loadVegvesenSourcesFromOpenData,
+  loadTripcheckSourcesFromOpenData,
+  loadAviationWxSourcesFromOpenData,
 } from './sources.js';
 
 /** Env kill switch: unset or anything but "0" means enabled. */
@@ -97,6 +99,16 @@ const LIVE_PACKS = [
     name: 'vegvesen',
     enabled: () => envEnabled('CCTV_VEGVESEN_ENABLED'),
     load: loadVegvesenSourcesFromOpenData,
+  },
+  {
+    name: 'tripcheck',
+    enabled: () => envEnabled('CCTV_TRIPCHECK_ENABLED'),
+    load: loadTripcheckSourcesFromOpenData,
+  },
+  {
+    name: 'aviationwx',
+    enabled: () => envEnabled('CCTV_AVIATIONWX_ENABLED'),
+    load: loadAviationWxSourcesFromOpenData,
   },
 ];
 /**

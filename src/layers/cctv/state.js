@@ -58,6 +58,9 @@ export function createState({ services }) {
 
   layerState._lastError = null;
 
+  layerState._windyStatus = 'unknown';
+  layerState._windyCount = 0;
+
   layerState._healthById = new Map();
 
   layerState._calibrationById = new Map();

@@ -62,9 +62,14 @@ export function createPresentation({
   function buildSummaryText() {
     const active = parts.selection.getActiveRecord();
     if (!active) {
-      return layerState._records.length
+      const base = layerState._records.length
         ? `${layerState._records.length} CAMERAS STANDING BY · NO CAMERA SELECTED · CLICK A CAMERA TO ACTIVATE`
         : 'No cameras available in catalog.';
+      // Windy webcams are key-gated: say so on the panel instead of
+      // silently showing a catalog without them.
+      return layerState._windyStatus === 'missing-key'
+        ? `${base} · WINDY WEBCAMS OFF: API KEY NOT CONFIGURED`
+        : base;
     }
 
     const area = parts.model.sectorAreaKm2(
@@ -206,6 +211,8 @@ export function createPresentation({
       count: layerState._count,
       lastUpdate: layerState._lastUpdate,
       error: layerState._lastError,
+      windyStatus: layerState._windyStatus,
+      windyCount: layerState._windyCount,
       loading: {
         active: layerState._geoLoading,
         loaded: Math.min(layerState._geoLoadDone, layerState._geoLoadTotal),

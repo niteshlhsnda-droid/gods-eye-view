@@ -122,7 +122,12 @@ export {
   CCTV_PROJECTION_OVERLAY_SOURCE_OPTIONS,
 } from './policy.js';
 
-export { createCctvSource } from './source.js';
+export {
+  createCctvSource,
+  mapWindyWebcam,
+  fetchWindyCameras,
+  WINDY_AREAS,
+} from './source.js';
 
 export { CCTV_AMBIENT_CARD_MAX } from '../../data/cctvLod.js';
 export {

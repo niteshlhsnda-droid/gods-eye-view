@@ -91,3 +91,24 @@ test('finite video feeds retain looping while live HLS does not loop', async () 
     }
   }
 });
+
+test('direct upstream HLS carries no proxy lease and no DELETE release', async () => {
+  const source = video();
+  source.canPlayType = () => 'probably';
+  const releases = [];
+  const playback = attachCctvVideo(
+    source,
+    'https://video.example.test/live/playlist.m3u8',
+    'hls',
+    {
+      loadHls: async () => ({ default: { isSupported: () => false } }),
+      fetchImpl: async (url, init) => {
+        releases.push({ url, init });
+      },
+    },
+  );
+  await playback.ready;
+  assert.equal(source.src, 'https://video.example.test/live/playlist.m3u8');
+  playback.dispose();
+  assert.equal(releases.length, 0);
+});
